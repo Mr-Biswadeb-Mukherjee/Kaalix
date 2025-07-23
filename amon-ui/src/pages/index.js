@@ -1,0 +1,7 @@
+export { default as Dashboard } from './Dashboard';
+export { default as TargetConfig } from './TargetConfig';
+export { default as AttackLogic } from './AttackLogic';
+export { default as Modules } from './Modules';
+export { default as AboutUs } from './Aboutus';
+export { default as Documentation } from './Docs';
+export { default as Settings } from './Setting';

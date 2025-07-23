@@ -1,0 +1,83 @@
+@import url('https://fonts.googleapis.com/css2?family=Fira+Code&family=JetBrains+Mono:wght@500&family=Orbitron&display=swap');
+
+/* === Light Theme (default) === */
+:root {
+  --topbar-height: 52px;
+  --sidebar-width: 220px;
+  --sidebar-collapsed-width: 64px;
+  --accent-color: #ff3c00;
+  --bg-color: #fdfdfd;
+  --hover-bg: #f0f0f0;
+  --border-color: #ddd;
+  --text-color: #222;
+  --icon-muted: #000000;
+  --font-family: 'Orbitron';
+  --font-weight: 500;
+  color-scheme: light;
+}
+
+@keyframes gradientShift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+/* === Dark Theme Override === */
+[data-theme='dark'] {
+  --bg-color: #0d0d0f;
+  --hover-bg: #1a1a2e;
+  --border-color: #1e1e1e;
+  --text-color: #e0e0e0;
+  --icon-muted: #888;
+  color-scheme: dark;
+  
+}
+
+[data-theme='light'] body {
+  background: linear-gradient(145deg, #fff0d3, #fdf5e6); /* Creamy gradient */
+  --bg-color: linear-gradient(145deg, #fff0d3, #fdf5e6);
+  --hover-bg: #ffd37c;
+  --border-color: #ffbf40;
+  --icon-muted: #000000;
+  --text-color: #000000;
+  --hamburger-color: #000000;
+  animation: gradientShift 15s ease infinite;
+
+}
+
+[data-theme='dark'] body {
+  background: linear-gradient(185deg, #0a0a0a, #1a1a1a); /* Deep black gradient */
+  --bg-color: linear-gradient(185deg, #0a0a0a, #1a1a1a);
+  --hover-bg: #555555;
+  --border-color: #1d1d1d;
+  --icon-muted: #ffffff;
+  --hamburger-color: #ffffff;
+  animation: gradientShift 15s ease infinite;
+
+}
+
+[data-theme='forest'] body {
+  background: linear-gradient(180deg, #061f06, #0f3d2e); /* Dense forest tones */
+  --bg-color: linear-gradient(180deg, #061f06, #0f3d2e);
+  --hover-bg: #1e5e40; /* Leafy hover effect */
+  --icon-muted: #ffffff;
+  --text-color: #ffffff;
+  --hamburger-color: #ff3333;
+  animation: gradientShift 15s ease infinite;
+
+}
+
+body {
+  margin: 0;
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  font-family: var(--font-family), sans-serif;
+  font-weight: var(--font-weight);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}

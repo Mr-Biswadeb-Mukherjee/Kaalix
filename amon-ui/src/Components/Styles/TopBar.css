@@ -1,0 +1,85 @@
+.topbar-container {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 2px;
+  height: 50px;
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  border-bottom: 1px solid var(--border-color);
+  position: fixed;
+  top: 0;
+  left: var(--sidebar-width);
+  width: calc(100% - var(--sidebar-width));
+  right: 0;
+  z-index: 999;
+  transition: left 0.3s ease, width 0.3s ease, background-color 0.3s ease;
+}
+
+.topbar-container.collapsed {
+  left: var(--sidebar-collapsed-width);
+  width: calc(100% - var(--sidebar-collapsed-width));
+}
+
+.topbar-left {
+  display: flex;
+  align-items: center;
+}
+
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.topbar-status {
+  margin-right: 20px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  background-color: var(--bg-color);
+  border-radius: 4px;
+  border: 1px solid var(--border-color);
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+  cursor: default;
+}
+
+.topbar-status:hover {
+  background-color: var(--hover-bg);
+}
+
+.topbar-status.theme-toggle {
+  cursor: pointer;
+  user-select: none;
+  color: var(--text-color);;
+}
+
+.topbar-text {
+  font-family: 'Fira Code', monospace;
+  white-space: nowrap;
+  color: var(--text-color);
+}
+
+.topbar-status.theme-toggle:hover {
+  box-shadow: 0 0 4px rgba(255, 255, 255, 0.2);
+  background-color: var(--hover-bg);
+}
+
+
+/* === Theme Variables === */
+:root {
+  --bg-color: #fdfdfd;
+  --border-color: #ddd;
+  --hover-bg: #f0f0f0;
+  --text-color: #000000;
+}
+
+[data-theme='dark'] {
+  --bg-color: #121212;
+  --border-color: #333;
+  --hover-bg: #1e1e1e;
+  --text-color: #ccc;
+}

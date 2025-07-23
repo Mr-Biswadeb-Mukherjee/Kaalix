@@ -1,0 +1,48 @@
+/* Styles/statusBar.css */
+.status-bar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end; /* Align the stats to the right */
+  padding: 0 18px;
+  height: 36px;
+  font-family: 'JetBrains Mono', monospace;
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  font-size: 10px;
+  border-top: 1px solid var(--border-color);
+  position: fixed;
+  bottom: 0;
+  left: var(--sidebar-width);
+  width: calc(100% - var(--sidebar-width));
+  box-sizing: border-box;
+  z-index: 998;
+  transition: left 0.3s ease, width 0.3s ease;
+}
+
+
+/* When sidebar collapses, shift bar accordingly */
+.status-bar.collapsed {
+  left: var(--sidebar-collapsed-width);
+  width: calc(100% - var(--sidebar-collapsed-width));
+}
+
+
+.status-item {
+  margin-left: 24px; /* spacing between items */
+  display: flex;
+  align-items: center;
+  color: var(--text-color);
+  letter-spacing: 0.3px;
+  gap: 0.1px;
+  padding: 2px 8px;;
+  background-color: var(--bg-color);
+  border-radius: 4px;
+  border: 1px solid var(--border-color);
+  transition: background-color 0.2s ease;
+}
+
+.status-item:hover {
+  color: var(--accent-color);
+}
+
+
