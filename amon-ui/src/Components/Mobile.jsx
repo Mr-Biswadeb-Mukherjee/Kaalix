@@ -1,6 +1,9 @@
-// Mobile.jsx
+// Logo.jsx
 import './Styles/Mobile.css'
 
+/*
+  Renders a message indicating that the application is for desktop use only.
+*/
 export default function Mobile() {
   return (
     <div className="mobile-block-container">

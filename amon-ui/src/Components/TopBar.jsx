@@ -1,11 +1,20 @@
+// Topbar.jsx
+
 import React, { useEffect, useState } from 'react';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
 import Brightness4Icon from '@mui/icons-material/Brightness4';
-import ForestIcon from '@mui/icons-material/Forest'; // Optional: for forest mode
-import WbSunnyIcon from '@mui/icons-material/WbSunny'; // Optional: for light mode
-import NightsStayIcon from '@mui/icons-material/NightsStay'; // Optional: for dark mode
+import ForestIcon from '@mui/icons-material/Forest'; 
+import WbSunnyIcon from '@mui/icons-material/WbSunny'; 
+import NightsStayIcon from '@mui/icons-material/NightsStay'; 
 import './Styles/TopBar.css';
+
+// ----------------------------------------------------------------------------------------------------
+// TopBar Component
+// Renders a top bar displaying current time, user's location, and a theme toggle.
+// Props:
+// - collapsed: A boolean indicating whether the sidebar is collapsed, affecting top bar's layout.
+// ----------------------------------------------------------------------------------------------------
 
 const TopBar = ({ collapsed }) => {
   const [time, setTime] = useState(new Date().toLocaleTimeString());
@@ -17,7 +26,13 @@ const TopBar = ({ collapsed }) => {
     localStorage.setItem('theme', theme);
   }, [theme]);
 
+  // ----------------------------------------------------------------------------------------------------
+  // useEffect Hook for Time and Location Updates
+  // Sets up an interval for time updates and fetches user's location on component mount.
+  // Cleans up the interval on component unmount.
+  // ----------------------------------------------------------------------------------------------------
   useEffect(() => {
+    // Set up interval to update time every second
     const timer = setInterval(() => {
       setTime(new Date().toLocaleTimeString());
     }, 1000);
@@ -31,9 +46,14 @@ const TopBar = ({ collapsed }) => {
         setLocation('Unknown Location');
       });
 
+    // Cleanup function to clear the interval
     return () => clearInterval(timer);
   }, []);
 
+  // ----------------------------------------------------------------------------------------------------
+  // Theme Toggling Logic
+  // Cycles through 'light', 'dark', and 'forest' themes.
+  // ----------------------------------------------------------------------------------------------------
   const toggleTheme = () => {
     setTheme((prev) => {
       if (prev === 'light') return 'dark';
@@ -42,6 +62,9 @@ const TopBar = ({ collapsed }) => {
     });
   };
 
+  // ----------------------------------------------------------------------------------------------------
+  // Helper function to get the appropriate theme icon based on the current theme.
+  // ----------------------------------------------------------------------------------------------------
   const getThemeIcon = () => {
     switch (theme) {
       case 'light':
@@ -55,18 +78,25 @@ const TopBar = ({ collapsed }) => {
     }
   };
 
+  // ----------------------------------------------------------------------------------------------------
+  // Render Method
+  // ----------------------------------------------------------------------------------------------------
   return (
+    // Main container for the top bar, applies 'collapsed' class based on prop
     <div className={`topbar-container ${collapsed ? 'collapsed' : ''}`}>
+      {/* Theme Toggle Section */}
       <div className="topbar-status theme-toggle" onClick={toggleTheme} title="Toggle Theme">
         {getThemeIcon()}
         <span className="topbar-text">
           {theme.charAt(0).toUpperCase() + theme.slice(1)} Mode
         </span>
       </div>
+      {/* Current Time Display */}
       <div className="topbar-status">
         <AccessTimeIcon className="topbar-icon" />
         <span className="topbar-text">{time}</span>
       </div>
+      {/* User Location Display */}
       <div className="topbar-status">
         <LocationOnIcon className="topbar-icon" />
         <span className="topbar-text">{location}</span>
@@ -75,4 +105,7 @@ const TopBar = ({ collapsed }) => {
   );
 };
 
+// ----------------------------------------------------------------------------------------------------
+// Export the TopBar Component
+// ----------------------------------------------------------------------------------------------------
 export default TopBar;

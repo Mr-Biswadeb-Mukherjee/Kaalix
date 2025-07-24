@@ -1,0 +1,12 @@
+/*
+==================================
+           Amon Logo
+==================================
+*/
+
+.amon-logo-component {
+  display: inline-block;
+  vertical-align: middle;
+  margin-right: -2px;
+  object-fit: contain;
+}

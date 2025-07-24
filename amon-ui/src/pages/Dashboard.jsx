@@ -1,4 +1,8 @@
+// Dashboard.jsx
+
 import React from 'react';
+import './Styles/Dashboard.css';
+
 
 const Dashboard = () => {
   return (

@@ -1,4 +1,7 @@
+// Docs.jsx
+
 import React from 'react';
+import './Styles/Docs.css';
 
 const Documentation = () => {
   return (

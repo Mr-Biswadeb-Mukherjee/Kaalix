@@ -1,3 +1,9 @@
+/*
+==================================
+           Top Bar
+==================================
+*/
+
 .topbar-container {
   display: flex;
   align-items: center;
@@ -6,7 +12,7 @@
   height: 50px;
   background-color: var(--bg-color);
   color: var(--text-color);
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-family);
   font-size: 10px;
   border-bottom: 1px solid var(--border-color);
   position: fixed;
@@ -23,6 +29,12 @@
   width: calc(100% - var(--sidebar-collapsed-width));
 }
 
+/*
+==================================
+         Top Bar Sections
+==================================
+*/
+
 .topbar-left {
   display: flex;
   align-items: center;
@@ -33,6 +45,12 @@
   align-items: center;
   gap: 16px;
 }
+
+/*
+==================================
+         Top Bar Status
+==================================
+*/
 
 .topbar-status {
   margin-right: 20px;
@@ -47,6 +65,12 @@
   cursor: default;
 }
 
+/*
+==================================
+         Top Bar Hover
+==================================
+*/
+
 .topbar-status:hover {
   background-color: var(--hover-bg);
 }
@@ -57,8 +81,13 @@
   color: var(--text-color);;
 }
 
+/*
+==================================
+         Top Bar Text
+==================================
+*/
+
 .topbar-text {
-  font-family: 'Fira Code', monospace;
   white-space: nowrap;
   color: var(--text-color);
 }
@@ -66,20 +95,4 @@
 .topbar-status.theme-toggle:hover {
   box-shadow: 0 0 4px rgba(255, 255, 255, 0.2);
   background-color: var(--hover-bg);
-}
-
-
-/* === Theme Variables === */
-:root {
-  --bg-color: #fdfdfd;
-  --border-color: #ddd;
-  --hover-bg: #f0f0f0;
-  --text-color: #000000;
-}
-
-[data-theme='dark'] {
-  --bg-color: #121212;
-  --border-color: #333;
-  --hover-bg: #1e1e1e;
-  --text-color: #ccc;
 }

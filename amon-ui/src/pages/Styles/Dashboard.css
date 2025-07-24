@@ -1,0 +1,373 @@
+/* Base Container */
+.amon-container {
+  font-family: monospace;
+  background-color: #0f0f0f;
+  color: #f5f5f5;
+  padding: 20px;
+  height: 100vh;
+  overflow-y: auto;
+}
+
+/* Header */
+.amon-header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 15px;
+  padding: 10px;
+  border-bottom: 1px solid #333;
+  font-size: 14px;
+  background-color: #121212;
+  border-radius: 6px;
+  margin-bottom: 20px;
+}
+
+/* Controls */
+.amon-controls {
+  margin: 15px 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.amon-controls button {
+  background-color: #222;
+  color: #f5f5f5;
+  border: 1px solid #444;
+  padding: 8px 16px;
+  cursor: pointer;
+  border-radius: 4px;
+  font-weight: bold;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+}
+
+.amon-controls button:hover {
+  background-color: #333;
+}
+
+.amon-controls button:active {
+  transform: scale(0.96);
+}
+
+/* Protocol Switcher */
+.amon-protocols {
+  margin-bottom: 15px;
+}
+
+.protocol {
+  margin-right: 10px;
+  padding: 6px 12px;
+  background-color: #222;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+  transition: 0.3s ease;
+  border: 1px solid transparent;
+}
+
+.protocol:hover {
+  background-color: #00bcd4;
+  color: black;
+  font-weight: bold;
+  border-color: #00bcd4;
+}
+
+.protocol.active {
+  background-color: #00bcd4;
+  color: black;
+  font-weight: bold;
+  border: 1px solid #00bcd4;
+}
+
+/* Panel Grid */
+.amon-panels {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+/* Individual Panels */
+.amon-progress,
+.amon-logs {
+  background-color: #1a1a1a;
+  padding: 15px;
+  flex: 1;
+  min-width: 300px;
+  border-radius: 8px;
+  box-shadow: 0 0 10px #000;
+  transition: transform 0.2s ease-in-out;
+}
+
+.amon-progress:hover,
+.amon-logs:hover {
+  transform: translateY(-2px);
+}
+
+/* Progress Bar */
+.progress-bar {
+  background-color: #333;
+  height: 12px;
+  width: 100%;
+  margin-bottom: 10px;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  background-color: #00ff6a;
+  height: 100%;
+  transition: width 0.4s ease-in-out;
+}
+
+/* Logs */
+.log-output {
+  font-size: 13px;
+  line-height: 1.5;
+  background-color: #111;
+  padding: 10px;
+  height: 120px;
+  overflow-y: auto;
+  border-radius: 4px;
+  border: 1px solid #333;
+  font-family: monospace;
+  white-space: pre-line;
+}
+
+/* Highlight Colors */
+.green {
+  color: #00ff6a;
+}
+
+.highlight {
+  color: #ffa726;
+}
+
+/* Scrollbar (for logs) */
+.log-output::-webkit-scrollbar {
+  width: 6px;
+}
+.log-output::-webkit-scrollbar-thumb {
+  background-color: #333;
+  border-radius: 3px;
+}
+.log-output::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Responsive Handling */
+@media screen and (max-width: 768px) {
+  .amon-header,
+  .amon-controls,
+  .amon-panels {
+    flex-direction: column;
+  }
+
+  .amon-controls {
+    gap: 8px;
+  }
+
+  .amon-progress,
+  .amon-logs {
+    min-width: 100%;
+  }
+}
+/* Base Container */
+.amon-container {
+  font-family: monospace;
+  background-color: #0f0f0f;
+  color: #f5f5f5;
+  padding: 20px;
+  height: 100vh;
+  overflow-y: auto;
+}
+
+/* Header */
+.amon-header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 15px;
+  padding: 10px;
+  border-bottom: 1px solid #333;
+  font-size: 14px;
+  background-color: #121212;
+  border-radius: 6px;
+  margin-bottom: 20px;
+}
+
+/* Controls */
+.amon-controls {
+  margin: 15px 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.amon-controls button {
+  background-color: #222;
+  color: #f5f5f5;
+  border: 1px solid #444;
+  padding: 8px 16px;
+  cursor: pointer;
+  border-radius: 4px;
+  font-weight: bold;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+}
+
+.amon-controls button:hover {
+  background-color: #333;
+}
+
+.amon-controls button:active {
+  transform: scale(0.96);
+}
+
+/* Protocol Switcher */
+.amon-protocols {
+  margin-bottom: 15px;
+}
+
+.protocol {
+  margin-right: 10px;
+  padding: 6px 12px;
+  background-color: #222;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+  transition: 0.3s ease;
+  border: 1px solid transparent;
+}
+
+.protocol:hover {
+  background-color: #00bcd4;
+  color: black;
+  font-weight: bold;
+  border-color: #00bcd4;
+}
+
+.protocol.active {
+  background-color: #00bcd4;
+  color: black;
+  font-weight: bold;
+  border: 1px solid #00bcd4;
+}
+
+/* Panel Grid */
+.amon-panels {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+/* Individual Panels */
+.amon-progress,
+.amon-logs {
+  background-color: #1a1a1a;
+  padding: 15px;
+  flex: 1;
+  min-width: 300px;
+  border-radius: 8px;
+  box-shadow: 0 0 10px #000;
+  transition: transform 0.2s ease-in-out;
+}
+
+.amon-progress:hover,
+.amon-logs:hover {
+  transform: translateY(-2px);
+}
+
+/* Progress Bar */
+.progress-bar {
+  background-color: #333;
+  height: 12px;
+  width: 100%;
+  margin-bottom: 10px;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  background-color: #00ff6a;
+  height: 100%;
+  transition: width 0.4s ease-in-out;
+}
+
+/* Logs */
+.log-output {
+  font-size: 13px;
+  line-height: 1.5;
+  background-color: #111;
+  padding: 10px;
+  height: 120px;
+  overflow-y: auto;
+  border-radius: 4px;
+  border: 1px solid #333;
+  font-family: monospace;
+  white-space: pre-line;
+}
+
+/* Highlight Colors */
+.green {
+  color: #00ff6a;
+}
+
+.highlight {
+  color: #ffa726;
+}
+
+/* Scrollbar (for logs) */
+.log-output::-webkit-scrollbar {
+  width: 6px;
+}
+.log-output::-webkit-scrollbar-thumb {
+  background-color: #333;
+  border-radius: 3px;
+}
+.log-output::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.mode-selector {
+  margin-top: 10px;
+  font-size: 13px;
+  color: #f5f5f5;
+}
+
+.dropdown {
+  background-color: #1a1a1a;
+  border: 1px solid #333;
+  border-radius: 6px;
+  padding: 10px;
+  margin-top: 5px;
+  display: flex;
+  flex-direction: column;
+  max-width: 250px;
+}
+
+.dropdown-option {
+  padding: 6px 8px;
+  cursor: pointer;
+  border-radius: 4px;
+  font-family: monospace;
+  color: #f5f5f5;
+  transition: 0.2s;
+}
+
+.dropdown-option:hover {
+  background-color: #2a2a2a;
+}
+
+.dropdown-option.selected {
+  background-color: #00bcd455;
+  font-weight: bold;
+}
+
+.mode-tag {
+  background-color: #00bcd4;
+  color: black;
+  padding: 3px 6px;
+  margin-left: 5px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: bold;
+}

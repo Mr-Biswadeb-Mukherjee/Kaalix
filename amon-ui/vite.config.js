@@ -1,11 +1,27 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
-// https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
-    server: {
-    host: true, // or '0.0.0.0'
+  server: {
+    host: true,
     port: 5173,
-  },
+    watch: {
+      usePolling: true, // avoid native FS watchers
+      interval: 150,
+      ignored: [
+        '**/node_modules/**',
+        '**/dist/**',
+        '**/build/**',
+        '**/.git/**',
+        '**/.vscode/**',
+        '**/.idea/**',
+        '**/.cache/**',
+        '**/*.log',
+        '**/*.tmp',
+        '**/*.DS_Store',
+        '**/*.swp'
+      ]
+    }
+  }
 })

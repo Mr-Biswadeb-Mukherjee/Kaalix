@@ -1,4 +1,7 @@
+// Sidebar.jsx
+
 import React, { useState } from 'react';
+// Importing React Router DOM hooks for navigation
 import { Link, useLocation } from 'react-router-dom';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import TerminalIcon from '@mui/icons-material/Terminal';
@@ -8,12 +11,21 @@ import SettingsIcon from '@mui/icons-material/Settings';
 import InfoIcon from '@mui/icons-material/Info';
 import MenuBookIcon from '@mui/icons-material/MenuBook';
 import './Styles/sidebar.css';
-import logo from '../assets/Amon.png';
+import Logo from '../Components/Logo'
+
+
+// ----------------------------------------------------------------------------------------------------
+// Sidebar Component
+// Renders a collapsible sidebar navigation for the application.
+// Props:
+// - collapsed: A boolean indicating whether the sidebar is collapsed.
+// - setCollapsed: A function to toggle the collapsed state of the sidebar.
+// ----------------------------------------------------------------------------------------------------
+
 
 const Sidebar = ({ collapsed, setCollapsed }) => {
   const location = useLocation();
   const [active, setActive] = useState(location.pathname);
-
   const menuItems = [
     { name: 'Dashboard', icon: <DashboardIcon />, route: '/' },
     { name: 'Target Config', icon: <StorageIcon />, route: '/target-config' },
@@ -23,17 +35,18 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
     { name: 'Documentation', icon: <MenuBookIcon />, route: '/docs' },
   ];
 
+  // Function to toggle the sidebar's collapsed state
   const toggleSidebar = () => {
     setCollapsed(prev => !prev);
   };
-
   return (
     <div className={`sidebar-container ${collapsed ? 'collapsed' : ''}`}>
       <div className="sidebar-logo-fixed">
-        <img src={logo} alt="Logo" />
+        <Logo />
         {!collapsed && <span className="sidebar-logo-text">AMON</span>}
       </div>
 
+      {/* Sidebar Toggle Button (Burger Icon) */}
       <div className="sidebar-toggle" onClick={toggleSidebar}>
         <div className={`burger ${collapsed ? '' : 'open'}`}>
           <span></span>
@@ -42,6 +55,7 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
         </div>
       </div>
 
+      {/* Main Navigation Menu */}
       <nav className="sidebar-menu">
         {menuItems.map((item) => (
           <Link
@@ -55,9 +69,10 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
             {!collapsed && <span className="sidebar-label">{item.name}</span>}
           </Link>
         ))}
-      </nav>
-
-      {/* Settings at bottom */}
+      </nav> 
+      {/* End of Main Navigation Menu */}
+      
+      {/* Bottom Section: Settings Link */}
       <div className="sidebar-bottom">
         <Link
           to="/settings"
@@ -70,7 +85,6 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
         </Link>
       </div>
     </div>
-  );
+  ); // End of Sidebar Container
 };
-
 export default Sidebar;

@@ -1,8 +1,13 @@
-/* Styles/statusBar.css */
+/*
+==================================
+           Status Bar 
+==================================
+*/
+
 .status-bar {
   display: flex;
   align-items: center;
-  justify-content: flex-end; /* Align the stats to the right */
+  justify-content: flex-end; 
   padding: 0 18px;
   height: 36px;
   font-family: 'JetBrains Mono', monospace;
@@ -19,16 +24,19 @@
   transition: left 0.3s ease, width 0.3s ease;
 }
 
-
-/* When sidebar collapses, shift bar accordingly */
 .status-bar.collapsed {
   left: var(--sidebar-collapsed-width);
   width: calc(100% - var(--sidebar-collapsed-width));
 }
 
+/*
+==================================
+         Status Bar Items 
+==================================
+*/
 
 .status-item {
-  margin-left: 24px; /* spacing between items */
+  margin-left: 24px; 
   display: flex;
   align-items: center;
   color: var(--text-color);

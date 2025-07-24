@@ -1,4 +1,7 @@
+// Target Config.jsx
+
 import React from 'react';
+import './Styles/TargetConfig.css';
 
 const TargetConfig = () => {
   return (

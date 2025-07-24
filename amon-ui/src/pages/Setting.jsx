@@ -1,4 +1,7 @@
+// Settings.jsx
+
 import React from 'react';
+import './Styles/Setting.css';
 
 const Settings = () => {
   return (

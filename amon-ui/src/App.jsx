@@ -3,7 +3,6 @@ import { useEffect } from 'react';
 import MainLayout from './Layout/MainLayout';
 import * as Pages from './pages';
 
-// Route wrapper to dynamically update title
 function RouteWrapper({ title, children }) {
   useEffect(() => {
     document.title = title || 'Amon';
@@ -12,7 +11,6 @@ function RouteWrapper({ title, children }) {
   return children;
 }
 
-// Route definitions in a single array
 const routeConfig = [
   { path: '', element: <Pages.Dashboard />, title: 'Dashboard | Amon' },
   { path: 'target-config', element: <Pages.TargetConfig />, title: 'Target Config | Amon' },

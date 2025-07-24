@@ -1,10 +1,15 @@
-/* Sidebar Container */
+/*
+==================================
+           Sidebar
+==================================
+*/
+
 .sidebar-container {
   width: var(--sidebar-width);
   height: 100vh;
   background-color: var(--bg-color);
   color: var(--text-color);
-  font-family: (--font-family);
+  font-family: var(--font-family);
   font-weight: var(--font-weight);
   display: flex;
   flex-direction: column;
@@ -16,21 +21,26 @@
   transition: width 0.25s ease;
   z-index: 998;
   overflow: hidden;
-  box-shadow: 2px 0 4px rgba(0, 0, 0, 0.4);
+  box-shadow: var(--box-shadow);
 }
 
 .sidebar-container.collapsed {
   width: var(--sidebar-collapsed-width);
 }
 
-/* === Logo === */
+/*
+==================================
+           Sidebar Logo
+==================================
+*/
+
 .sidebar-logo-fixed {
-  height: 62px; /* Match logo height */
+  height: 62px; 
   display: flex;
   align-items: center;
-  justify-content: flex-start; /* Align to left */
+  justify-content: flex-start;
   background-color: var(--bg-color);
-  position: relative; /* for layering */
+  position: relative;
   z-index: 999;
   overflow: hidden;
   gap: 20px;
@@ -42,9 +52,8 @@
   transition: all 0.3s ease;
 }
 
-/* Logo Text Styling */
 .sidebar-logo-text {
-  font-family: (--font-family);
+  font-family: var(--font-family);
   font-size: 35px;
   font-weight: bold;
   letter-spacing: 0.5px;
@@ -58,7 +67,12 @@
   height: 62px;
 }
 
-/* === Burger Toggle === */
+/*
+==================================
+           Sidebar Toggle
+==================================
+*/
+
 .sidebar-toggle {
   display: flex;
   align-items: center;
@@ -107,7 +121,12 @@
   transform: rotate(-45deg) translate(4px, -4px);
 }
 
-/* === Sidebar Menu === */
+/*
+==================================
+           Sidebar Menu
+==================================
+*/
+
 .sidebar-menu {
   display: flex;
   flex-direction: column;
@@ -117,7 +136,12 @@
   flex-grow: 1;
 }
 
-/* Sidebar Items */
+/*
+==================================
+           Sidebar Item
+==================================
+*/
+
 .sidebar-item {
   display: flex;
   align-items: center;
@@ -126,6 +150,7 @@
   transition: all 0.15s ease;
   border-left: 3px solid transparent;
   position: relative;
+  color: var(--text-color);
 }
 
 .sidebar-item:hover,
@@ -134,6 +159,12 @@
   color: var(--text-color);
   border-left: 3px solid var(--accent-color);
 }
+
+/*
+==================================
+           Sidebar Icon
+==================================
+*/
 
 .sidebar-icon {
   margin-right: 12px;
@@ -153,6 +184,12 @@
   color: var(--accent-color);
 }
 
+/*
+==================================
+           Sidebar Label
+==================================
+*/
+
 .sidebar-label {
   font-size: 0.88rem;
   letter-spacing: 0.4px;
@@ -166,7 +203,12 @@
   overflow: hidden;
 }
 
-/* === Tooltip Styling === */
+/*
+==================================
+           Sidebar Tooltip
+==================================
+*/
+
 .sidebar-container.collapsed .sidebar-item[data-tooltip]:hover::after {
   content: attr(data-tooltip);
   position: absolute;
@@ -192,7 +234,12 @@
   }
 }
 
-/* === Bottom Settings Area === */
+/*
+==================================
+           Sidebar Bottom
+==================================
+*/
+
 .sidebar-bottom {
   width: 100%;
   padding: 10px 0;
@@ -201,7 +248,7 @@
 .sidebar-bottom .sidebar-item {
   justify-content: flex-start;
   padding: 10px 18px;
-  margin-bottom: 20px; /* Pulls it up */
+  margin-bottom: 20px;
 }
 
 .sidebar-container.collapsed .sidebar-bottom .sidebar-item {
@@ -210,7 +257,6 @@
   padding: 12px 0;
 }
 
-/* Make sure icon itself is centered */
 .sidebar-container.collapsed .sidebar-bottom .sidebar-icon {
   margin: 0;
   display: flex;

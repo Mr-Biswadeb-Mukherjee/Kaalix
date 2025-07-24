@@ -1,4 +1,7 @@
+// Modules.jsx
+
 import React from 'react';
+import './Styles/Modules.css';
 
 const Modules = () => {
   return (
