@@ -4,7 +4,6 @@
   --topbar-height: 52px;
   --sidebar-width: 220px;
   --sidebar-collapsed-width: 64px;
-  --accent-color: #ff3c00;
   --bg-color: #fdfdfd;
   --hover-bg: #f0f0f0;
   --border-color: #ddd;
@@ -13,7 +12,20 @@
   --font-family: 'Fira Code';
   --font-weight: bolder;
   color-scheme: light;
+
+  --accent-color:   #ff3c00; /* Vibrant Red-Orange */
+  --accent-color1:  #ff6b00; /* Bright Orange */
+  --accent-color2:  #ffa500; /* Amber */
+  --accent-color3:  #ffc107; /* Golden Yellow */
+  --accent-color4:  #4caf50; /* Leafy Green */
+  --accent-color5:  #00bcd4; /* Cyan */
+  --accent-color6:  #2196f3; /* Blue */
+  --accent-color7:  #3f51b5; /* Indigo */
+  --accent-color8:  #9c27b0; /* Purple */
+  --accent-color9:  #e91e63; /* Pink */
+  --accent-color10: #00ca00; /* Earthy Brown */
 }
+
 
 @keyframes gradientShift {
   0% {
@@ -44,6 +56,11 @@
   --text-color: #000000;
   --hamburger-color: #000000;
   animation: gradientShift 15s ease infinite;
+  --accent-color1:  #ff6b00;
+  --accent-color8:  #9c27b0; 
+  --accent-color10: #00dd00;
+  --accent-color6:  #2196f3; 
+  --accent-color:   #ff3c00; 
 }
 
 [data-theme='dark'] body {
@@ -55,6 +72,12 @@
   --text-color: #ffffff;
   animation: gradientShift 15s ease infinite;
 
+  --accent-color1:  #ff6b00;
+  --accent-color8:  #fce307; 
+  --accent-color10: #00dd00;
+  --accent-color6:  #5bb5ff; 
+  --accent-color:   #ff3c00; 
+
 }
 
 [data-theme='forest'] body {
@@ -65,6 +88,12 @@
   --text-color: #ffffff;
   --hamburger-color: #ff3333;
   animation: gradientShift 15s ease infinite;
+
+  --accent-color1:  #ff6b00;
+  --accent-color8:  #fce307; 
+  --accent-color10: #00dd00;
+  --accent-color6:  #79c3ff; 
+  --accent-color:   #ff0000;
 
 }
 

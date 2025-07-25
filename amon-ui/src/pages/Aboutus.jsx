@@ -1,19 +1,15 @@
 // About Us.jsx
 
-import GitHubIcon from '@mui/icons-material/GitHub';
-import LinkedInIcon from '@mui/icons-material/LinkedIn';
-import InstagramIcon from '@mui/icons-material/Instagram';
-import Chip from '@mui/material/Chip';
-import Typography from '@mui/material/Typography';
 import './Styles/Aboutus.css';
 import Logo from '../Components/Logo'
+import Avatar from '../assets/Avatar.png'
 
 const AboutUs = () => {
   return (
     <div className="aboutus-container">
       <h1 className="title-with-logo">
         <Logo size={60} />
-        Amon
+        AMON
       </h1>
 
       <blockquote>
@@ -49,6 +45,35 @@ const AboutUs = () => {
         </p>
       </section>
 
+    <section className="developer-profile">
+      <h2 className="section-title">👨‍💻 Meet the Developer</h2>
+      <div className="developer-card">
+        <div className="developer-info">
+          <h3 className="developer-name">Mr. Biswadeb Mukherjee</h3>
+          <span className="developer-role">• Ethical Hacker • Pentester • Malware Developer</span>
+          <p className="developer-bio">
+            Biswadeb is the architect behind <strong>Amon</strong> — a specialist in red teaming, secure software development, and offensive tooling. With over 5 years in the trenches, he brings together deep knowledge of exploit development, Python engineering, and real-world pentesting workflows to deliver tools that are both battle-ready and beautifully built.
+          </p>
+          <ul className="developer-highlights">
+            <li>🛡️ Network security, IDS/IPS, and OSINT automation</li>
+            <li>💻 Expert in Python, React, Linux, and secure coding</li>
+            <li>🎯 Builder of modular, fast, and field-tested red team tools</li>
+          </ul>
+          <p className="developer-contact">
+            Learn more at: 
+            <a href="https://www.linkedin.com/in/biswadeb-mukherjee" target="_blank" rel="noopener noreferrer"> LinkedIn</a> &nbsp;|&nbsp;
+            <a href="https://github.com/official-biswadeb941" target="_blank" rel="noopener noreferrer"> GitHub</a> &nbsp;|&nbsp;
+            <a href="https://www.instagram.com/official_biswadeb941/" target="_blank" rel="noopener noreferrer"> Instagram</a>
+          </p>
+        </div>
+        {/* Optional Avatar */}
+        <div className="developer-avatar">
+          <img src={Avatar} alt="Biswadeb Mukherjee" />
+        </div>
+      </div>
+    </section>
+
+
       <section>
         <h2>🔮 Future of Amon</h2>
         <ul>
@@ -62,34 +87,8 @@ const AboutUs = () => {
         </ul>
       </section>
 
-      <section>
-        <h2>👤 Author</h2>
-        <div>
-          <Typography variant="h5" component="h3" className="author-name">
-            Mr. Biswadeb Mukherjee
-          </Typography>
-        <div className="roles">
-          <Chip label="Ethical Hacker" color="primary" variant="outlined" />
-          <Chip label="Pentester" color="success" variant="outlined" />
-          <Chip label="Malware Developer" color="secondary" variant="outlined" />
-        </div>
-        <br />
-        <div className="social-icons">
-            <a href="https://github.com/official-biswadeb941" target="_blank" rel="noreferrer">
-              <GitHubIcon fontSize="large" />
-            </a>
-            <a href="https://www.linkedin.com/in/biswadeb-mukherjee/" target="_blank" rel="noreferrer">
-              <LinkedInIcon fontSize="large" />
-            </a>
-            <a href="https://www.instagram.com/official_biswadeb941/" target="_blank" rel="noreferrer">
-              <InstagramIcon fontSize="large" />
-            </a>
-          </div>
-        </div>
-      </section>
-
       <section className="disclaimer">
-        <h2>⚠️ Legal Disclaimer</h2>
+        <h2 className="disclaimer">⚠️ Legal Disclaimer</h2>
         <p>
           Amon is intended strictly for <strong>authorized security testing</strong> and <strong>research purposes</strong>. Unauthorized use is strictly prohibited. You are solely responsible for complying with all applicable laws and regulations.
         </p>

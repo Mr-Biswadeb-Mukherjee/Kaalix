@@ -24,7 +24,7 @@
   animation: float 3s ease-in-out infinite;
 }
 
-h1 {
+.mobile-title {
   font-size: 2.5rem;
   margin-bottom: 1rem;
   color: #ff6b6b;
