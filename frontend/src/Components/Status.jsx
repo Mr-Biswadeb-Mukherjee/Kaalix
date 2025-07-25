@@ -1,66 +1,97 @@
-// Statusbar.jsx
-
 import React, { useEffect, useState } from 'react';
 import './Styles/statusBar.css';
-import MemoryIcon from '@mui/icons-material/Memory';
-import StorageIcon from '@mui/icons-material/Storage';
-import DeveloperBoardIcon from '@mui/icons-material/DeveloperBoard';
-import PublicIcon from '@mui/icons-material/Public';
 
-// ----------------------------------------------------------------------------------------------------
-// StatusBar Component
-// Renders a status bar displaying real-time (simulated) CPU, RAM, and GPU usage.
-// Props:
-// - collapsed: A boolean indicating whether the sidebar (and thus the status bar) is collapsed.
-// ----------------------------------------------------------------------------------------------------
+import DnsIcon from '@mui/icons-material/Dns'; // OS
+import MemoryIcon from '@mui/icons-material/Memory'; // RAM
+import DeveloperBoardIcon from '@mui/icons-material/DeveloperBoard'; // CPU
+import SwapHorizIcon from '@mui/icons-material/SwapHoriz'; // Swap
+import GraphicEqIcon from '@mui/icons-material/GraphicEq'; // GPU
+import PublicIcon from '@mui/icons-material/Public'; // IP
+
 
 const StatusBar = ({ collapsed }) => {
-  // State to hold the CPU, RAM, and GPU usage statistics
   const [stats, setStats] = useState({
+    os: 'Unknown',
     cpu: '0%',
     ram: '0%',
     gpu: '0%',
+    ip: '0.0.0.0',
+    swap: '0%'
   });
 
-  useEffect(() => {
-    // Set up an interval to update the stats every 2 seconds
-    const interval = setInterval(() => {
-      // Simulate random usage percentages for demonstration
-      setStats({
-        cpu: `${(Math.random() * 100).toFixed(1)}%`,
-        ram: `${(Math.random() * 100).toFixed(1)}%`,
-        gpu: `${(Math.random() * 100).toFixed(1)}%`,
-      });
-    }, 2000);
+  const [error, setError] = useState(null);
 
-    // Clean up the interval when the component unmounts or the effect re-runs
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const response = await fetch('/api/v3/system/stats', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({}) // send an empty payload or include future filters
+        });
+
+        if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+
+        const data = await response.json();
+
+        setStats({
+          os: data.os || 'Unknown',
+          cpu: data.cpu || 'N/A',
+          ram: data.ram || 'N/A',
+          gpu: data.gpu || 'N/A',
+          ip: data.ip || 'N/A',
+          swap: data.swap || 'N/A'
+        });
+
+        setError(null);
+      } catch (err) {
+        console.error('Failed to fetch system stats:', err);
+        setError('Unable to fetch stats');
+      }
+    };
+
+    fetchStats();
+    const interval = setInterval(fetchStats, 2000);
+
     return () => clearInterval(interval);
   }, []);
 
   return (
-    // Main container for the status bar, applies 'collapsed' class based on prop
     <div className={`status-bar ${collapsed ? 'collapsed' : ''}`}>
+      {/* OS */}
       <div className="status-item">
-        <PublicIcon style={{ fontSize: 18, marginRight: 6 }} />
-        IP Address: {stats.ip}
+        <DnsIcon style={{ fontSize: 18, marginRight: 6 }} />
+        OS: {error ? 'N/A' : stats.os}
       </div>
-      {/* CPU Status Item */}
-      <div className="status-item">
-        <MemoryIcon style={{ fontSize: 18, marginRight: 6 }} />
-        CPU: {stats.cpu}
-      </div>
-      {/* RAM Status Item */}
-      <div className="status-item">
-        <StorageIcon style={{ fontSize: 18, marginRight: 6 }} />
-        RAM: {stats.ram}
-      </div>
-      {/* GPU Status Item */}
+
       <div className="status-item">
         <DeveloperBoardIcon style={{ fontSize: 18, marginRight: 6 }} />
-        GPU: {stats.gpu}
+        CPU: {error ? 'N/A' : stats.cpu}
+      </div>
+
+      <div className="status-item">
+        <MemoryIcon style={{ fontSize: 18, marginRight: 6 }} />
+        RAM: {error ? 'N/A' : stats.ram}
+      </div>
+
+      <div className="status-item">
+        <SwapHorizIcon style={{ fontSize: 18, marginRight: 6 }} />
+        Swap: {error ? 'N/A' : stats.swap}
+      </div>
+
+      <div className="status-item">
+        <GraphicEqIcon style={{ fontSize: 18, marginRight: 6 }} />
+        GPU: {error ? 'N/A' : stats.gpu}
+      </div>
+
+      <div className="status-item">
+        <PublicIcon style={{ fontSize: 18, marginRight: 6 }} />
+        IP: {error ? 'N/A' : stats.ip}
       </div>
     </div>
   );
 };
-// Exporting the StatusBar component as default
+
 export default StatusBar;
