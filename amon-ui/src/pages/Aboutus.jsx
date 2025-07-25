@@ -19,7 +19,7 @@ const AboutUs = () => {
       <section>
         <h2>🔍 What is Amon?</h2>
         <p>
-          <strong>Amon</strong> is a <strong>fast</strong>, <strong>flexible</strong>, and <strong>hardware-accelerated</strong> brute-force and password spraying engine built with <strong>Python (Flask)</strong> and <strong>React (Vite)</strong>. Designed for red teams, pentesters, and security researchers, Amon simulates credential attacks with surgical precision — all from a sleek, modern web UI.
+          <strong>Amon</strong> is a <strong>fast</strong>, <strong>flexible</strong>, and <strong>hardware-accelerated</strong> password cracking engine built with <strong>NodeJS</strong> and <strong>React (Vite)</strong>. Designed for red teams, pentesters, and security researchers, Amon is capable of launching all types of password cracking attacks — all from a sleek, modern web UI.
         </p>
       </section>
 
@@ -29,19 +29,19 @@ const AboutUs = () => {
           Traditional tools like Hydra and Medusa laid the foundation, but they fall short in modern offensive workflows. Amon advances the game with:
         </p>
         <ul>
-          <li>✅ Custom attack logic (brute-force, spray, hybrid)</li>
-          <li>✅ Optional CPU/GPU-aware backend</li>
+          <li>✅ Custom attack logic (brute-force, spray, hybrid, dictionary-based, etc.)</li>
+          <li>✅ Optional CPU/GPU/TPU-aware backend</li>
           <li>✅ Modular architecture (HTTP, SSH, SMB, etc.)</li>
           <li>✅ Real-time feedback, metrics, and logging</li>
-          <li>✅ Flask-based API with full UI/CLI control</li>
+          <li>✅ NodeJS API with full UI control</li>
         </ul>
       </section>
 
       <section>
         <h2>🎯 What Problem Does Amon Solve?</h2>
         <p>
-          <em>Precision over chaos. Control over brute force.</em>  
-          Amon brings fine-tuned control and intelligent spraying, plugin-based extensibility, and red team–oriented dashboards that provide clear visibility over campaigns and outcomes.
+          <em>Precision over chaos. Control over password cracking.</em>  
+          Amon brings fine-tuned control and intelligent spraying, dictionary-based attacks, plugin-based extensibility, and red team–oriented dashboards that provide clear visibility over campaigns and outcomes.
         </p>
       </section>
 
@@ -52,11 +52,11 @@ const AboutUs = () => {
           <h3 className="developer-name">Mr. Biswadeb Mukherjee</h3>
           <span className="developer-role">• Ethical Hacker • Pentester • Malware Developer</span>
           <p className="developer-bio">
-            Biswadeb is the architect behind <strong>Amon</strong> — a specialist in red teaming, secure software development, and offensive tooling. With over 5 years in the trenches, he brings together deep knowledge of exploit development, Python engineering, and real-world pentesting workflows to deliver tools that are both battle-ready and beautifully built.
+            Myself Biswadeb Mukherjee, an offensive security specialist with over 5 years in the trenches, I brings together deep knowledge of exploit development, Python engineering, and real-world pentesting workflows to deliver tools that are both battle-ready and beautifully built.
           </p>
           <ul className="developer-highlights">
             <li>🛡️ Network security, IDS/IPS, and OSINT automation</li>
-            <li>💻 Expert in Python, React, Linux, and secure coding</li>
+            <li>💻 Expert in Penetration Testing, Linux, and secure coding and much more.</li>
             <li>🎯 Builder of modular, fast, and field-tested red team tools</li>
           </ul>
           <p className="developer-contact">

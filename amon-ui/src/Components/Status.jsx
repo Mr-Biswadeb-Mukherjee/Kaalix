@@ -5,6 +5,7 @@ import './Styles/statusBar.css';
 import MemoryIcon from '@mui/icons-material/Memory';
 import StorageIcon from '@mui/icons-material/Storage';
 import DeveloperBoardIcon from '@mui/icons-material/DeveloperBoard';
+import PublicIcon from '@mui/icons-material/Public';
 
 // ----------------------------------------------------------------------------------------------------
 // StatusBar Component
@@ -39,6 +40,10 @@ const StatusBar = ({ collapsed }) => {
   return (
     // Main container for the status bar, applies 'collapsed' class based on prop
     <div className={`status-bar ${collapsed ? 'collapsed' : ''}`}>
+      <div className="status-item">
+        <PublicIcon style={{ fontSize: 18, marginRight: 6 }} />
+        IP Address: {stats.ip}
+      </div>
       {/* CPU Status Item */}
       <div className="status-item">
         <MemoryIcon style={{ fontSize: 18, marginRight: 6 }} />

@@ -16,6 +16,7 @@ const routeConfig = [
   { path: 'target-config', element: <Pages.TargetConfig />, title: 'Target Config | Amon' },
   { path: 'attack-logic', element: <Pages.AttackLogic />, title: 'Attack Logic | Amon' },
   { path: 'modules', element: <Pages.Modules />, title: 'Modules | Amon' },
+  { path: 'proxy', element: <Pages.Proxy />, title: 'Proxy | Amon' },
   { path: 'about', element: <Pages.AboutUs />, title: 'About Us | Amon' },
   { path: 'docs', element: <Pages.Documentation />, title: 'Documentation | Amon' },
   { path: 'settings', element: <Pages.Settings />, title: 'Settings | Amon' },
