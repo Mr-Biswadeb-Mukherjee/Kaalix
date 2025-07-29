@@ -1,4 +1,4 @@
-## 🐉 Amon
+## Amon
 
 > *"The god of knowledge and secrecy — now weaponized for password cracking operations."*
 

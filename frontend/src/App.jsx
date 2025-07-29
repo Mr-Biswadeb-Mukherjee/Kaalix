@@ -1,6 +1,8 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useNavigate } from 'react-router-dom';
 import { useEffect } from 'react';
 import MainLayout from './Layout/MainLayout';
+import Auth from './Components/Auth';
+import { ToastProvider } from './Components/Toast';
 import * as Pages from './pages';
 
 function RouteWrapper({ title, children }) {
@@ -12,7 +14,7 @@ function RouteWrapper({ title, children }) {
 }
 
 const routeConfig = [
-  { path: '', element: <Pages.Dashboard />, title: 'Dashboard | Amon' },
+  { path: 'dashboard', element: <Pages.Dashboard />, title: 'Dashboard | Amon' },
   { path: 'target-config', element: <Pages.TargetConfig />, title: 'Target Config | Amon' },
   { path: 'attack-logic', element: <Pages.AttackLogic />, title: 'Attack Logic | Amon' },
   { path: 'modules', element: <Pages.Modules />, title: 'Modules | Amon' },
@@ -22,22 +24,47 @@ const routeConfig = [
   { path: 'settings', element: <Pages.Settings />, title: 'Settings | Amon' },
 ];
 
+function AppRoutes() {
+  const navigate = useNavigate();
+
+  const handleAuthSuccess = (data) => {
+    console.log("✅ Authenticated:", data);
+    navigate("/dashboard");
+  };
+
+  return (
+    <Routes>
+      {/* Auth route */}
+      <Route
+        path="/"
+        element={
+          <RouteWrapper title="Authentication | Amon">
+            <Auth onAuthSuccess={handleAuthSuccess} />
+          </RouteWrapper>
+        }
+      />
+
+      {/* MainLayout with nested application routes */}
+      <Route path="/" element={<MainLayout />}>
+        {routeConfig.map(({ path, element, title }) => (
+          <Route
+            key={path}
+            path={path}
+            element={<RouteWrapper title={title}>{element}</RouteWrapper>}
+          />
+        ))}
+      </Route>
+    </Routes>
+  );
+}
+
 function App() {
   return (
-    <Router>
-      <Routes>
-        <Route path="/" element={<MainLayout />}>
-          {routeConfig.map(({ path, element, title }) => (
-            <Route
-              key={path}
-              path={path}
-              index={path === ''}
-              element={<RouteWrapper title={title}>{element}</RouteWrapper>}
-            />
-          ))}
-        </Route>
-      </Routes>
-    </Router>
+    <ToastProvider>
+      <Router>
+        <AppRoutes />
+      </Router>
+    </ToastProvider>
   );
 }
 

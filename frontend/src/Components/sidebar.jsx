@@ -28,7 +28,7 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
   const location = useLocation();
   const [active, setActive] = useState(location.pathname);
   const menuItems = [
-    { name: 'Dashboard', icon: <DashboardIcon />, route: '/' },
+    { name: 'Dashboard', icon: <DashboardIcon />, route: '/dashboard' },
     { name: 'Target Config', icon: <StorageIcon />, route: '/target-config' },
     { name: 'Attack Logic', icon: <TerminalIcon />, route: '/attack-logic' },
     { name: 'Modules', icon: <LayersIcon />, route: '/modules' },
