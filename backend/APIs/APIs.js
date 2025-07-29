@@ -1,8 +1,8 @@
 const API = {
   system: {
-    statsV3: {
+    auth: {
       method: 'POST',
-      endpoint: '/api/v3/system/stats'
+      endpoint: '/api/v3/auth'
     }
   }
 };

@@ -1,28 +1,37 @@
-// server.js
+import express from "express";
+import cors from "cors";
+import bodyParser from "body-parser";
+import dotenv from "dotenv";
 
-import express from 'express';
-import cors from 'cors';
-import sessionManager from './Utils/Session.js';
-import statsRoutes from './Modules/stats.js';
+import API from "./APIs/APIs.js"; // centralized API config
+import authRouter from "./Modules/auth.js";
+import { generateToken } from "./Utils/jwt.js"; // still global
+
+dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 6000;
 
+// ─────────────────────────────────────
+// 🛡️ Middleware Setup
+// ─────────────────────────────────────
 app.use(cors());
-app.use(express.json());
+app.use(bodyParser.json());
 
-// 🔐 Middleware to inject dynamic session key
+// 🔐 Inject token generation into response
 app.use((req, res, next) => {
-  const key = sessionManager.getSessionKey();
-  req.sessionKey = key;
-  app.locals.sessionKey = key;
+  res.generateToken = generateToken;
   next();
 });
 
-// Routes
-app.use(statsRoutes);
+// ─────────────────────────────────────
+// 📦 Mount Routes via Centralized API Config
+// ─────────────────────────────────────
+app.use(API.system.auth.endpoint, authRouter);
 
-// Start server
+// ─────────────────────────────────────
+// 🚀 Server Boot
+// ─────────────────────────────────────
 app.listen(PORT, () => {
-  console.log(`🚀 Server running at http://localhost:${PORT}`);
+  console.log(`🟢 Server running at http://localhost:${PORT}`);
 });

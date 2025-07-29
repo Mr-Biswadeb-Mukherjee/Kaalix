@@ -6,6 +6,7 @@ import LocationOnIcon from '@mui/icons-material/LocationOn';
 import Brightness4Icon from '@mui/icons-material/Brightness4';
 import ForestIcon from '@mui/icons-material/Forest'; 
 import WbSunnyIcon from '@mui/icons-material/WbSunny'; 
+import LogoutIcon from '@mui/icons-material/Logout';
 import NightsStayIcon from '@mui/icons-material/NightsStay'; 
 import './Styles/TopBar.css';
 
@@ -100,6 +101,14 @@ const TopBar = ({ collapsed }) => {
       <div className="topbar-status">
         <LocationOnIcon className="topbar-icon" />
         <span className="topbar-text">{location}</span>
+      </div>
+      {/* Logout Button */}
+      <div className="topbar-status logout-button" onClick={() => {
+        localStorage.removeItem('token'); // Remove the token
+        window.location.href = '/'; // Reload the page to trigger re-authentication
+      }} title="Logout">
+        <LogoutIcon className="topbar-icon" />
+        <span className="topbar-text">Logout</span>
       </div>
     </div>
   );

@@ -1,7 +1,6 @@
 import express from "express";
 import bcrypt from "bcrypt";
-import { findUserByEmail, createUser } from "./models/User.js";
-import { generateToken } from "../Utils/jwt.js";
+import { findUserByEmail, createUser } from "./User.js";
 
 const router = express.Router();
 
@@ -23,7 +22,7 @@ router.post("/", async (req, res) => {
       }
 
       const newUser = await createUser({ fullName, email: sanitizedEmail, password });
-      const token = generateToken({ email: sanitizedEmail, fullName });
+      const token = res.generateToken({ email: sanitizedEmail, fullName });
 
       return res.json({
         success: true,
@@ -44,7 +43,7 @@ router.post("/", async (req, res) => {
         return res.status(401).json({ success: false, message: "Invalid credentials." });
       }
 
-      const token = generateToken({ email: sanitizedEmail, fullName: existingUser.fullName });
+      const token = res.generateToken({ email: sanitizedEmail, fullName: existingUser.fullName });
 
       return res.json({
         success: true,
