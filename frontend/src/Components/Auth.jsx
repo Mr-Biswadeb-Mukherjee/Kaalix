@@ -26,6 +26,12 @@ const Auth = ({ onAuthSuccess }) => {
 
   const isLogin = tabIndex === 0;
 
+  const isFormValid = isLogin
+    ? formData.email.trim() && formData.password.trim()
+    : formData.fullName.trim() &&
+      formData.email.trim() &&
+      formData.password.trim();
+
   useEffect(() => {
     if (canvasRef.current) {
       initBloodFlow(canvasRef.current);
@@ -67,12 +73,10 @@ const Auth = ({ onAuthSuccess }) => {
           "success"
         );
 
-        // Store token if available
         if (data.token) {
           localStorage.setItem("token", data.token);
         }
 
-        // 🔁 Trigger post-auth callback
         if (typeof onAuthSuccess === "function") {
           onAuthSuccess(data);
         }
@@ -180,7 +184,7 @@ const Auth = ({ onAuthSuccess }) => {
                 <button
                   type="submit"
                   className="auth-btn"
-                  disabled={loading}
+                  disabled={loading || !isFormValid}
                 >
                   {loading
                     ? isLogin

@@ -3,11 +3,23 @@ dotenv.config();
 
 import jwt from "jsonwebtoken";
 
-const SECRET = process.env.JWT_SECRET;
+const SECRET = process.env.JWT_SECRET || "dev-secret"; // fallback for local use
+
+if (!process.env.JWT_SECRET) {
+  console.warn("⚠️  JWT_SECRET missing in .env — using fallback 'dev-secret'");
+} else {
+  console.log("🔐 JWT_SECRET loaded from .env");
+}
 
 const generateToken = (payload) => {
-  return jwt.sign(payload, SECRET, { expiresIn: "1h" });
+  try {
+    const token = jwt.sign(payload, SECRET, { expiresIn: "1h" });
+    console.log("✅ JWT generated for:", payload.email);
+    return token;
+  } catch (err) {
+    console.error("❌ Failed to generate JWT:", err);
+    throw err;
+  }
 };
-console.log("🔐 JWT_SECRET (jwt.js):", SECRET);
 
 export { generateToken };

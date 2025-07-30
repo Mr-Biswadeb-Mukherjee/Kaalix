@@ -3,35 +3,38 @@ import cors from "cors";
 import bodyParser from "body-parser";
 import dotenv from "dotenv";
 
-import API from "./APIs/APIs.js"; // centralized API config
+import API from "./APIs/APIs.js";
 import authRouter from "./Modules/auth.js";
-import { generateToken } from "./Utils/jwt.js"; // still global
+import { generateToken } from "./Utils/jwt.js";
 
 dotenv.config();
+console.log("🔐 JWT_SECRET loaded:", process.env.JWT_SECRET ? "✅ OK" : "❌ MISSING");
 
 const app = express();
 const PORT = process.env.PORT || 6000;
 
-// ─────────────────────────────────────
-// 🛡️ Middleware Setup
-// ─────────────────────────────────────
+// 🛡️ Middleware
 app.use(cors());
 app.use(bodyParser.json());
 
-// 🔐 Inject token generation into response
 app.use((req, res, next) => {
   res.generateToken = generateToken;
   next();
 });
 
-// ─────────────────────────────────────
-// 📦 Mount Routes via Centralized API Config
-// ─────────────────────────────────────
+// 📦 Routes
 app.use(API.system.auth.endpoint, authRouter);
 
-// ─────────────────────────────────────
-// 🚀 Server Boot
-// ─────────────────────────────────────
+// ❌ Global Error Handler
+app.use((err, req, res, next) => {
+  console.error("🔥 Global error caught:", err.stack || err);
+  res.status(500).json({
+    success: false,
+    message: "Internal Server Error. Something went wrong on our end.",
+  });
+});
+
+// 🚀 Boot
 app.listen(PORT, () => {
   console.log(`🟢 Server running at http://localhost:${PORT}`);
 });
