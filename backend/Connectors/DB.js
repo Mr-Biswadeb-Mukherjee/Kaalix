@@ -8,13 +8,16 @@ const {
   DB_USER,
   DB_PASSWORD,
   DB_NAME,
-  DB_PORT
+  DB_PORT,
+  MAX_POOL_SIZE
 } = process.env;
 
 if (!DB_NAME) {
   console.error("❌ DB_NAME is not defined in .env");
   process.exit(1);
 }
+
+const maxPool = parseInt(MAX_POOL_SIZE, 10) || 10;
 
 let pool;
 
@@ -25,11 +28,11 @@ export async function initDatabase() {
       host: DB_HOST,
       user: DB_USER,
       password: DB_PASSWORD,
-      port: DB_PORT || 3306
+      port: DB_PORT
     });
 
     await connection.query(`CREATE DATABASE IF NOT EXISTS \`${DB_NAME}\`;`);
-    console.log(`✅ Database '${DB_NAME}' ensured.`);
+    //console.log(`✅ Database '${DB_NAME}' ensured.`);
     await connection.end();
 
     // Step 2: Create pool using the DB
@@ -38,9 +41,10 @@ export async function initDatabase() {
       user: DB_USER,
       password: DB_PASSWORD,
       database: DB_NAME,
-      port: DB_PORT || 3306,
+      port: DB_PORT,
       waitForConnections: true,
-      connectionLimit: 10,
+      connectionLimit: maxPool,
+      // Note: mysql2 doesn't have a built-in minPool setting, but we can simulate it later with warm-up if needed
       queueLimit: 0
     });
 
@@ -49,7 +53,7 @@ export async function initDatabase() {
 
     // Step 4: Test connection
     const conn = await pool.getConnection();
-    console.log("✅ MySQL pool connected.");
+    //console.log("✅ MySQL pool connected.");
     conn.release();
 
     return pool;
@@ -60,7 +64,6 @@ export async function initDatabase() {
 }
 
 async function ensureTablesExist(pool) {
-  // Check if 'users' table exists, and create it if not
   const createUsersTable = `
     CREATE TABLE IF NOT EXISTS users (
       id INT AUTO_INCREMENT PRIMARY KEY,
@@ -70,9 +73,8 @@ async function ensureTablesExist(pool) {
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
   `;
-
   await pool.execute(createUsersTable);
-  console.log("✅ Table 'users' ensured.");
+  //console.log("✅ Table 'users' ensured.");
 }
 
 export { pool };

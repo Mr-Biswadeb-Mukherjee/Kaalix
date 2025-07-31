@@ -1,5 +1,5 @@
 import bcrypt from 'bcrypt';
-import { initDatabase } from './DB.js';
+import { initDatabase } from '../Connectors/DB.js';
 
 const db = await initDatabase();
 
