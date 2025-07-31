@@ -1,20 +1,30 @@
-import dotenv from "dotenv";
-dotenv.config();
-
 import jwt from "jsonwebtoken";
+import crypto from "crypto";
 
-const SECRET = process.env.JWT_SECRET || "dev-secret"; // fallback for local use
+// Memory-based secret rotation
+let currentSecret = generateSecret();
+let previousSecret = null;
 
-if (!process.env.JWT_SECRET) {
-  console.warn("⚠️  JWT_SECRET missing in .env — using fallback 'dev-secret'");
-} else {
-  console.log("🔐 JWT_SECRET loaded from .env");
+// Rotate every 10 minutes
+const ROTATION_INTERVAL = 10 * 60 * 1000;
+
+setInterval(() => {
+  previousSecret = currentSecret;
+  currentSecret = generateSecret();
+  console.log("🔁 JWT secret rotated at:", new Date().toISOString());
+}, ROTATION_INTERVAL);
+
+function generateSecret() {
+  return crypto.randomBytes(64).toString("hex"); // 512-bit secret
 }
 
+/**
+ * Generate a signed JWT with current secret
+ */
 const generateToken = (payload) => {
   try {
-    const token = jwt.sign(payload, SECRET, { expiresIn: "1h" });
-    console.log("✅ JWT generated for:", payload.email);
+    const token = jwt.sign(payload, currentSecret, { expiresIn: "10m" });
+    console.log("✅ JWT generated for:", payload.email || "unknown");
     return token;
   } catch (err) {
     console.error("❌ Failed to generate JWT:", err);
@@ -22,4 +32,22 @@ const generateToken = (payload) => {
   }
 };
 
-export { generateToken };
+/**
+ * Verify JWT with current and fallback (previous) secrets
+ */
+const verifyToken = (token) => {
+  try {
+    // Try with current secret
+    return jwt.verify(token, currentSecret);
+  } catch (err) {
+    try {
+      // Try with previous secret as fallback
+      return jwt.verify(token, previousSecret);
+    } catch (e) {
+      console.error("❌ JWT verification failed:", e.message);
+      throw e;
+    }
+  }
+};
+
+export { generateToken, verifyToken };

@@ -3,11 +3,21 @@ import { initDatabase } from './DB.js';
 
 const db = await initDatabase();
 
-// ✅ Normalize helper to ensure consistency
+// 🧼 Normalize email for consistent matching
 const normalizeEmail = (email) => email.trim().toLowerCase();
 
-// 🔍 Find user by email from DB
-export const findUserByEmail = async (email) => {
+// ❗ Custom error class for "user already exists"
+class UserExistsError extends Error {
+  constructor(message = "User already exists.") {
+    super(message);
+    this.name = "UserExistsError";
+    this.code = "USER_EXISTS";
+    this.status = 409; // HTTP Conflict
+  }
+}
+
+// 🔍 Internal helper: Fetch user by email
+const findUserByEmail = async (email) => {
   const normalizedEmail = normalizeEmail(email);
 
   const [rows] = await db.execute(
@@ -18,9 +28,15 @@ export const findUserByEmail = async (email) => {
   return rows[0] || null;
 };
 
-// 🛠️ Create a new user in DB
-export const createUser = async ({ fullName, email, password }) => {
+// 🛠️ Public: Register user with hashing and insertion
+export const registerUser = async ({ fullName, email, password }) => {
   const normalizedEmail = normalizeEmail(email);
+
+  const existing = await findUserByEmail(normalizedEmail);
+  if (existing) {
+    throw new UserExistsError(); // ✅ now throwing semantic error
+  }
+
   const hashedPassword = await bcrypt.hash(password, 10);
 
   const [result] = await db.execute(
@@ -31,6 +47,16 @@ export const createUser = async ({ fullName, email, password }) => {
   return {
     id: result.insertId,
     fullName,
-    email: normalizedEmail
+    email: normalizedEmail,
   };
+};
+
+// 🔐 Public: Login by verifying password
+export const loginUser = async (email, plainPassword) => {
+  const normalizedEmail = normalizeEmail(email);
+  const user = await findUserByEmail(normalizedEmail);
+  if (!user) return null;
+
+  const isMatch = await bcrypt.compare(plainPassword, user.password);
+  return isMatch ? user : null;
 };

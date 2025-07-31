@@ -72,12 +72,12 @@ const Proxy = () => {
             onChange={(e) => setProxyType(e.target.value)}
             label="Proxy Type"
             sx={{
-              color: "#fff",
-              '.MuiOutlinedInput-notchedOutline': { borderColor: "#444" },
-              '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#f43f5e' },
-              '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: '#666' },
+              color: "--text-color",
+              '.MuiOutlinedInput-notchedOutline': { borderColor: "--border-color" },
+              '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '--border-color' },
+              '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: '--border-color' },
               '.MuiSvgIcon-root': { color: '#999' },
-              backgroundColor: "#1f1f1f",
+              backgroundColor: "--bg-color",
               borderRadius: 2,
             }}
           >

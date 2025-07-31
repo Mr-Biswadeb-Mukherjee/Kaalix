@@ -1,24 +1,18 @@
 import express from "express";
-import { findUserByEmail, createUser } from "./User.js";
-import bcrypt from "bcrypt";
+import { registerUser, loginUser } from "./User.js";
 
 const router = express.Router();
 
-// Allowed email domains
+// ✅ Allowed email domains
 const allowedEmailDomains = [
-  "gmail.com",
-  "yahoo.com",
-  "outlook.com",
-  "hotmail.com",
-  "protonmail.com",
-  "icloud.com",
-  "zoho.com",
+  "gmail.com", "yahoo.com", "outlook.com", "hotmail.com",
+  "protonmail.com", "icloud.com", "zoho.com",
 ];
 
-// Email format regex (basic check)
+// 🧪 Basic email format regex
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-// Full name must be two words, no leading/trailing spaces, only letters
+// 🔤 Full name must be first & last, letters only
 function isValidFullName(name) {
   const trimmed = name.trim();
   return (
@@ -28,13 +22,13 @@ function isValidFullName(name) {
   );
 }
 
-// Email must be valid format and from allowed domains
+// 📧 Validate email domain + format
 function isValidEmail(email) {
   const domain = email.split("@")[1]?.toLowerCase();
   return emailRegex.test(email) && allowedEmailDomains.includes(domain);
 }
 
-// Password must be at least 15 characters, with upper, lower, number, and special char
+// 🔐 Password policy: strong AF
 function isStrongPassword(password) {
   return (
     password.length >= 15 &&
@@ -45,78 +39,87 @@ function isStrongPassword(password) {
   );
 }
 
+// 🚪 POST /auth
 router.post("/", async (req, res) => {
-  const { type, email, password, fullName } = req.body;
+  const { type, email, password, fullName, validateOnly } = req.body;
 
-  // Basic presence and type check
-  if (
-    !type ||
-    typeof email !== "string" ||
-    typeof password !== "string" ||
-    (type === "register" && typeof fullName !== "string")
-  ) {
-    return res
-      .status(400)
-      .json({ success: false, message: "Missing or invalid input types." });
+  const errors = [];
+
+  // Basic type checks
+  if (!type || typeof email !== "string" || typeof password !== "string") {
+    return res.status(400).json({
+      success: false,
+      message: "Missing or invalid input types.",
+      errors: ["Missing or invalid input types."],
+    });
   }
 
-  // Trim inputs
+  if (type === "register" && typeof fullName !== "string") {
+    return res.status(400).json({
+      success: false,
+      message: "Full name is required for registration.",
+      errors: ["Full name is required for registration."],
+    });
+  }
+
   const trimmedEmail = email.trim();
   const trimmedPassword = password.trim();
   const trimmedFullName = fullName?.trim();
 
-  // Reject empty trimmed strings
-  if (
-    trimmedEmail === "" ||
-    trimmedPassword === "" ||
-    (type === "register" && (!trimmedFullName || trimmedFullName === ""))
-  ) {
-    return res.status(400).json({
-      success: false,
-      message: "All fields must be filled. Empty values are not allowed.",
+  if (!trimmedEmail) {
+    if (type === "register") {
+      errors.push("Personal email is required.");
+    } else {
+      errors.push("Email is required.");
+    }
+  } else if (!isValidEmail(trimmedEmail)) {
+    if (type === "register") {
+      errors.push("Only personal email providers like Gmail, Yahoo, Outlook, etc. are allowed.");
+    } else {
+      errors.push("Invalid email address.");
+    }
+  }
+
+  if (!trimmedPassword) {
+    if (type === "register") {
+      errors.push("Password must be at least 15 characters and include uppercase, lowercase, number, and special character.");
+    } else {
+      errors.push("Password is required.");
+    }
+  } else if (type === "register" && !isStrongPassword(trimmedPassword)) {
+    errors.push("Password must be at least 15 characters and include uppercase, lowercase, number, and special character.");
+  }
+
+  // ✅ Validate full name
+  if (type === "register") {
+    if (!trimmedFullName) {
+      errors.push("Full name is required.");
+    } else if (!isValidFullName(trimmedFullName)) {
+      errors.push("Full name must include first and last name with no extra spaces or symbols.");
+    }
+  }
+
+  // 💬 Validation-only mode
+  if (validateOnly) {
+    return res.status(200).json({
+      valid: errors.length === 0,
+      errors,
     });
   }
 
-  // Email format + domain
-  if (!isValidEmail(trimmedEmail)) {
+  // ❌ If validation errors exist
+  if (errors.length > 0) {
     return res.status(400).json({
       success: false,
-      message: "Invalid or unsupported email address.",
+      message: errors[0],
+      errors,
     });
   }
 
   try {
-    const existingUser = await findUserByEmail(trimmedEmail);
-
+    // 🔐 Registration
     if (type === "register") {
-      // Name validation
-      if (!isValidFullName(trimmedFullName)) {
-        return res.status(400).json({
-          success: false,
-          message:
-            "Full name must include at least first and last name with no extra spaces or symbols.",
-        });
-      }
-
-      // Password validation
-      if (!isStrongPassword(trimmedPassword)) {
-        return res.status(400).json({
-          success: false,
-          message:
-            "Password must be at least 15 characters and include uppercase, lowercase, number, and special character.",
-        });
-      }
-
-      // Check duplicate user
-      if (existingUser) {
-        return res.status(400).json({
-          success: false,
-          message: "User already exists.",
-        });
-      }
-
-      // Create user
-      const newUser = await createUser({
+      const newUser = await registerUser({
         fullName: trimmedFullName,
         email: trimmedEmail,
         password: trimmedPassword,
@@ -130,54 +133,70 @@ router.post("/", async (req, res) => {
       return res.json({
         success: true,
         message: "Registration successful.",
-        user: { email: trimmedEmail, fullName: newUser.fullName },
+        user: {
+          email: trimmedEmail,
+          fullName: newUser.fullName,
+        },
         token,
       });
     }
 
+    // 🔐 Login
     if (type === "login") {
-      // User must exist
-      if (!existingUser) {
-        return res
-          .status(404)
-          .json({ success: false, message: "User not found." });
-      }
-
-      // Password match check
-      const isMatch = await bcrypt.compare(
-        trimmedPassword,
-        existingUser.password
-      );
-
-      if (!isMatch) {
-        return res
-          .status(401)
-          .json({ success: false, message: "Invalid credentials." });
+      const user = await loginUser(trimmedEmail, trimmedPassword);
+      if (!user) {
+        return res.status(401).json({
+          success: false,
+          message: "Invalid credentials.",
+          errors: ["Invalid credentials."],
+        });
       }
 
       const token = res.generateToken({
-        email: trimmedEmail,
-        fullName: existingUser.fullName,
+        email: user.email,
+        fullName: user.fullName,
       });
 
       return res.json({
         success: true,
         message: "Login successful.",
-        user: { email: trimmedEmail, fullName: existingUser.fullName },
+        user: {
+          email: user.email,
+          fullName: user.fullName,
+        },
         token,
       });
     }
 
-    return res
-      .status(400)
-      .json({ success: false, message: "Invalid request type." });
-  } catch (err) {
-    console.error("Auth error:", err);
-    return res.status(500).json({
+    // Invalid request type
+    return res.status(400).json({
       success: false,
-      message: "Server error. Please try again later.",
+      message: "Invalid request type.",
+      errors: ["Invalid request type."],
     });
-  }
+  } catch (err) {
+  // ✅ Skip console.error for expected, known errors
+      if (err.code !== "USER_EXISTS") {
+        console.error("Auth error:", err); // Only logs unexpected issues
+      }
+
+      // 🎯 Handle known user conflict
+      if (err.code === "USER_EXISTS" || err.name === "UserExistsError") {
+        return res.status(409).json({
+          success: false,
+          message: err.message,
+          errors: [err.message],
+        });
+      }
+
+  // ❌ Default internal server error
+  return res.status(500).json({
+    success: false,
+    message: "Server error. Please try again later.",
+    errors: ["Server error. Please try again later."],
+  });
+}
+
 });
 
 export default router;

@@ -23,14 +23,10 @@ const Auth = ({ onAuthSuccess }) => {
     password: "",
   });
   const [loading, setLoading] = useState(false);
+  const [formValid, setFormValid] = useState(false);
+  const lastErrorRef = useRef("");
 
   const isLogin = tabIndex === 0;
-
-  const isFormValid = isLogin
-    ? formData.email.trim() && formData.password.trim()
-    : formData.fullName.trim() &&
-      formData.email.trim() &&
-      formData.password.trim();
 
   useEffect(() => {
     if (canvasRef.current) {
@@ -41,14 +37,49 @@ const Auth = ({ onAuthSuccess }) => {
   const handleChange = (field) => (e) =>
     setFormData({ ...formData, [field]: e.target.value });
 
+  const validateForm = async (fieldToValidate = null) => {
+    const { email, password, fullName } = formData;
+
+    try {
+      const res = await fetch("/api/v3/auth", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: isLogin ? "login" : "register",
+          email,
+          password,
+          fullName,
+          validateOnly: true,
+        }),
+      });
+
+      const data = await res.json();
+
+      setFormValid(data.valid);
+
+      if (!data.valid && Array.isArray(data.errors)) {
+        const relevantError = data.errors.find((msg) =>
+          msg.toLowerCase().includes(fieldToValidate?.toLowerCase())
+        );
+
+        if (relevantError && lastErrorRef.current !== relevantError) {
+          addToast(relevantError, "error");
+          lastErrorRef.current = relevantError;
+        }
+      } else {
+        lastErrorRef.current = "";
+      }
+    } catch (err) {
+      console.error("Validation error:", err);
+      addToast("Validation failed due to server error.", "error");
+      setFormValid(false);
+    }
+  };
+
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     const { email, password, fullName } = formData;
-
-    if (!email || !password || (!isLogin && !fullName)) {
-      addToast("Please complete all required fields.", "warning");
-      return;
-    }
 
     setLoading(true);
     try {
@@ -148,6 +179,7 @@ const Auth = ({ onAuthSuccess }) => {
                       placeholder="Full Name"
                       value={formData.fullName}
                       onChange={handleChange("fullName")}
+                      onBlur={() => validateForm("name")}
                       disabled={loading}
                     />
                   </div>
@@ -160,6 +192,7 @@ const Auth = ({ onAuthSuccess }) => {
                     placeholder="Email"
                     value={formData.email}
                     onChange={handleChange("email")}
+                    onBlur={() => validateForm("email")}
                     disabled={loading}
                   />
                 </div>
@@ -171,6 +204,7 @@ const Auth = ({ onAuthSuccess }) => {
                     placeholder="Password"
                     value={formData.password}
                     onChange={handleChange("password")}
+                    onBlur={() => validateForm("password")}
                     disabled={loading}
                   />
                   <span
@@ -184,7 +218,7 @@ const Auth = ({ onAuthSuccess }) => {
                 <button
                   type="submit"
                   className="auth-btn"
-                  disabled={loading || !isFormValid}
+                  disabled={loading || !formValid}
                 >
                   {loading
                     ? isLogin

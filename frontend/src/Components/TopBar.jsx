@@ -1,20 +1,17 @@
-// Topbar.jsx
-
 import React, { useEffect, useState } from 'react';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
 import Brightness4Icon from '@mui/icons-material/Brightness4';
-import ForestIcon from '@mui/icons-material/Forest'; 
-import WbSunnyIcon from '@mui/icons-material/WbSunny'; 
+import ForestIcon from '@mui/icons-material/Forest';
+import WbSunnyIcon from '@mui/icons-material/WbSunny';
 import LogoutIcon from '@mui/icons-material/Logout';
-import NightsStayIcon from '@mui/icons-material/NightsStay'; 
+import NightsStayIcon from '@mui/icons-material/NightsStay';
+import BloodtypeIcon from '@mui/icons-material/Bloodtype';
 import './Styles/TopBar.css';
 
 // ----------------------------------------------------------------------------------------------------
 // TopBar Component
-// Renders a top bar displaying current time, user's location, and a theme toggle.
-// Props:
-// - collapsed: A boolean indicating whether the sidebar is collapsed, affecting top bar's layout.
+// Renders a top bar displaying current time, user's location, and a theme dropdown selector.
 // ----------------------------------------------------------------------------------------------------
 
 const TopBar = ({ collapsed }) => {
@@ -22,18 +19,14 @@ const TopBar = ({ collapsed }) => {
   const [location, setLocation] = useState('Fetching...');
   const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'light');
 
+  // Set current theme on mount and update on change
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
     localStorage.setItem('theme', theme);
   }, [theme]);
 
-  // ----------------------------------------------------------------------------------------------------
-  // useEffect Hook for Time and Location Updates
-  // Sets up an interval for time updates and fetches user's location on component mount.
-  // Cleans up the interval on component unmount.
-  // ----------------------------------------------------------------------------------------------------
+  // Update time every second and fetch location on component mount
   useEffect(() => {
-    // Set up interval to update time every second
     const timer = setInterval(() => {
       setTime(new Date().toLocaleTimeString());
     }, 1000);
@@ -47,66 +40,73 @@ const TopBar = ({ collapsed }) => {
         setLocation('Unknown Location');
       });
 
-    // Cleanup function to clear the interval
     return () => clearInterval(timer);
   }, []);
 
-  // ----------------------------------------------------------------------------------------------------
-  // Theme Toggling Logic
-  // Cycles through 'light', 'dark', and 'forest' themes.
-  // ----------------------------------------------------------------------------------------------------
-  const toggleTheme = () => {
-    setTheme((prev) => {
-      if (prev === 'light') return 'dark';
-      if (prev === 'dark') return 'forest';
-      return 'light';
-    });
-  };
+  // Define themes and corresponding icons
+  const themes = [
+    { name: 'light', icon: <WbSunnyIcon className="topbar-icon" /> },
+    { name: 'dark', icon: <NightsStayIcon className="topbar-icon" /> },
+    { name: 'forest', icon: <ForestIcon className="topbar-icon" /> },
+    { name: 'vampire', icon: <BloodtypeIcon className="topbar-icon" /> },
+  ];
 
-  // ----------------------------------------------------------------------------------------------------
-  // Helper function to get the appropriate theme icon based on the current theme.
-  // ----------------------------------------------------------------------------------------------------
-  const getThemeIcon = () => {
-    switch (theme) {
-      case 'light':
-        return <WbSunnyIcon className="topbar-icon" />;
-      case 'dark':
-        return <NightsStayIcon className="topbar-icon" />;
-      case 'forest':
-        return <ForestIcon className="topbar-icon" />;
-      default:
-        return <Brightness4Icon className="topbar-icon" />;
-    }
+  const getThemeIcon = (name = theme) => {
+    const themeObj = themes.find((t) => t.name === name);
+    return themeObj ? themeObj.icon : <Brightness4Icon className="topbar-icon" />;
   };
 
   // ----------------------------------------------------------------------------------------------------
   // Render Method
   // ----------------------------------------------------------------------------------------------------
+
   return (
-    // Main container for the top bar, applies 'collapsed' class based on prop
     <div className={`topbar-container ${collapsed ? 'collapsed' : ''}`}>
-      {/* Theme Toggle Section */}
-      <div className="topbar-status theme-toggle" onClick={toggleTheme} title="Toggle Theme">
-        {getThemeIcon()}
-        <span className="topbar-text">
-          {theme.charAt(0).toUpperCase() + theme.slice(1)} Mode
-        </span>
+      {/* Theme Dropdown */}
+      <div className="topbar-status theme-dropdown">
+        <div className="theme-selected">
+          {getThemeIcon()}
+          <span className="topbar-text">
+            {theme.charAt(0).toUpperCase() + theme.slice(1)} Mode
+          </span>
+        </div>
+        <div className="theme-options">
+          {themes.map((t) => (
+            <div
+              key={t.name}
+              className={`theme-option ${t.name === theme ? 'active' : ''}`}
+              onClick={() => setTheme(t.name)}
+            >
+              {t.icon}
+              <span className="topbar-text">
+                {t.name.charAt(0).toUpperCase() + t.name.slice(1)}
+              </span>
+            </div>
+          ))}
+        </div>
       </div>
-      {/* Current Time Display */}
+
+      {/* Current Time */}
       <div className="topbar-status">
         <AccessTimeIcon className="topbar-icon" />
         <span className="topbar-text">{time}</span>
       </div>
-      {/* User Location Display */}
+
+      {/* Location */}
       <div className="topbar-status">
         <LocationOnIcon className="topbar-icon" />
         <span className="topbar-text">{location}</span>
       </div>
-      {/* Logout Button */}
-      <div className="topbar-status logout-button" onClick={() => {
-        localStorage.removeItem('token'); // Remove the token
-        window.location.href = '/'; // Reload the page to trigger re-authentication
-      }} title="Logout">
+
+      {/* Logout */}
+      <div
+        className="topbar-status logout-button"
+        onClick={() => {
+          localStorage.removeItem('token');
+          window.location.href = '/';
+        }}
+        title="Logout"
+      >
         <LogoutIcon className="topbar-icon" />
         <span className="topbar-text">Logout</span>
       </div>
@@ -114,7 +114,4 @@ const TopBar = ({ collapsed }) => {
   );
 };
 
-// ----------------------------------------------------------------------------------------------------
-// Export the TopBar Component
-// ----------------------------------------------------------------------------------------------------
 export default TopBar;

@@ -167,3 +167,11 @@
   filter: drop-shadow(0 0 8px rgba(255, 0, 0, 0.6));
 }
 
+.auth-btn:disabled {
+  background: linear-gradient(to right, #4d0000, #2a0000);
+  color: #999 !important;
+  cursor: not-allowed;
+  box-shadow: none;
+  opacity: 0.6;
+  transform: none;
+}

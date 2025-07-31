@@ -97,6 +97,22 @@
 
 }
 
+:root[data-theme='vampire'] {
+  background: #1a0000;
+  --bg-color: #1a0000;
+  --hover-bg: #ffffff;
+  --icon-muted: #ffffff;
+  --text-color: #ffffff;
+  --hamburger-color: #ffffff;
+
+
+  --primary-text: #ff4d4d;
+  --accent-color: #8b0000;
+  --secondary-bg: #2e0000;
+  --hover-bg: #3d0000;
+}
+
+
 [data-theme='light'] p,
 [data-theme='light'] li {
   color: #111111;
