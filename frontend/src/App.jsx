@@ -4,6 +4,8 @@ import MainLayout from './Layout/MainLayout';
 import Auth from './Components/Auth';
 import { ToastProvider } from './Components/Toast';
 import * as Pages from './pages';
+import { AuthProvider, useAuth } from './Context/AuthContext';
+import ProtectedRoute from './Components/ProtectedRoute';
 
 function RouteWrapper({ title, children }) {
   useEffect(() => {
@@ -26,15 +28,17 @@ const routeConfig = [
 
 function AppRoutes() {
   const navigate = useNavigate();
+  const { login } = useAuth(); // From context
 
   const handleAuthSuccess = (data) => {
     console.log("✅ Authenticated:", data);
+    login(data.token); // Save token via context
     navigate("/dashboard");
   };
 
   return (
     <Routes>
-      {/* Auth route */}
+      {/* Public Route */}
       <Route
         path="/"
         element={
@@ -44,13 +48,17 @@ function AppRoutes() {
         }
       />
 
-      {/* MainLayout with nested application routes */}
+      {/* Protected Routes */}
       <Route path="/" element={<MainLayout />}>
         {routeConfig.map(({ path, element, title }) => (
           <Route
             key={path}
             path={path}
-            element={<RouteWrapper title={title}>{element}</RouteWrapper>}
+            element={
+              <ProtectedRoute>
+                <RouteWrapper title={title}>{element}</RouteWrapper>
+              </ProtectedRoute>
+            }
           />
         ))}
       </Route>
@@ -61,9 +69,11 @@ function AppRoutes() {
 function App() {
   return (
     <ToastProvider>
-      <Router>
-        <AppRoutes />
-      </Router>
+      <AuthProvider>
+        <Router>
+          <AppRoutes />
+        </Router>
+      </AuthProvider>
     </ToastProvider>
   );
 }

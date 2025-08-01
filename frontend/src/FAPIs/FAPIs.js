@@ -1,4 +1,4 @@
-const API = {
+const FAPI = {
   system: {
     auth: {
       method: 'POST',
@@ -7,4 +7,4 @@ const API = {
   }
 };
 
-export default API;
+export default FAPI;
