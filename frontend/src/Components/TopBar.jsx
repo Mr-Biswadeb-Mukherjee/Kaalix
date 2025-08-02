@@ -1,31 +1,25 @@
 import React, { useEffect, useState } from 'react';
-import AccessTimeIcon from '@mui/icons-material/AccessTime';
-import LocationOnIcon from '@mui/icons-material/LocationOn';
-import Brightness4Icon from '@mui/icons-material/Brightness4';
-import ForestIcon from '@mui/icons-material/Forest';
-import WbSunnyIcon from '@mui/icons-material/WbSunny';
-import LogoutIcon from '@mui/icons-material/Logout';
-import NightsStayIcon from '@mui/icons-material/NightsStay';
-import BloodtypeIcon from '@mui/icons-material/Bloodtype';
-import './Styles/TopBar.css';
+import {
+  AccessTime as AccessTimeIcon,
+  LocationOn as LocationOnIcon,
+  Brightness4 as Brightness4Icon,
+  Forest as ForestIcon,
+  WbSunny as WbSunnyIcon,
+  Logout as LogoutIcon,
+  NightsStay as NightsStayIcon,
+  Bloodtype as BloodtypeIcon
+} from '@mui/icons-material';
 
-// ----------------------------------------------------------------------------------------------------
-// TopBar Component
-// Renders a top bar displaying current time, user's location, and a theme dropdown selector.
-// ----------------------------------------------------------------------------------------------------
+import FAPI from '../FAPIs/FAPIs';
+import './Styles/TopBar.css';
+import { useToast } from './Toast'; // ✅ Custom toast hook
 
 const TopBar = ({ collapsed }) => {
   const [time, setTime] = useState(new Date().toLocaleTimeString());
   const [location, setLocation] = useState('Fetching...');
   const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'light');
+  const { addToast } = useToast(); // ✅ use toast context
 
-  // Set current theme on mount and update on change
-  useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme);
-    localStorage.setItem('theme', theme);
-  }, [theme]);
-
-  // Update time every second and fetch location on component mount
   useEffect(() => {
     const timer = setInterval(() => {
       setTime(new Date().toLocaleTimeString());
@@ -43,7 +37,11 @@ const TopBar = ({ collapsed }) => {
     return () => clearInterval(timer);
   }, []);
 
-  // Define themes and corresponding icons
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('theme', theme);
+  }, [theme]);
+
   const themes = [
     { name: 'light', icon: <WbSunnyIcon className="topbar-icon" /> },
     { name: 'dark', icon: <NightsStayIcon className="topbar-icon" /> },
@@ -56,9 +54,38 @@ const TopBar = ({ collapsed }) => {
     return themeObj ? themeObj.icon : <Brightness4Icon className="topbar-icon" />;
   };
 
-  // ----------------------------------------------------------------------------------------------------
-  // Render Method
-  // ----------------------------------------------------------------------------------------------------
+  const handleLogout = async () => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      addToast('You are already logged out.', 'warning');
+      window.location.href = '/';
+      return;
+    }
+
+    try {
+      const response = await fetch(FAPI.system.Logout.endpoint, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        addToast('Successfully logged out.', 'success');
+        localStorage.removeItem('token');
+
+        setTimeout(() => {
+          window.location.href = '/';
+        }, 1500);
+      } else {
+        const err = await response.json();
+        addToast(`Logout failed: ${err.message || 'Unknown error'}`, 'error');
+      }
+    } catch (err) {
+      console.error('🚨 Logout error:', err);
+      addToast('Network error during logout. Please try again.', 'error');
+    }
+  };
 
   return (
     <div className={`topbar-container ${collapsed ? 'collapsed' : ''}`}>
@@ -86,7 +113,7 @@ const TopBar = ({ collapsed }) => {
         </div>
       </div>
 
-      {/* Current Time */}
+      {/* Time */}
       <div className="topbar-status">
         <AccessTimeIcon className="topbar-icon" />
         <span className="topbar-text">{time}</span>
@@ -101,10 +128,7 @@ const TopBar = ({ collapsed }) => {
       {/* Logout */}
       <div
         className="topbar-status logout-button"
-        onClick={() => {
-          localStorage.removeItem('token');
-          window.location.href = '/';
-        }}
+        onClick={handleLogout}
         title="Logout"
       >
         <LogoutIcon className="topbar-icon" />

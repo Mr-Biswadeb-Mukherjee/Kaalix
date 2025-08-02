@@ -125,7 +125,7 @@ router.post("/", async (req, res) => {
         password: trimmedPassword,
       });
 
-      const token = res.generateToken({
+      const token = await res.generateToken({
         email: trimmedEmail,
         fullName: newUser.fullName,
       });
@@ -152,7 +152,7 @@ router.post("/", async (req, res) => {
         });
       }
 
-      const token = res.generateToken({
+      const token = await res.generateToken({
         email: user.email,
         fullName: user.fullName,
       });

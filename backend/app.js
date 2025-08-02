@@ -8,7 +8,14 @@ import bodyParser from "body-parser";
 
 import BAPI from "./BAPIs/BAPIs.js";
 import authRouter from "./Modules/auth.js";
-import { generateToken, verifyToken } from "./Utils/jwt.js";
+import logoutHandler from "./Modules/Logout.js";
+import authMiddleware from "./Middleware/authmiddleware.js";
+
+import {
+  generateToken,
+  verifyToken,
+  revokeToken
+} from "./Utils/JWT.js";
 
 const app = express();
 const PORT = process.env.PORT || 6000;
@@ -22,11 +29,15 @@ app.use(bodyParser.json());
 app.use((req, res, next) => {
   res.generateToken = generateToken;
   res.verifyToken = verifyToken;
+  res.revokeToken = revokeToken;
   next();
 });
 
 // 🛣️ Route Mounts
-app.use(BAPI.system.auth.endpoint, authRouter);
+app.use(BAPI.system.auth.endpoint, authMiddleware, authRouter);
+
+// 🔓 Logout Route
+app.post(BAPI.system.Logout.endpoint, logoutHandler);
 
 // ❌ Global Error Handler
 app.use((err, req, res, next) => {

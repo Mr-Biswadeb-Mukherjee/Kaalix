@@ -81,8 +81,8 @@ const Auth = ({ onAuthSuccess }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     const { email, password, fullName } = formData;
-
     setLoading(true);
+
     try {
       const response = await fetch(FAPI.system.auth.endpoint, {
         method: "POST",
@@ -97,31 +97,56 @@ const Auth = ({ onAuthSuccess }) => {
 
       const data = await response.json();
 
-      if (response.ok && data.success) {
-        addToast(
-          isLogin
-            ? `Welcome back, ${data.user?.fullName || email}.`
-            : `Registration complete. Welcome, ${data.user?.fullName || fullName}!`,
-          "success"
-        );
-
-        if (data.token) {
-          localStorage.setItem("token", data.token);
-        }
-
-        if (typeof onAuthSuccess === "function") {
-          onAuthSuccess(data);
-        }
-      } else {
+      if (!response.ok || !data.success) {
         addToast(data.message || "Authentication failed.", "error");
+        return;
+      }
+
+      // ✅ Defensive check: token must be a string
+      if (typeof data.token !== "string") {
+        const actualType = data.token === null ? "null" : typeof data.token;
+        addToast(`Invalid token format: expected string, got ${actualType}.`, "error");
+        console.warn("❌ Invalid token type from server:", data.token);
+        return;
+      }
+
+      // ✅ Optional JWT format check
+      const jwtRegex = /^[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+$/;
+      if (!jwtRegex.test(data.token)) {
+        addToast("Malformed JWT token received from server.", "error");
+        console.warn("❌ Malformed JWT:", data.token);
+        return;
+      }
+
+      // ✅ Optional: Validate user object minimally
+      if (!data.user || typeof data.user.fullName !== "string") {
+        addToast("Invalid user data in response.", "error");
+        console.warn("❌ Incomplete user object:", data.user);
+        return;
+      }
+
+      // ✅ Success — store token and call callback
+      addToast(
+        isLogin
+          ? `Welcome back, ${data.user.fullName || email}.`
+          : `Registration complete. Welcome, ${data.user.fullName || fullName}!`,
+        "success"
+      );
+
+      localStorage.setItem("token", data.token);
+
+      if (typeof onAuthSuccess === "function") {
+        onAuthSuccess(data);
       }
     } catch (error) {
-      console.error("Auth error:", error);
+      console.error("❌ Auth error:", error);
       addToast("Server error. Please try again later.", "error");
     } finally {
       setLoading(false);
     }
   };
+
+
 
   return (
     <div className="auth-wrapper">
