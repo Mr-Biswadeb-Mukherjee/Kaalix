@@ -9,7 +9,7 @@ import bodyParser from "body-parser";
 import BAPI from "./BAPIs/BAPIs.js";
 import authRouter from "./Modules/auth.js";
 import logoutHandler from "./Modules/Logout.js";
-import authMiddleware from "./Middleware/authmiddleware.js";
+import authMiddleware from "./Middleware/authMiddleware.js";
 
 import {
   generateToken,
