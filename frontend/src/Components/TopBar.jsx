@@ -10,7 +10,7 @@ import {
   Bloodtype as BloodtypeIcon
 } from '@mui/icons-material';
 
-import FAPI from '../FAPIs/FAPIs';
+import API from '../../../shared/Endpoints.js';
 import './Styles/TopBar.css';
 import { useToast } from './Toast'; // ✅ Custom toast hook
 
@@ -63,7 +63,7 @@ const TopBar = ({ collapsed }) => {
     }
 
     try {
-      const response = await fetch(FAPI.system.Logout.endpoint, {
+      const response = await fetch(API.system.auth.logout.endpoint, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,

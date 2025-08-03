@@ -1,41 +1,45 @@
 // Modules/Logout.js
 
 /**
- * Core logout handler — decoupled from jwt.js, uses revokeToken injected via app.js
+ * 🔒 Secure logout handler — revokes JWT via injected utility
  */
 async function logoutHandler(req, res) {
-  console.log("📥 Received logout request");
+  console.log("📥 Logout request received");
 
   try {
-    const authHeader = req.headers.authorization;
+    const authHeader = req.headers.authorization || "";
+    const token = authHeader.startsWith("Bearer ")
+      ? authHeader.split(" ")[1]
+      : null;
 
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      console.warn("⚠️ Logout failed: Missing or invalid Authorization header");
+    if (!token) {
+      console.warn("⚠️ Missing or malformed token in Authorization header");
       return res.status(401).json({
         success: false,
-        message: "Missing or invalid Authorization header",
+        message: "Unauthorized: No valid token provided",
       });
     }
 
-    const token = authHeader.split(" ")[1];
-    console.log(`🔐 Attempting to revoke token: ${token.substring(0, 12)}...`);
-
     if (typeof res.revokeToken !== "function") {
-      throw new Error("revokeToken function not found on response object");
+      console.error("❌ revokeToken not injected into response object");
+      return res.status(500).json({
+        success: false,
+        message: "Server misconfiguration: revokeToken unavailable",
+      });
     }
 
     await res.revokeToken(token);
-    console.log("✅ Token successfully revoked");
+    console.log(`✅ Token revoked successfully: ${token.substring(0, 10)}...`);
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       message: "Logout successful. Token revoked.",
     });
-  } catch (error) {
-    console.error("❌ Logout error:", error.message || error);
-    res.status(500).json({
+  } catch (err) {
+    console.error("❌ Logout error:", err.stack || err.message || err);
+    return res.status(500).json({
       success: false,
-      message: "Logout failed due to server error.",
+      message: "Server error during logout",
     });
   }
 }

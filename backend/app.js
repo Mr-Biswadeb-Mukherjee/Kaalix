@@ -1,4 +1,3 @@
-// 🟢 Load environment variables before anything else
 import dotenv from "dotenv";
 dotenv.config();
 
@@ -6,26 +5,27 @@ import express from "express";
 import cors from "cors";
 import bodyParser from "body-parser";
 
-import BAPI from "./BAPIs/BAPIs.js";
+import API from "../shared/Endpoints.js";
 import authRouter from "./Modules/auth.js";
 import logoutHandler from "./Modules/Logout.js";
-import authMiddleware from "./Middleware/authMiddleware.js";
+// import other routers like dashboardRouter, modulesRouter, etc.
 
 import {
   generateToken,
   verifyToken,
-  revokeToken
+  revokeToken,
 } from "./Utils/JWT.js";
+
+import authMiddleware from "./Middleware/authMiddleware.js";
 
 const app = express();
 const PORT = process.env.PORT || 6000;
 const NODE_ENV = process.env.NODE_ENV || "development";
 
-// 🛡️ Global Middleware
 app.use(cors());
 app.use(bodyParser.json());
 
-// 🔐 Inject token utilities into response
+// Inject JWT utils into res
 app.use((req, res, next) => {
   res.generateToken = generateToken;
   res.verifyToken = verifyToken;
@@ -33,13 +33,19 @@ app.use((req, res, next) => {
   next();
 });
 
-// 🛣️ Route Mounts
-app.use(BAPI.system.auth.endpoint, authMiddleware, authRouter);
+// 🟢 Public Routes (defined before middleware)
+app.use(API.system.auth.login.endpoint, authRouter);
+app.post(API.system.auth.logout.endpoint, logoutHandler);
+app.post(API.system.auth.verify.endpoint, authMiddleware, (req, res) => {
+  res.status(200).json({ message: "Token is valid", user: req.user });
+});
 
-// 🔓 Logout Route
-app.post(BAPI.system.Logout.endpoint, logoutHandler);
+// 🔒 Dynamically protect all routes listed under BAPI.system.protected
+Object.values(API.system.protected).forEach(({ endpoint }) => {
+  app.use(endpoint, authMiddleware);
+});
 
-// ❌ Global Error Handler
+// 🔥 Global Error Handler
 app.use((err, req, res, next) => {
   console.error("🔥 Global error caught:", err.stack || err);
   res.status(500).json({
@@ -48,7 +54,6 @@ app.use((err, req, res, next) => {
   });
 });
 
-// 🚀 Start Server
 app.listen(PORT, () => {
   console.log(`🟢 Server running in ${NODE_ENV} mode at http://localhost:${PORT}`);
 });

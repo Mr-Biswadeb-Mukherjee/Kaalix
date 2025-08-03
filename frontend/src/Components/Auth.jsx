@@ -9,7 +9,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { initBloodFlow } from "./BloodRain";
 import { useToast } from "./Toast";
-import FAPI from "../FAPIs/FAPIs";
+import API from "../../../shared/Endpoints.js";
 import "./Styles/auth.css";
 
 const Auth = ({ onAuthSuccess }) => {
@@ -42,7 +42,7 @@ const Auth = ({ onAuthSuccess }) => {
     const { email, password, fullName } = formData;
 
     try {
-      const res = await fetch(FAPI.system.auth.endpoint, {
+      const res = await fetch(API.system.auth.login.endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -84,7 +84,7 @@ const Auth = ({ onAuthSuccess }) => {
     setLoading(true);
 
     try {
-      const response = await fetch(FAPI.system.auth.endpoint, {
+      const response = await fetch(API.system.auth.login.endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
