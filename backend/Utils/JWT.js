@@ -77,15 +77,12 @@ async function generateToken(payload) {
   return token;
 }
 
-/**
- * ✅ Verify JWT and enforce single-use by revoking it immediately
- */
-async function verifyToken(token) {
+async function verifyToken(token, options = { revoke: true }) {
   await lazyInit();
 
   const decoded = jwt.decode(token, { complete: true });
   if (!decoded || !decoded.header?.kid) {
-    throw new Error('Missing kid in token header');
+    throw new Error("Missing kid in token header");
   }
 
   const { kid } = decoded.header;
@@ -94,33 +91,45 @@ async function verifyToken(token) {
   const secret = await redis.get(`${JWT_SECRET_PREFIX}${kid}`);
   if (!secret) throw new Error(`Secret not found for kid=${kid}`);
 
-  const payload = jwt.verify(token, secret, { algorithms: ['HS512'] });
+  const payload = jwt.verify(token, secret, { algorithms: ["HS512"] });
 
   const jtiKey = `${REVOCATION_SET_PREFIX}${payload.jti}`;
 
-  // Atomically check and revoke using a Lua script
-  const lua = `
-    local key = KEYS[1]
-    if redis.call("GET", key) then
-      return 0
-    else
-      redis.call("SET", key, "revoked", "EX", ARGV[1])
-      return 1
-    end
-  `;
-
-  const success = await redis.eval(lua, {
-    keys: [jtiKey],
-    arguments: [TOKEN_TTL_SECONDS],
-  });
-
-  if (success === 0) {
-    throw new Error('Token has already been used or revoked');
+  // 🛡️ Always check if token was revoked (replay attack protection)
+  const alreadyRevoked = await redis.get(jtiKey);
+  if (alreadyRevoked) {
+    throw new Error("Token has been revoked or reused");
   }
 
-  console.log(`🛡️ Token verified and now revoked: jti=${payload.jti}`);
+  // 🔐 Only write revocation if intended
+  if (options.revoke) {
+    const lua = `
+      local key = KEYS[1]
+      if redis.call("GET", key) then
+        return 0
+      else
+        redis.call("SET", key, "revoked", "EX", ARGV[1])
+        return 1
+      end
+    `;
+    const success = await redis.eval(lua, {
+      keys: [jtiKey],
+      arguments: [TOKEN_TTL_SECONDS],
+    });
+
+    if (success === 0) {
+      throw new Error("Token has already been used or revoked");
+    }
+
+    console.log(`🛡️ Token verified and now revoked: jti=${payload.jti}`);
+  } else {
+    console.log(`🔎 Token verified (read-only): jti=${payload.jti}`);
+  }
+
   return payload;
 }
+
+
 
 /**
  * ❌ Revoke JWT by JTI (manual revocation)
