@@ -17,35 +17,35 @@ const API = {
 
     protected: {
       dashboard: {
-        method: 'GET',
+        method: 'POST',
         endpoint: '/api/v3/dashboard',
       },
       targetConfig: {
-        method: 'GET',
-        endpoint: '/api/v3/target-config',
+        method: 'POST',
+        endpoint: '/api/v3/tarPOST-config',
       },
       attackLogic: {
-        method: 'GET',
+        method: 'POST',
         endpoint: '/api/v3/attack-logic',
       },
       modules: {
-        method: 'GET',
+        method: 'POST',
         endpoint: '/api/v3/modules',
       },
       proxy: {
-        method: 'GET',
+        method: 'POST',
         endpoint: '/api/v3/proxy',
       },
       aboutUs: {
-        method: 'GET',
+        method: 'POST',
         endpoint: '/api/v3/about-us',
       },
       documentation: {
-        method: 'GET',
+        method: 'POST',
         endpoint: '/api/v3/documentation',
       },
       settings: {
-        method: 'GET',
+        method: 'POST',
         endpoint: '/api/v3/settings',
       },
     },

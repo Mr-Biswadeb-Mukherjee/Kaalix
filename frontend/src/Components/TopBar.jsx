@@ -5,20 +5,30 @@ import {
   Brightness4 as Brightness4Icon,
   Forest as ForestIcon,
   WbSunny as WbSunnyIcon,
-  Logout as LogoutIcon,
   NightsStay as NightsStayIcon,
-  Bloodtype as BloodtypeIcon
+  Bloodtype as BloodtypeIcon,
+  AccountCircle as AccountCircleIcon,
+  Logout as LogoutIcon,
+  Person as PersonIcon
 } from '@mui/icons-material';
 
 import API from '../../../shared/Endpoints.js';
 import './Styles/TopBar.css';
-import { useToast } from './Toast'; // ✅ Custom toast hook
+import { useToast } from './Toast';
 
 const TopBar = ({ collapsed }) => {
   const [time, setTime] = useState(new Date().toLocaleTimeString());
   const [location, setLocation] = useState('Fetching...');
   const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'light');
-  const { addToast } = useToast(); // ✅ use toast context
+  const [dropdownVisible, setDropdownVisible] = useState(false);
+
+  const { addToast } = useToast();
+
+  // Mock user data (replace with context/store in real app)
+  const [user] = useState({
+    username: 'Biswadeb',
+    avatar: null, // Add avatar URL here if available
+  });
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -125,14 +135,30 @@ const TopBar = ({ collapsed }) => {
         <span className="topbar-text">{location}</span>
       </div>
 
-      {/* Logout */}
+      {/* User Profile Dropdown */}
       <div
-        className="topbar-status logout-button"
-        onClick={handleLogout}
-        title="Logout"
+        className="topbar-status profile-dropdown"
+        onMouseEnter={() => setDropdownVisible(true)}
+        onMouseLeave={() => setDropdownVisible(false)}
       >
-        <LogoutIcon className="topbar-icon" />
-        <span className="topbar-text">Logout</span>
+        <AccountCircleIcon className="topbar-icon" />
+        <span className="topbar-text">{user.username}</span>
+
+        {dropdownVisible && (
+          <div className="profile-dropdown-menu">
+            <div
+              className="dropdown-item"
+              onClick={() => (window.location.href = '/profile')}
+            >
+              <PersonIcon className="dropdown-icon" />
+              <span>Account Settings</span>
+            </div>
+            <div className="dropdown-item" onClick={handleLogout}>
+              <LogoutIcon className="dropdown-icon" />
+              <span>Logout</span>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

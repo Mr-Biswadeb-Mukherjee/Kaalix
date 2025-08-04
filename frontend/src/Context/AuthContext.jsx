@@ -42,22 +42,30 @@ export const AuthProvider = ({ children }) => {
     setIsAuthenticated(true);
   };
 
-  const logout = () => {
+  const logout = async () => {
     const token = localStorage.getItem("token");
-    if (token) {
-      fetch(API.system.auth.logout.endpoint, {
-        method: "POST", // ✅ POST to revoke token safely
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-      }).catch((err) => {
-        console.error("🚨 Backend logout failed:", err.message);
-      });
-    }
 
-    localStorage.removeItem("token");
-    setIsAuthenticated(false);
+    try {
+      if (token) {
+        const response = await fetch(API.system.auth.logout.endpoint, {
+          method: "POST", // ✅ POST to revoke token safely
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          console.error("🚨 Logout failed on backend:", errorData.message || response.statusText);
+        }
+      }
+    } catch (err) {
+      console.error("🚨 Backend logout error:", err.message);
+    } finally {
+      localStorage.removeItem("token");
+      setIsAuthenticated(false);
+    }
   };
 
   return (

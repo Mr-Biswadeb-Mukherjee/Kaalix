@@ -147,3 +147,41 @@
   background-color: var(--hover-bg);
   border-left: 3px solid var(--accent-color, #007bff);
 }
+
+.profile-dropdown {
+  position: relative;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.profile-dropdown-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  min-width: 160px;
+  background: var(--bg-color);
+  border: var(--border-color);
+  z-index: 100;
+  border-radius: 6px;
+}
+
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px;
+  font-size: 14px;
+  cursor: pointer;
+  color: var(--text-color);
+  transition: background 0.2s ease;
+}
+
+.dropdown-item:hover {
+  background-color: var(--bg-color);
+}
+
+.dropdown-icon {
+  font-size: 20px;
+  color: #555;
+}

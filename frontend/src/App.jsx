@@ -7,6 +7,7 @@ import * as Pages from './pages';
 import { AuthProvider, useAuth } from './Context/AuthContext';
 import ProtectedRoute from './Components/ProtectedRoute';
 
+// A wrapper to update the page title dynamically
 function RouteWrapper({ title, children }) {
   useEffect(() => {
     document.title = title || 'Amon';
@@ -15,6 +16,7 @@ function RouteWrapper({ title, children }) {
   return children;
 }
 
+// Define your route configuration
 const routeConfig = [
   { path: 'dashboard', element: <Pages.Dashboard />, title: 'Dashboard | Amon' },
   { path: 'target-config', element: <Pages.TargetConfig />, title: 'Target Config | Amon' },
@@ -26,19 +28,19 @@ const routeConfig = [
   { path: 'settings', element: <Pages.Settings />, title: 'Settings | Amon' },
 ];
 
+// Handles routing logic and protected routes
 function AppRoutes() {
   const navigate = useNavigate();
-  const { login } = useAuth(); // From context
+  const { login } = useAuth(); // Destructuring from context
 
   const handleAuthSuccess = (data) => {
-    console.log("✅ Authenticated:", data);
-    login(data.token); // Save token via context
+    login(data.token); // Save token
     navigate("/dashboard");
   };
 
   return (
     <Routes>
-      {/* Public Route */}
+      {/* Public Route (Login / Auth) */}
       <Route
         path="/"
         element={
@@ -48,7 +50,7 @@ function AppRoutes() {
         }
       />
 
-      {/* Protected Routes */}
+      {/* Protected Routes inside MainLayout */}
       <Route path="/" element={<MainLayout />}>
         {routeConfig.map(({ path, element, title }) => (
           <Route
@@ -66,14 +68,15 @@ function AppRoutes() {
   );
 }
 
+// Root App component with correct provider order
 function App() {
   return (
     <ToastProvider>
-      <AuthProvider>
-        <Router>
+      <Router>
+        <AuthProvider>
           <AppRoutes />
-        </Router>
-      </AuthProvider>
+        </AuthProvider>
+      </Router>
     </ToastProvider>
   );
 }
