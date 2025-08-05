@@ -1,11 +1,12 @@
 import { BrowserRouter as Router, Routes, Route, useNavigate } from 'react-router-dom';
-import { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import MainLayout from './Layout/MainLayout';
 import Auth from './Components/Auth';
 import { ToastProvider } from './Components/Toast';
 import * as Pages from './pages';
 import { AuthProvider, useAuth } from './Context/AuthContext';
 import ProtectedRoute from './Components/ProtectedRoute';
+import Preloader from './Components/Preloader'; // <-- added
 
 // A wrapper to update the page title dynamically
 function RouteWrapper({ title, children }) {
@@ -31,10 +32,10 @@ const routeConfig = [
 // Handles routing logic and protected routes
 function AppRoutes() {
   const navigate = useNavigate();
-  const { login } = useAuth(); // Destructuring from context
+  const { login } = useAuth();
 
   const handleAuthSuccess = (data) => {
-    login(data.token); // Save token
+    login(data.token);
     navigate("/dashboard");
   };
 
@@ -68,8 +69,23 @@ function AppRoutes() {
   );
 }
 
-// Root App component with correct provider order
+// Root App component with preloader and correct provider order
 function App() {
+  const [loading, setLoading] = useState(() => {
+    // Only show preloader if this is the first visit during the session
+    const hasLoaded = sessionStorage.getItem("hasLoadedOnce");
+    return !hasLoaded;
+  });
+
+  const handlePreloaderFinish = () => {
+    sessionStorage.setItem("hasLoadedOnce", "true");
+    setLoading(false);
+  };
+
+  if (loading) {
+    return <Preloader onFinish={handlePreloaderFinish} />;
+  }
+
   return (
     <ToastProvider>
       <Router>
@@ -80,5 +96,6 @@ function App() {
     </ToastProvider>
   );
 }
+
 
 export default App;
