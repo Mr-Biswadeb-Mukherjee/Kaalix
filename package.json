@@ -1,0 +1,62 @@
+{
+  "name": "amon",
+  "version": "1.0.0",
+  "private": true,
+  "description": "The god of knowledge and secrecy — now weaponized for offensive security and password cracking operations.",
+  "packageManager": "pnpm@8.10.5",
+  "scripts": {
+    "type":"module",
+    "dev:frontend": "pnpm --filter amon-ui dev",
+    "dev:backend": "pnpm --filter amon-backend dev",
+    "build": "pnpm -r build",
+    "clean": "pnpm -r clean",
+    "install-all": "pnpm install",
+    "dev": "concurrently \"pnpm --filter amon-ui dev\" \"pnpm --filter amon-backend dev\"",
+    "start": "pnpm -r start",
+    "electron": "electron .",
+    "pack:linux": "electron-builder --linux AppImage"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/official-biswadeb941/Amon.git"
+  },
+  "keywords": [
+    "red-teaming",
+    "cybersecurity",
+    "offensive-security",
+    "malware",
+    "toolkit",
+    "amon",
+    "password-cracking"
+  ],
+  "author": "Biswadeb Mukherjee",
+  "license": "Non-Shareable",
+  "bugs": {
+    "url": "https://github.com/official-biswadeb941/Amon/issues"
+  },
+  "homepage": "https://github.com/official-biswadeb941/Amon#readme",
+  "devDependencies": {
+    "concurrently": "^9.2.0",
+    "cross-env": "^10.0.0",
+    "electron": "^37.2.5",
+    "electron-builder": "^26.0.12",
+    "wait-on": "^8.0.4"
+  },
+  "build": {
+    "appId": "com.amon.com",
+    "productName": "AMON",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "build/**/*",
+      "index.js"
+    ],
+    "mac": {
+      "category": "private.app.com"
+    },
+    "win": {
+      "target": "nsis"
+    }
+  }
+}

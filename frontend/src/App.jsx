@@ -6,7 +6,12 @@ import { ToastProvider } from './Components/Toast';
 import * as Pages from './pages';
 import { AuthProvider, useAuth } from './Context/AuthContext';
 import ProtectedRoute from './Components/ProtectedRoute';
-import Preloader from './Components/Preloader'; // <-- added
+import Preloader from './Components/Preloader';
+
+// === Preloader Session Persistence Control ===
+// 1 = Store in sessionStorage after first load
+// 0 = Always show preloader on each visit
+const PERSIST_PRELOADER_IN_SESSION = 0;
 
 // A wrapper to update the page title dynamically
 function RouteWrapper({ title, children }) {
@@ -72,13 +77,17 @@ function AppRoutes() {
 // Root App component with preloader and correct provider order
 function App() {
   const [loading, setLoading] = useState(() => {
-    // Only show preloader if this is the first visit during the session
-    const hasLoaded = sessionStorage.getItem("hasLoadedOnce");
-    return !hasLoaded;
+    if (PERSIST_PRELOADER_IN_SESSION) {
+      const hasLoaded = sessionStorage.getItem("hasLoadedOnce");
+      return !hasLoaded;
+    }
+    return true; // Always show if persistence is off
   });
 
   const handlePreloaderFinish = () => {
-    sessionStorage.setItem("hasLoadedOnce", "true");
+    if (PERSIST_PRELOADER_IN_SESSION) {
+      sessionStorage.setItem("hasLoadedOnce", "true");
+    }
     setLoading(false);
   };
 
@@ -96,6 +105,5 @@ function App() {
     </ToastProvider>
   );
 }
-
 
 export default App;

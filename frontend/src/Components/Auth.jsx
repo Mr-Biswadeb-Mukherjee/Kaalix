@@ -9,7 +9,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { initBloodFlow } from "./BloodRain";
 import { useToast } from "./Toast";
-import API from "../../../shared/Endpoints.js";
+import API from "@amon/shared";
 import "./Styles/auth.css";
 
 const Auth = ({ onAuthSuccess }) => {

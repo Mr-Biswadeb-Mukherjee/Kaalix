@@ -5,7 +5,7 @@ import express from "express";
 import cors from "cors";
 import bodyParser from "body-parser";
 
-import API from "../shared/Endpoints.js";
+import API from "@amon/shared";
 import authRouter from "./Modules/auth.js";
 import logoutHandler from "./Modules/Logout.js";
 // import other routers like dashboardRouter, modulesRouter, etc.

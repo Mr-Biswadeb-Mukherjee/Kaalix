@@ -7,6 +7,7 @@ import DeveloperBoardIcon from '@mui/icons-material/DeveloperBoard'; // CPU
 import SwapHorizIcon from '@mui/icons-material/SwapHoriz'; // Swap
 import GraphicEqIcon from '@mui/icons-material/GraphicEq'; // GPU
 import PublicIcon from '@mui/icons-material/Public'; // IP
+import API from '@amon/shared';
 
 
 const StatusBar = ({ collapsed }) => {
@@ -24,7 +25,7 @@ const StatusBar = ({ collapsed }) => {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const response = await fetch('/api/v3/system/stats', {
+        const response = await fetch(API.system.status.endpoint, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'

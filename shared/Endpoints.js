@@ -22,7 +22,7 @@ const API = {
       },
       targetConfig: {
         method: 'POST',
-        endpoint: '/api/v3/tarPOST-config',
+        endpoint: '/api/v3/tar-config',
       },
       attackLogic: {
         method: 'POST',

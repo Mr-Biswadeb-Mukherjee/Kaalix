@@ -12,7 +12,7 @@ import {
   Person as PersonIcon
 } from '@mui/icons-material';
 
-import API from '../../../shared/Endpoints.js';
+import API from '@amon/shared';
 import './Styles/TopBar.css';
 import { useToast } from './Toast';
 

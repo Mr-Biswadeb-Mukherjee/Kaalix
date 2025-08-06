@@ -1,27 +1,21 @@
 .sigil-wrapper {
   position: fixed;
   inset: 0;
-  background: linear-gradient(180deg, #2a0000, #0a0000, #2a0000);
-  background-size: 400% 400%;
-  background-position: center;
-  animation: ritualShift 20s ease-in-out infinite;
+  /* A radial gradient is added on top to create a glassy highlight effect */
+  /* The layer order is: 1. Glossy overlay, 2. Background image */
+  background: radial-gradient(
+      ellipse at top,
+      rgba(255, 255, 255, 0.1) 0%,
+      rgba(255, 255, 255, 0) 60%
+    ),
+    url('https://wallpapercrafter.com/desktop1/536057-Satan-skull-demon-pentagram-1080P.jpg') no-repeat center/cover;
+  background-color: black; /* Fallback color if the image fails to load */
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   overflow: hidden;
   z-index: 9999;
-}
-
-.backdrop-smoke {
-  position: absolute;
-  inset: 0;
-  backdrop-filter: blur(2px) brightness(0.7);
-  background: rgba(0, 0, 0, 0.2);
-  mix-blend-mode: screen;
-  z-index: 1;
-  pointer-events: none;
-  animation: mistyDrift 20s ease-in-out infinite alternate;
 }
 
 .sigil-svg {
@@ -79,53 +73,16 @@
   }
 }
 
-@keyframes ritualShift {
-  0% {
-    background-position: 0% 50%;
-    background: linear-gradient(180deg, #2a0000, #0a0000, #2a0000);
-  }
-  25% {
-    background: linear-gradient(180deg, #3b0000, #1a0000, #3b0000);
-  }
-  50% {
-    background: linear-gradient(180deg, #450000, #0f0000, #450000);
-  }
-  75% {
-    background: linear-gradient(180deg, #2a0000, #0a0000, #2a0000);
-  }
-  100% {
-    background-position: 100% 50%;
-    background: linear-gradient(180deg, #2a0000, #0a0000, #2a0000);
-  }
-}
-
-
 .chant-text {
   margin-top: 40px;
   font-family: 'Orbitron';
-  font-size: 1.5rem;
+  font-size: 40px;
   color: #ff1a1a;
   text-shadow: 0 0 10px #8b0000, 0 0 30px #330000;
   letter-spacing: 2px;
   user-select: none;
   z-index: 10;
-}
-
-.smoke-overlay,
-.fog-layer,
-.embers-overlay {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-}
-
-.smoke-overlay {
-  background-size: cover;
-  mix-blend-mode: screen;
-  opacity: 0.04;
-  animation: smokeFlow 30s linear infinite;
-  z-index: 2;
+  animation-delay: 11s;
 }
 
 @keyframes smokeFlow {
@@ -155,7 +112,7 @@
 
 .welcome-typing {
   font-family: 'Orbitron';
-  font-size: 1.8rem;
+  font-size: 3rem;
   color: #ff1a1a;
   text-shadow: 0 0 12px #8b0000, 0 0 24px #330000;
   user-select: none;
@@ -176,3 +133,92 @@
   pointer-events: none;
 }
 
+/* ===================== */
+/* ✶ Horizontal Eye ✶ */
+/* ===================== */
+
+.sigil-eye .eye-outline {
+  stroke: #ffffff; /* Explicit red stroke */
+  stroke-width: 2;
+  stroke-dasharray: 100;
+  stroke-dashoffset: 100;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  filter: drop-shadow(0 0 6px #ff1a1a)
+          drop-shadow(0 0 12px #ff0000)
+          drop-shadow(0 0 20px #ff3333aa);
+}
+
+
+.reveal-eye .eye-outline {
+  animation: draw-eye 1.2s ease forwards;
+  opacity: 1;
+}
+
+@keyframes draw-eye {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.eye-pupil {
+  fill: #ff0000;
+  opacity: 0;
+  transform: scale(0.5);
+  transform-origin: center;
+  transition: all 0.8s ease 1s;
+  filter: drop-shadow(0 0 4px #ff1a1a)
+          drop-shadow(0 0 10px #ff0000)
+          drop-shadow(0 0 20px #ff0000cc);
+}
+
+
+.reveal-eye .eye-pupil {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.sigil-pulse {
+  fill: rgba(255, 255, 255, 0.05);
+  transform-origin: center;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.pulse {
+  animation: pulse-flash 1s ease-in-out forwards;
+}
+
+@keyframes pulse-flash {
+  0% {
+    transform: scale(0.5);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.3);
+    opacity: 0.6;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 0;
+  }
+}
+
+.glass-overlay {
+  position: absolute;
+  inset: 0;
+  backdrop-filter: blur(10px) brightness(1.05) contrast(0.9) saturate(1.05);
+  background: rgba(255, 255, 255, 0.02); /* ultra light veil to catch light */
+  pointer-events: none;
+  z-index: 1; /* sits behind everything else inside .sigil-wrapper */
+}
+
+.glass-overlay::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml;utf8,<svg viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'><filter id='grain'><feTurbulence type='fractalNoise' baseFrequency='1.2' numOctaves='3' /></filter><rect width='100%' height='100%' filter='url(%23grain)'/></svg>");
+  opacity: 0.03;
+  pointer-events: none;
+  z-index: 1;
+}
