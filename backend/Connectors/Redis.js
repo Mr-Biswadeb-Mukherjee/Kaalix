@@ -1,14 +1,12 @@
 import { createClient } from 'redis';
-import dotenv from 'dotenv';
-
-dotenv.config();
+import { redis as redisConfig } from '../Confs/config.js'; // Adjust path if needed
 
 const {
-  REDIS_HOST,
-  REDIS_PORT,
-  REDIS_PASSWORD,
-  REDIS_MAX_SESSIONS = 1000,
-} = process.env;
+  host: REDIS_HOST,
+  port: REDIS_PORT,
+  password: REDIS_PASSWORD,
+  poolMax: REDIS_MAX_SESSIONS = 1000, // reusing poolMax as maxSessions
+} = redisConfig;
 
 let redisClient;
 

@@ -1,7 +1,7 @@
 // Logo.jsx
 
 // Importing necessary assets and styles
-import logo from '../assets/Amon.png';
+import logo from '../assets/LOGO.png';
 import './Styles/Logo.css'; 
 
 // Logo component definition

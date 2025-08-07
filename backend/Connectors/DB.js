@@ -1,23 +1,24 @@
-import mysql from 'mysql2/promise';
-import dotenv from 'dotenv';
+// database.js (ES module)
 
-dotenv.config();
+import mysql from 'mysql2/promise';
+import { mysql as mysqlConfig } from '../Confs/config.js'; // adjust the path if necessary
 
 const {
-  DB_HOST,
-  DB_USER,
-  DB_PASSWORD,
-  DB_NAME,
-  DB_PORT,
-  MAX_POOL_SIZE
-} = process.env;
+  host,
+  user,
+  password,
+  database,
+  port,
+  maxPoolSize
+} = {
+  ...mysqlConfig,
+  maxPoolSize: mysqlConfig.maxPoolSize || 10,
+};
 
-if (!DB_NAME) {
-  console.error("❌ DB_NAME is not defined in .env");
+if (!database) {
+  console.error("❌ DB_NAME is not defined in config.js");
   process.exit(1);
 }
-
-const maxPool = parseInt(MAX_POOL_SIZE, 10) || 10;
 
 let pool;
 
@@ -25,26 +26,24 @@ export async function initDatabase() {
   try {
     // Step 1: Connect without DB to create it if needed
     const connection = await mysql.createConnection({
-      host: DB_HOST,
-      user: DB_USER,
-      password: DB_PASSWORD,
-      port: DB_PORT
+      host,
+      user,
+      password,
+      port
     });
 
-    await connection.query(`CREATE DATABASE IF NOT EXISTS \`${DB_NAME}\`;`);
-    //console.log(`✅ Database '${DB_NAME}' ensured.`);
+    await connection.query(`CREATE DATABASE IF NOT EXISTS \`${database}\`;`);
     await connection.end();
 
     // Step 2: Create pool using the DB
     pool = mysql.createPool({
-      host: DB_HOST,
-      user: DB_USER,
-      password: DB_PASSWORD,
-      database: DB_NAME,
-      port: DB_PORT,
+      host,
+      user,
+      password,
+      database,
+      port,
       waitForConnections: true,
-      connectionLimit: maxPool,
-      // Note: mysql2 doesn't have a built-in minPool setting, but we can simulate it later with warm-up if needed
+      connectionLimit: maxPoolSize,
       queueLimit: 0
     });
 
@@ -53,7 +52,6 @@ export async function initDatabase() {
 
     // Step 4: Test connection
     const conn = await pool.getConnection();
-    //console.log("✅ MySQL pool connected.");
     conn.release();
 
     return pool;
@@ -74,7 +72,6 @@ async function ensureTablesExist(pool) {
     );
   `;
   await pool.execute(createUsersTable);
-  //console.log("✅ Table 'users' ensured.");
 }
 
 export { pool };

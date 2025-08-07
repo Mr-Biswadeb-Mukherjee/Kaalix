@@ -2,23 +2,24 @@
   "name": "amon",
   "version": "1.0.0",
   "private": true,
+  "type": "module",
   "description": "The god of knowledge and secrecy — now weaponized for offensive security and password cracking operations.",
   "packageManager": "pnpm@8.10.5",
   "scripts": {
-    "type":"module",
     "dev:frontend": "pnpm --filter amon-ui dev",
     "dev:backend": "pnpm --filter amon-backend dev",
     "build": "pnpm -r build",
     "clean": "pnpm -r clean",
     "install-all": "pnpm install",
     "dev": "concurrently \"pnpm --filter amon-ui dev\" \"pnpm --filter amon-backend dev\"",
-    "start": "pnpm -r start",
+    "start": "electron .",
+    "start:all": "pnpm -r start",
     "electron": "electron .",
     "pack:linux": "electron-builder --linux AppImage"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/official-biswadeb941/Amon.git"
+    "url": "https://github.com/official-biswadeb941/Amon"
   },
   "keywords": [
     "red-teaming",
@@ -34,7 +35,7 @@
   "bugs": {
     "url": "https://github.com/official-biswadeb941/Amon/issues"
   },
-  "homepage": "https://github.com/official-biswadeb941/Amon#readme",
+  "homepage": "https://github.com/official-biswadeb941/Amon",
   "devDependencies": {
     "concurrently": "^9.2.0",
     "cross-env": "^10.0.0",
@@ -48,10 +49,22 @@
     "directories": {
       "output": "dist"
     },
-    "files": [
-      "build/**/*",
-      "index.js"
+    "asarUnpack": [
+      "backend/**/*"
     ],
+    "files": [
+      "index.js",
+      "preload.js",
+      "backend/**/*",
+      "frontend/dist/**/*",
+      "node_modules/**/*",
+      "package.json"
+    ],
+    "linux": {
+      "target": "AppImage",
+      "category": "Development",
+      "icon": "assets/LOGO.png"
+    },
     "mac": {
       "category": "private.app.com"
     },

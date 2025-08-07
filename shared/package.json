@@ -2,5 +2,9 @@
   "name": "@amon/shared",
   "version": "1.0.0",
   "type": "module",
-  "main": "Endpoints.js"
+  "main": "Endpoints.js",
+  "exports": {
+    ".": "./Endpoints.js",
+    "./assets/*": "./assets/*"
+  }
 }

@@ -1,4 +1,4 @@
-//server.js code for Development Environment
+//server.js code for Production Environment
 
 import path from "path";
 import { fileURLToPath } from "url";
@@ -19,16 +19,20 @@ import {
 
 import authMiddleware from "./Middleware/authMiddleware.js";
 
-// Reconstruct __dirname in ES Modules (still needed if you use it elsewhere)
+// Reconstruct __dirname
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Replace environment variables with constants from config (or fallback values)
-const PORT = 6000;
-const NODE_ENV = "development";
+// Constants
+const PORT = process.env.PORT || 4000;
+const NODE_ENV = "production";
+
+// Path to frontend/dist
+const FRONTEND_DIST_PATH = path.join(__dirname, "../frontend/dist");
 
 const app = express();
 
+// Middlewares
 app.use(cors());
 app.use(bodyParser.json());
 
@@ -39,6 +43,9 @@ app.use((req, res, next) => {
   res.revokeToken = revokeToken;
   next();
 });
+
+// Serve static files from frontend/dist
+app.use(express.static(FRONTEND_DIST_PATH));
 
 // 🟢 Public Routes
 app.use(API.system.auth.login.endpoint, authRouter);
@@ -51,12 +58,17 @@ app.post(
   }
 );
 
-// 🔒 Protect all routes under API.system.protected
+// 🔒 Protected routes
 Object.values(API.system.protected).forEach(({ endpoint }) => {
   app.use(endpoint, authMiddleware);
 });
 
-// 🔥 Global Error Handler
+// 🌐 Serve index.html for unknown routes (SPA support)
+app.get("/", (req, res) => {
+  res.sendFile(path.join(FRONTEND_DIST_PATH, "index.html"));
+});
+
+// 🔥 Global error handler
 app.use((err, req, res, next) => {
   console.error("🔥 Global error caught:", err.stack || err);
   res.status(500).json({
@@ -65,6 +77,7 @@ app.use((err, req, res, next) => {
   });
 });
 
+// Start server
 app.listen(PORT, () => {
   console.log(
     `🟢 Server running in ${NODE_ENV} mode at http://localhost:${PORT}`
