@@ -10,7 +10,7 @@ export default defineConfig({
     // 🧠 Proxy for backend API requests
     proxy: {
       '/api': {
-        target: 'http://127.0.0.1:6000', // Express backend
+        target: 'http://127.0.0.1:4000', // Express backend
         changeOrigin: true,
         secure: false,
         // Optional: rewrite '/api' prefix if your backend doesn't expect it
