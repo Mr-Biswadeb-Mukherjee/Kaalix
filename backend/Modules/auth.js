@@ -1,5 +1,7 @@
 import express from "express";
 import { registerUser, loginUser } from "./User.js";
+import { verifyCaptcha, getStoredCaptcha } from "./captcha.js";
+
 
 const router = express.Router();
 
@@ -41,7 +43,7 @@ function isStrongPassword(password) {
 
 // 🚪 POST /auth
 router.post("/", async (req, res) => {
-  const { type, email, password, fullName, validateOnly } = req.body;
+  const { type, email, password, fullName, validateOnly, captchaId, captcha: captchaText } = req.body;
 
   const errors = [];
 
@@ -117,6 +119,46 @@ router.post("/", async (req, res) => {
   }
 
   try {
+
+    // CAPTCHA validation (skip if validateOnly)
+    if (!validateOnly) {
+      if (!captchaId || !captchaText) {
+        return res.status(400).json({
+          success: false,
+          message: "Captcha verification required.",
+          errors: ["Captcha verification required."],
+        });
+      }
+
+      const storedCaptcha = getStoredCaptcha(captchaId); // ✅ Use helper
+      const captchaValid = verifyCaptcha(captchaId, captchaText);
+
+      if (!captchaValid) {
+        // Detect case mismatch
+        if (
+          storedCaptcha &&
+          storedCaptcha.toLowerCase() === captchaText.toLowerCase()
+        ) {
+          return res.status(400).json({
+            success: false,
+            message: "Captcha verification failed due to case sensitivity.",
+            errors: [
+              "Captcha is case-sensitive. Please enter it exactly as shown, matching uppercase and lowercase letters.",
+            ],
+          });
+        }
+
+        // Generic failure
+        return res.status(400).json({
+          success: false,
+          message: "Captcha verification failed.",
+          errors: ["Captcha verification failed. Please try again."],
+        });
+      }
+    }
+
+
+
     // 🔐 Registration
     if (type === "register") {
       const newUser = await registerUser({

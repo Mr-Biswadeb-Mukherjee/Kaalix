@@ -13,6 +13,10 @@ const API = {
         method: 'POST',
         endpoint: '/api/v3/verify',
       },
+      captcha: {
+        method: 'GET',
+        endpoint: '/api/v3/captcha',
+      },
     },
 
     protected: {

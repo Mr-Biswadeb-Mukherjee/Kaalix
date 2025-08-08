@@ -1,10 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import {
-  Email,
-  Lock,
-  Person,
-  Visibility,
-  VisibilityOff,
+  Email, Lock, Person, Visibility, VisibilityOff, Security, Refresh
 } from "@mui/icons-material";
 import { motion, AnimatePresence } from "framer-motion";
 import { initBloodFlow } from "./BloodRain";
@@ -18,135 +14,168 @@ const Auth = ({ onAuthSuccess }) => {
 
   const [tabIndex, setTabIndex] = useState(0);
   const [showPassword, setShowPassword] = useState(false);
-  const [formData, setFormData] = useState({
-    fullName: "",
-    email: "",
-    password: "",
-  });
+  const [formData, setFormData] = useState({});
   const [loading, setLoading] = useState(false);
   const [formValid, setFormValid] = useState(false);
+  const [captchaImage, setCaptchaImage] = useState(null);
   const lastErrorRef = useRef("");
 
   const isLogin = tabIndex === 0;
+  const authEndpoint = API.system.auth.login.endpoint;
+  
+  const fieldConfig = [
+    { name: "fullName", icon: Person, type: "text", placeholder: "Full Name", show: !isLogin, required: true },
+    { name: "email", icon: Email, type: "email", placeholder: "Email", show: true, required: true },
+    { name: "password", icon: Lock, type: showPassword ? "text" : "password", placeholder: "Password", show: true, toggle: true, required: true },
+    { name: "captcha", icon: Security, type: "text", placeholder: "Enter Captcha", show: true, required: true }
+  ];
+
+  const fetchCaptcha = async () => {
+    try {
+      const res = await fetch(API.system.auth.captcha.endpoint);
+      const data = await res.json(); // ⬅️ Fix here
+      setCaptchaImage(data.image);
+      setFormData(prev => ({ ...prev, captchaId: data.id })); // Save ID
+    } catch {
+      addToast("Error loading CAPTCHA.", "error");
+    }
+  };
 
   useEffect(() => {
-    if (canvasRef.current) {
-      initBloodFlow(canvasRef.current);
+    if (canvasRef.current) initBloodFlow(canvasRef.current);
+    fetchCaptcha();
+  }, [tabIndex]);
+
+  const handleChange = e => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleError = (msg) => {
+    if (msg && lastErrorRef.current !== msg) {
+      addToast(msg, "error");
+      lastErrorRef.current = msg;
     }
-  }, []);
+  };
 
-  const handleChange = (field) => (e) =>
-    setFormData({ ...formData, [field]: e.target.value });
-
-  const validateForm = async (fieldToValidate = null) => {
-    const { email, password, fullName } = formData;
-
+  const validateForm = async (field = null) => {
     try {
-      const res = await fetch(API.system.auth.login.endpoint, {
+      const res = await fetch(authEndpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           type: isLogin ? "login" : "register",
-          email,
-          password,
-          fullName,
-          validateOnly: true,
-        }),
+          ...formData,
+          validateOnly: true
+        })
       });
-
       const data = await res.json();
-
       setFormValid(data.valid);
 
       if (!data.valid && Array.isArray(data.errors)) {
-        const relevantError = data.errors.find((msg) =>
-          msg.toLowerCase().includes(fieldToValidate?.toLowerCase())
+        const relevantError = data.errors.find(msg =>
+          msg.toLowerCase().includes(field?.toLowerCase())
         );
-
-        if (relevantError && lastErrorRef.current !== relevantError) {
-          addToast(relevantError, "error");
-          lastErrorRef.current = relevantError;
-        }
+        handleError(relevantError);
       } else {
         lastErrorRef.current = "";
       }
-    } catch (err) {
-      console.error("Validation error:", err);
-      addToast("Validation failed due to server error.", "error");
+    } catch {
+      handleError("Validation failed due to server error.");
       setFormValid(false);
     }
   };
 
-
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const { email, password, fullName } = formData;
+
+    // ✅ Client-side required field check
+    for (let field of fieldConfig.filter(f => f.show && f.required)) {
+      if (!formData[field.name]?.trim()) {
+        addToast(`${field.placeholder} is required.`, "error");
+        return;
+      }
+    }
+
     setLoading(true);
 
     try {
-      const response = await fetch(API.system.auth.login.endpoint, {
+      const payload = { type: isLogin ? "login" : "register", ...formData };
+      if (isLogin) delete payload.fullName;
+
+      const response = await fetch(authEndpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          type: isLogin ? "login" : "register",
-          email,
-          password,
-          fullName: isLogin ? undefined : fullName,
-        }),
+        body: JSON.stringify(payload)
       });
 
       const data = await response.json();
 
       if (!response.ok || !data.success) {
-        addToast(data.message || "Authentication failed.", "error");
+        handleError(data.message || "Authentication failed.");
+        fetchCaptcha();
         return;
       }
 
-      // ✅ Defensive check: token must be a string
-      if (typeof data.token !== "string") {
-        const actualType = data.token === null ? "null" : typeof data.token;
-        addToast(`Invalid token format: expected string, got ${actualType}.`, "error");
-        console.warn("❌ Invalid token type from server:", data.token);
-        return;
-      }
-
-      // ✅ Optional JWT format check
-      const jwtRegex = /^[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+$/;
-      if (!jwtRegex.test(data.token)) {
-        addToast("Malformed JWT token received from server.", "error");
-        console.warn("❌ Malformed JWT:", data.token);
-        return;
-      }
-
-      // ✅ Optional: Validate user object minimally
-      if (!data.user || typeof data.user.fullName !== "string") {
-        addToast("Invalid user data in response.", "error");
-        console.warn("❌ Incomplete user object:", data.user);
-        return;
-      }
-
-      // ✅ Success — store token and call callback
       addToast(
         isLogin
-          ? `Welcome back, ${data.user.fullName || email}.`
-          : `Registration complete. Welcome, ${data.user.fullName || fullName}!`,
+          ? `Welcome back, ${data.user.fullName || formData.email}.`
+          : `Registration complete. Welcome, ${data.user.fullName || formData.fullName}!`,
         "success"
       );
 
       localStorage.setItem("token", data.token);
-
-      if (typeof onAuthSuccess === "function") {
-        onAuthSuccess(data);
-      }
-    } catch (error) {
-      console.error("❌ Auth error:", error);
-      addToast("Server error. Please try again later.", "error");
+      onAuthSuccess?.(data);
+    } catch {
+      handleError("Server error. Please try again later.");
     } finally {
       setLoading(false);
     }
   };
 
+  const renderField = ({ name, icon: Icon, type, placeholder, toggle }) => (
+    <div key={name} className="custom-input">
+      <Icon className="input-icon" />
+      <input
+        name={name}
+        type={type}
+        placeholder={placeholder}
+        value={formData[name] || ""}
+        onChange={handleChange}
+        onBlur={() => validateForm(name)}
+        disabled={loading}
+      />
+      {toggle && (
+        <span
+          className="toggle-password"
+          onClick={() => setShowPassword(s => !s)}
+        >
+          {showPassword ? <VisibilityOff /> : <Visibility />}
+        </span>
+      )}
+    </div>
+  );
 
+  const renderCaptcha = () => (
+    <React.Fragment key="captcha">
+      <div className="captcha-container">
+        {captchaImage ? (
+          <img
+            src={captchaImage}
+            alt="Captcha"
+            className="captcha-image"
+            onClick={fetchCaptcha}
+          />
+        ) : (
+          <div className="captcha-placeholder">Loading...</div>
+        )}
+        <button type="button" className="captcha-refresh" onClick={fetchCaptcha}>
+          <Refresh />
+        </button>
+      </div>
+      {renderField(fieldConfig.find(f => f.name === "captcha"))}
+    </React.Fragment>
+  );
 
   return (
     <div className="auth-wrapper">
@@ -155,20 +184,16 @@ const Auth = ({ onAuthSuccess }) => {
       <div className="auth-container">
         <div className="auth-card">
           <div className="auth-tabs">
-            <button
-              className={tabIndex === 0 ? "tab active" : "tab"}
-              onClick={() => setTabIndex(0)}
-              disabled={loading}
-            >
-              Login
-            </button>
-            <button
-              className={tabIndex === 1 ? "tab active" : "tab"}
-              onClick={() => setTabIndex(1)}
-              disabled={loading}
-            >
-              Register
-            </button>
+            {["Login", "Register"].map((label, idx) => (
+              <button
+                key={label}
+                className={tabIndex === idx ? "tab active" : "tab"}
+                onClick={() => setTabIndex(idx)}
+                disabled={loading}
+              >
+                {label}
+              </button>
+            ))}
           </div>
 
           <AnimatePresence mode="wait">
@@ -197,54 +222,14 @@ const Auth = ({ onAuthSuccess }) => {
               </div>
 
               <form onSubmit={handleSubmit} className="auth-form">
-                {!isLogin && (
-                  <div className="custom-input">
-                    <Person className="input-icon" />
-                    <input
-                      type="text"
-                      placeholder="Full Name"
-                      value={formData.fullName}
-                      onChange={handleChange("fullName")}
-                      onBlur={() => validateForm("name")}
-                      disabled={loading}
-                    />
-                  </div>
+                {fieldConfig.filter(f => f.show).map(field =>
+                  field.name === "captcha" ? renderCaptcha() : renderField(field)
                 )}
-
-                <div className="custom-input">
-                  <Email className="input-icon" />
-                  <input
-                    type="email"
-                    placeholder="Email"
-                    value={formData.email}
-                    onChange={handleChange("email")}
-                    onBlur={() => validateForm("email")}
-                    disabled={loading}
-                  />
-                </div>
-
-                <div className="custom-input">
-                  <Lock className="input-icon" />
-                  <input
-                    type={showPassword ? "text" : "password"}
-                    placeholder="Password"
-                    value={formData.password}
-                    onChange={handleChange("password")}
-                    onBlur={() => validateForm("password")}
-                    disabled={loading}
-                  />
-                  <span
-                    className="toggle-password"
-                    onClick={() => setShowPassword((s) => !s)}
-                  >
-                    {showPassword ? <VisibilityOff /> : <Visibility />}
-                  </span>
-                </div>
 
                 <button
                   type="submit"
                   className="auth-btn"
-                  disabled={loading || !formValid}
+                  disabled={loading || !formValid || !formData.captcha?.trim()}
                 >
                   {loading
                     ? isLogin

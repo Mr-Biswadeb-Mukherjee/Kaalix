@@ -1,3 +1,5 @@
+// App.js
+
 import { BrowserRouter as Router, Routes, Route, useNavigate } from 'react-router-dom';
 import React, { useEffect, useState } from 'react';
 import MainLayout from './Layout/MainLayout';
@@ -8,12 +10,11 @@ import { AuthProvider, useAuth } from './Context/AuthContext';
 import ProtectedRoute from './Components/ProtectedRoute';
 import Preloader from './Components/Preloader';
 
-// === Preloader Session Persistence Control ===
-// 1 = Store in sessionStorage after first load
-// 0 = Always show preloader on each visit
-const PERSIST_PRELOADER_IN_SESSION = 0;
+// === Preloader Control Flags ===
+const ENABLE_PRELOADER = 0; // 1 = Enable Preloader, 0 = Disable Preloader
+const PERSIST_PRELOADER_IN_SESSION = 0; // 1 = Store in sessionStorage after first load, 0 = Always show when enabled
 
-// A wrapper to update the page title dynamically
+// === Route Wrapper to Dynamically Set Page Title ===
 function RouteWrapper({ title, children }) {
   useEffect(() => {
     document.title = title || 'Amon';
@@ -22,7 +23,7 @@ function RouteWrapper({ title, children }) {
   return children;
 }
 
-// Define your route configuration
+// === Define Application Routes with Titles ===
 const routeConfig = [
   { path: 'dashboard', element: <Pages.Dashboard />, title: 'Dashboard | Amon' },
   { path: 'target-config', element: <Pages.TargetConfig />, title: 'Target Config | Amon' },
@@ -34,7 +35,7 @@ const routeConfig = [
   { path: 'settings', element: <Pages.Settings />, title: 'Settings | Amon' },
 ];
 
-// Handles routing logic and protected routes
+// === Core Routing Logic with Protected Routes ===
 function AppRoutes() {
   const navigate = useNavigate();
   const { login } = useAuth();
@@ -74,14 +75,17 @@ function AppRoutes() {
   );
 }
 
-// Root App component with preloader and correct provider order
+// === Root App Component with Preloader + Providers ===
 function App() {
   const [loading, setLoading] = useState(() => {
+    if (!ENABLE_PRELOADER) return false;
+
     if (PERSIST_PRELOADER_IN_SESSION) {
       const hasLoaded = sessionStorage.getItem("hasLoadedOnce");
       return !hasLoaded;
     }
-    return true; // Always show if persistence is off
+
+    return true; // Always show if persistence is off and enabled
   });
 
   const handlePreloaderFinish = () => {

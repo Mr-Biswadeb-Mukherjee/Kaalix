@@ -175,3 +175,43 @@
   opacity: 0.6;
   transform: none;
 }
+
+.captcha-container {
+  display: flex;
+  align-items: center;
+  margin-left: 80px; /* adjust this value as needed */
+}
+
+.captcha-refresh {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background: rgba(30, 0, 0, 0.55);
+  border: none;
+  border-radius: 50%;
+  color: white;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 0 5px rgba(251, 255, 7, 0.822), 0 0 15px rgba(251, 255, 0, 0.829);
+  margin-left: 20px;
+}
+
+.captcha-refresh:hover {
+  transform: scale(1.1);
+  box-shadow: 0 0 8px rgb(238, 255, 0), 0 0 20px rgb(255, 208, 0);
+}
+
+.captcha-refresh:active {
+  transform: scale(0.95);
+}
+
+/* Spin animation on hover */
+.captcha-refresh:hover svg {
+  animation: spin 0.5s linear;
+}
+
+@keyframes spin {
+  100% { transform: rotate(180deg); }
+}
