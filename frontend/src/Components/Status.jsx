@@ -25,7 +25,7 @@ const StatusBar = ({ collapsed }) => {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const response = await fetch(API.system.status.endpoint, {
+        const response = await fetch(API.system.public.status.endpoint, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'

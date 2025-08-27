@@ -73,7 +73,7 @@ const TopBar = ({ collapsed }) => {
     }
 
     try {
-      const response = await fetch(API.system.auth.logout.endpoint, {
+      const response = await fetch(API.system.public.logout.endpoint, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,

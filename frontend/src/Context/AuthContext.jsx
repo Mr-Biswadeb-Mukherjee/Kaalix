@@ -14,7 +14,7 @@ export const AuthProvider = ({ children }) => {
       return;
     }
 
-    fetch(API.system.auth.verify.endpoint, {
+    fetch(API.system.public.verify.endpoint, {
       method: "POST", // ✅ use POST for sensitive operations
       headers: {
         "Content-Type": "application/json",
@@ -47,7 +47,7 @@ export const AuthProvider = ({ children }) => {
 
     try {
       if (token) {
-        const response = await fetch(API.system.auth.logout.endpoint, {
+        const response = await fetch(API.system.public.logout.endpoint, {
           method: "POST", // ✅ POST to revoke token safely
           headers: {
             "Content-Type": "application/json",

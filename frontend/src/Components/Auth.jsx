@@ -21,7 +21,7 @@ const Auth = ({ onAuthSuccess }) => {
   const lastErrorRef = useRef("");
 
   const isLogin = tabIndex === 0;
-  const authEndpoint = API.system.auth.login.endpoint;
+  const authEndpoint = API.system.public.login.endpoint;
   
   const fieldConfig = [
     { name: "fullName", icon: Person, type: "text", placeholder: "Full Name", show: !isLogin, required: true },
@@ -32,7 +32,7 @@ const Auth = ({ onAuthSuccess }) => {
 
   const fetchCaptcha = async () => {
     try {
-      const res = await fetch(API.system.auth.captcha.endpoint);
+      const res = await fetch(API.system.public.captcha.endpoint);
       const data = await res.json(); // ⬅️ Fix here
       setCaptchaImage(data.image);
       setFormData(prev => ({ ...prev, captchaId: data.id })); // Save ID
