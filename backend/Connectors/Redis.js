@@ -31,7 +31,7 @@ export async function initRedis() {
     });
 
     await redisClient.connect();
-    console.log('🔗 Redis connected');
+    //console.log('🔗 Redis connected');
 
     // ✅ Start eviction loop only after Redis is ready
     startEvictionScheduler();
