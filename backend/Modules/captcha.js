@@ -1,9 +1,7 @@
 // Modules/captcha.js
 import { createCanvas } from "canvas";
 import { v4 as uuidv4 } from "uuid";
-
-// ✅ In-memory store (for development only)
-const captchaStore = new Map();
+import { initRedis, getRedisClient } from "../Connectors/Redis.js";
 
 /**
  * Generate a captcha with adjustable difficulty (0 = easy, 10 = hard)
@@ -88,10 +86,17 @@ export const generateCaptcha = (difficulty = 6) => {
 
   // Store captcha in memory
   const image = canvas.toDataURL();
-  captchaStore.set(id, text);
-
-  // Auto-expire in 5 minutes
-  setTimeout(() => captchaStore.delete(id), 5 * 60 * 1000);
+  
+  // Store captcha in Redis with a 5-minute expiry
+  // Ensure Redis is initialized before using it
+  initRedis().then(() => {
+    const redisClient = getRedisClient();
+    redisClient.set(`captcha:${id}`, text, { EX: 5 * 60 }); // 5 minutes expiry
+  }).catch(err => {
+    console.error("Failed to store captcha in Redis:", err);
+    // Fallback to in-memory store if Redis fails (optional, but good for resilience)
+    // For now, we'll just log the error and not store it if Redis is down.
+  });
 
   return { id, image };
 };
@@ -99,9 +104,12 @@ export const generateCaptcha = (difficulty = 6) => {
 /**
  * Strict verification
  */
-export function verifyCaptcha(id, userInput) {
-  const stored = captchaStore.get(id);
+export async function verifyCaptcha(id, userInput) {
+  const redisClient = getRedisClient();
+  const stored = await redisClient.get(`captcha:${id}`);
+  
   if (!stored) return false;
+  
   const isValid = stored === userInput;
   if (isValid) captchaStore.delete(id); // One-time use
   return isValid;
@@ -110,8 +118,10 @@ export function verifyCaptcha(id, userInput) {
 /**
  * Get stored captcha text (for debug/logging)
  */
-export function getStoredCaptcha(id) {
-  return captchaStore.get(id);
+export async function getStoredCaptcha(id) {
+  const redisClient = getRedisClient();
+  const stored = await redisClient.get(`captcha:${id}`);
+  return stored;
 }
 
 /**
