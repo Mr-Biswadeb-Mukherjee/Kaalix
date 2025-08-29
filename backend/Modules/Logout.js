@@ -1,7 +1,8 @@
 // Modules/Logout.js
+import { resetPublicIPAndLocation } from "./status.js"; // 👈 import the reset function
 
 /**
- * 🔒 Secure logout handler — revokes JWT via injected utility
+ * 🔒 Secure logout handler — revokes JWT and clears cached system IP/location
  */
 async function logoutHandler(req, res) {
   console.log("📥 Logout request received");
@@ -31,9 +32,12 @@ async function logoutHandler(req, res) {
     await res.revokeToken(token);
     console.log(`✅ Token revoked successfully: ${token.substring(0, 10)}...`);
 
+    // 👇 Clear cached IP + location on logout
+    resetPublicIPAndLocation();
+
     return res.status(200).json({
       success: true,
-      message: "Logout successful. Token revoked.",
+      message: "Logout successful. Token revoked and cache cleared.",
     });
   } catch (err) {
     console.error("❌ Logout error:", err.stack || err.message || err);

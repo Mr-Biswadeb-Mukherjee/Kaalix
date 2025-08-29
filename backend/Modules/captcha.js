@@ -1,7 +1,9 @@
 // Modules/captcha.js
 import { createCanvas } from "canvas";
 import { v4 as uuidv4 } from "uuid";
-import { initRedis, getRedisClient } from "../Connectors/Redis.js";
+
+// ✅ In-memory store (for development only)
+const captchaStore = new Map();
 
 /**
  * Generate a captcha with adjustable difficulty (0 = easy, 10 = hard)
@@ -86,17 +88,10 @@ export const generateCaptcha = (difficulty = 6) => {
 
   // Store captcha in memory
   const image = canvas.toDataURL();
-  
-  // Store captcha in Redis with a 5-minute expiry
-  // Ensure Redis is initialized before using it
-  initRedis().then(() => {
-    const redisClient = getRedisClient();
-    redisClient.set(`captcha:${id}`, text, { EX: 5 * 60 }); // 5 minutes expiry
-  }).catch(err => {
-    console.error("Failed to store captcha in Redis:", err);
-    // Fallback to in-memory store if Redis fails (optional, but good for resilience)
-    // For now, we'll just log the error and not store it if Redis is down.
-  });
+  captchaStore.set(id, text);
+
+  // Auto-expire in 5 minutes
+  setTimeout(() => captchaStore.delete(id), 5 * 60 * 1000);
 
   return { id, image };
 };
@@ -104,12 +99,9 @@ export const generateCaptcha = (difficulty = 6) => {
 /**
  * Strict verification
  */
-export async function verifyCaptcha(id, userInput) {
-  const redisClient = getRedisClient();
-  const stored = await redisClient.get(`captcha:${id}`);
-  
+export function verifyCaptcha(id, userInput) {
+  const stored = captchaStore.get(id);
   if (!stored) return false;
-  
   const isValid = stored === userInput;
   if (isValid) captchaStore.delete(id); // One-time use
   return isValid;
@@ -118,10 +110,8 @@ export async function verifyCaptcha(id, userInput) {
 /**
  * Get stored captcha text (for debug/logging)
  */
-export async function getStoredCaptcha(id) {
-  const redisClient = getRedisClient();
-  const stored = await redisClient.get(`captcha:${id}`);
-  return stored;
+export function getStoredCaptcha(id) {
+  return captchaStore.get(id);
 }
 
 /**
@@ -133,3 +123,5 @@ function randomColor(alpha = 1) {
   const b = Math.floor(Math.random() * 150 + 50);
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
+
+export default { generateCaptcha, verifyCaptcha, getStoredCaptcha };

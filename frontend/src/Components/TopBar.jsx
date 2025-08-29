@@ -35,10 +35,26 @@ const TopBar = ({ collapsed }) => {
       setTime(new Date().toLocaleTimeString());
     }, 1000);
 
-    fetch('https://ipapi.co/json/')
-      .then((res) => res.json())
+    const token = localStorage.getItem('token');
+
+    // ✅ Fetch location from backend with Authorization header
+    fetch(API.system.protected.status.endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error('Failed to fetch location');
+        return res.json();
+      })
       .then((data) => {
-        setLocation(`${data.city}, ${data.region}, ${data.country_name}`);
+          if (data.success && data.stats && data.stats.location) {
+              setLocation(data.stats.location);
+          } else {
+              setLocation('Unknown Location');
+          }
       })
       .catch(() => {
         setLocation('Unknown Location');

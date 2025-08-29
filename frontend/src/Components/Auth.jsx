@@ -113,6 +113,11 @@ const Auth = ({ onAuthSuccess }) => {
 
       if (!response.ok || !data.success) {
         handleError(data.message || "Authentication failed.");
+
+        // ✅ Clear all fields if auth fails
+        setFormData({});
+
+        // ✅ Refresh CAPTCHA
         fetchCaptcha();
         return;
       }
@@ -128,6 +133,10 @@ const Auth = ({ onAuthSuccess }) => {
       onAuthSuccess?.(data);
     } catch {
       handleError("Server error. Please try again later.");
+      
+      // ✅ Clear all fields on server error too
+      setFormData({});
+      fetchCaptcha();
     } finally {
       setLoading(false);
     }

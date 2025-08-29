@@ -9,43 +9,39 @@ import GraphicEqIcon from '@mui/icons-material/GraphicEq'; // GPU
 import PublicIcon from '@mui/icons-material/Public'; // IP
 import API from '@amon/shared';
 
-
 const StatusBar = ({ collapsed }) => {
-  const [stats, setStats] = useState({
-    os: 'Unknown',
-    cpu: '0%',
-    ram: '0%',
-    gpu: '0%',
-    ip: '0.0.0.0',
-    swap: '0%'
-  });
-
+  const [stats, setStats] = useState({});
   const [error, setError] = useState(null);
 
   useEffect(() => {
     const fetchStats = async () => {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setError('No auth token');
+        return;
+      }
+
       try {
-        const response = await fetch(API.system.public.status.endpoint, {
+        const response = await fetch(API.system.protected.status.endpoint, {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
           },
-          body: JSON.stringify({}) // send an empty payload or include future filters
+          body: JSON.stringify({}),
         });
+
+        if (response.status === 401 || response.status === 403) {
+          // optional: clear token + redirect to login
+          localStorage.removeItem('token');
+          setError('Unauthorized');
+          return;
+        }
 
         if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
 
         const data = await response.json();
-
-        setStats({
-          os: data.os || 'Unknown',
-          cpu: data.cpu || 'N/A',
-          ram: data.ram || 'N/A',
-          gpu: data.gpu || 'N/A',
-          ip: data.ip || 'N/A',
-          swap: data.swap || 'N/A'
-        });
-
+        setStats(data.stats);   // ✅ FIX: only use the "stats" field
         setError(null);
       } catch (err) {
         console.error('Failed to fetch system stats:', err);
@@ -54,42 +50,41 @@ const StatusBar = ({ collapsed }) => {
     };
 
     fetchStats();
-    const interval = setInterval(fetchStats, 2000);
+    const interval = setInterval(fetchStats, 2000); // refresh every 2s
 
     return () => clearInterval(interval);
   }, []);
 
   return (
     <div className={`status-bar ${collapsed ? 'collapsed' : ''}`}>
-      {/* OS */}
       <div className="status-item">
         <DnsIcon style={{ fontSize: 18, marginRight: 6 }} />
-        OS: {error ? 'N/A' : stats.os}
+        OS: {error ? 'Error' : stats.os}
       </div>
 
       <div className="status-item">
         <DeveloperBoardIcon style={{ fontSize: 18, marginRight: 6 }} />
-        CPU: {error ? 'N/A' : stats.cpu}
+        CPU: {error ? 'Error' : stats.cpu}
       </div>
 
       <div className="status-item">
         <MemoryIcon style={{ fontSize: 18, marginRight: 6 }} />
-        RAM: {error ? 'N/A' : stats.ram}
+        RAM: {error ? 'Error' : stats.ram}
       </div>
 
       <div className="status-item">
         <SwapHorizIcon style={{ fontSize: 18, marginRight: 6 }} />
-        Swap: {error ? 'N/A' : stats.swap}
+        Swap: {error ? 'Error' : stats.swap}
       </div>
 
       <div className="status-item">
         <GraphicEqIcon style={{ fontSize: 18, marginRight: 6 }} />
-        GPU: {error ? 'N/A' : stats.gpu}
+        GPU: {error ? 'Error' : stats.gpu}
       </div>
 
       <div className="status-item">
         <PublicIcon style={{ fontSize: 18, marginRight: 6 }} />
-        IP: {error ? 'N/A' : stats.ip}
+        IP: {error ? 'Error' : stats.ip}
       </div>
     </div>
   );

@@ -114,7 +114,7 @@ async function verifyToken(token, options = { revoke: true }) {
     `;
     const success = await redis.eval(lua, {
       keys: [jtiKey],
-      arguments: [TOKEN_TTL_SECONDS],
+      arguments: [String(TOKEN_TTL_SECONDS)],
     });
 
     if (success === 0) {
