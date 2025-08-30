@@ -33,6 +33,7 @@ const routeConfig = [
   { path: 'about', element: <Pages.AboutUs />, title: 'About Us | Amon' },
   { path: 'docs', element: <Pages.Documentation />, title: 'Documentation | Amon' },
   { path: 'settings', element: <Pages.Settings />, title: 'Settings | Amon' },
+  { path: 'profile', element: <Pages.Profile />, title: 'Profile | Amon' },
 ];
 
 // === Core Routing Logic with Protected Routes ===

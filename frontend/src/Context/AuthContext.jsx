@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect } from "react";
-import API from "../../../shared/Endpoints.js"; // Shared backend/frontend API map
+import API from "@amon/shared"; // Shared backend/frontend API map
  
 const AuthContext = createContext();
 

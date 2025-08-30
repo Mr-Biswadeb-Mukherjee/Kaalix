@@ -51,7 +51,7 @@
 [data-theme='light'] body {
   --bg-color: #fdf5e6;
   --hover-bg: #ffd37c;
-  --border-color: #ffbf40;
+  --border-color: #c9ae14;
   --icon-muted: #000000;
   --text-color: #000000;
   --hamburger-color: #000000;
@@ -66,8 +66,8 @@
 [data-theme='dark'] body {
   --bg-color:  #1a1a1a;
   --hover-bg: #555555;
-  --border-color: #1d1d1d;
-  --icon-muted: #ffffff;
+  --border-color: #ffffff77;
+  --icon-muted: #ffffffa6;
   --hamburger-color: #ffffff;
   --text-color: #ffffff;
   animation: gradientShift 15s ease infinite;
@@ -87,6 +87,7 @@
   --icon-muted: #ffffff;
   --text-color: #ffffff;
   --hamburger-color: #ff3333;
+  --border-color: #63887c;
   animation: gradientShift 15s ease infinite;
 
   --accent-color1:  #ff6b00;
@@ -104,6 +105,7 @@
   --icon-muted: #ffffff;
   --text-color: #ffffff;
   --hamburger-color: #ffffff;
+  --border-color: #d34e4e;
 
 
   --primary-text: #ff4d4d;

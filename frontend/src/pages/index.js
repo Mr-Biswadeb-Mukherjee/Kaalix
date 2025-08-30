@@ -6,3 +6,4 @@ export { default as Proxy } from './Proxy';
 export { default as AboutUs } from './Aboutus';
 export { default as Documentation } from './Docs';
 export { default as Settings } from './Setting';
+export { default as Profile } from './Profile'

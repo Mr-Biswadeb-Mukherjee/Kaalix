@@ -9,7 +9,8 @@ let cachedStats = {
   ram: 'N/A',
   swap: 'N/A',
   gpu: 'N/A',
-  ip: 'N/A',
+  publicIP: 'N/A',
+  privateIP: 'N/A',
   location: 'N/A'
 };
 
@@ -18,13 +19,25 @@ let cachedPublicIP = 'N/A';
 let cachedLocation = 'N/A';
 let lastIPFetch = 0;
 
+function getPrivateIP() {
+  const interfaces = os.networkInterfaces();
+  for (const name of Object.keys(interfaces)) {
+    for (const iface of interfaces[name]) {
+      if (iface.family === 'IPv4' && !iface.internal) {
+        return iface.address;
+      }
+    }
+  }
+  return 'N/A';
+}
+
 async function fetchPublicIPAndLocation() {
   try {
     const now = Date.now();
 
     // Only refresh if 15 min passed or not set yet
     if (now - lastIPFetch < 15 * 60 * 1000 && cachedPublicIP !== 'N/A') {
-      return { ip: cachedPublicIP, location: cachedLocation };
+      return { publicIP: cachedPublicIP, location: cachedLocation };
     }
 
     // 1. Get Public IP
@@ -49,10 +62,10 @@ async function fetchPublicIPAndLocation() {
     cachedLocation = location;
     lastIPFetch = now;
 
-    return { ip: cachedPublicIP, location: cachedLocation };
+    return { publicIP: cachedPublicIP, location: cachedLocation };
   } catch (err) {
     console.error('Failed to fetch public IP & location:', err);
-    return { ip: cachedPublicIP, location: cachedLocation };
+    return { publicIP: cachedPublicIP, location: cachedLocation };
   }
 }
 
@@ -64,7 +77,8 @@ async function probeSystemStats() {
       si.graphics()
     ]);
 
-    const { ip, location } = await fetchPublicIPAndLocation();
+    const { publicIP, location } = await fetchPublicIPAndLocation();
+    const privateIP = getPrivateIP();
 
     cachedStats = {
       os: `${os.type()} ${os.release()}`,
@@ -76,7 +90,8 @@ async function probeSystemStats() {
       gpu: gpu.controllers.length
         ? `${gpu.controllers[0].utilizationGpu || 0}%`
         : 'N/A',
-      ip,
+      publicIP,
+      privateIP,
       location
     };
   } catch (err) {
@@ -85,7 +100,7 @@ async function probeSystemStats() {
 }
 
 // Refresh system stats every 5s
-setInterval(probeSystemStats, 5000);
+setInterval(probeSystemStats, 100);
 
 // Run immediately at startup
 probeSystemStats();
@@ -94,12 +109,13 @@ function getSystemStats() {
   return cachedStats;
 }
 
-// 👇 Clears cached IP + location (call this on logout)
+// 👇 Clears cached public IP + location (call this on logout)
 function resetPublicIPAndLocation() {
   cachedPublicIP = 'N/A';
   cachedLocation = 'N/A';
   lastIPFetch = 0;
-  cachedStats.ip = 'N/A';
+  cachedStats.publicIP = 'N/A';
+  cachedStats.privateIP = 'N/A';
   cachedStats.location = 'N/A';
 }
 

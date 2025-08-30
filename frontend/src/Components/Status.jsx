@@ -7,6 +7,7 @@ import DeveloperBoardIcon from '@mui/icons-material/DeveloperBoard'; // CPU
 import SwapHorizIcon from '@mui/icons-material/SwapHoriz'; // Swap
 import GraphicEqIcon from '@mui/icons-material/GraphicEq'; // GPU
 import PublicIcon from '@mui/icons-material/Public'; // IP
+import LockIcon from '@mui/icons-material/Lock'
 import API from '@amon/shared';
 
 const StatusBar = ({ collapsed }) => {
@@ -84,7 +85,11 @@ const StatusBar = ({ collapsed }) => {
 
       <div className="status-item">
         <PublicIcon style={{ fontSize: 18, marginRight: 6 }} />
-        IP: {error ? 'Error' : stats.ip}
+        IP: {error ? 'Error' : stats.publicIP}
+      </div>
+      <div className="status-item">
+        <LockIcon style={{ fontSize: 18, marginRight: 6 }} />
+        Private IP: {error ? 'Error' : stats.privateIP}
       </div>
     </div>
   );
