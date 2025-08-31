@@ -98,9 +98,9 @@
 
 }
 
-:root[data-theme='vampire'] {
-  background: #1a0000;
-  --bg-color: #1a0000;
+[data-theme='vampire'] body {
+  background: #740202;
+  --bg-color: #740202;
   --hover-bg: #ffffff;
   --icon-muted: #ffffff;
   --text-color: #ffffff;
@@ -138,5 +138,5 @@ body {
   font-family: var(--font-family), sans-serif;
   font-weight: var(--font-weight);
   transition: background-color 0.3s ease, color 0.3s ease;
-  height: 100vh;
+  min-height: 100vh;
 }

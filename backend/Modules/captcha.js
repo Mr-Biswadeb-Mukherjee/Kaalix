@@ -9,7 +9,7 @@ const captchaStore = new Map();
  * Generate a captcha with adjustable difficulty (0 = easy, 10 = hard)
  * @param {number} difficulty Difficulty level (0-10)
  */
-export const generateCaptcha = (difficulty = 6) => {
+export const generateCaptcha = (difficulty = 5) => {
   const width = 160;
   const height = 60;
   const canvas = createCanvas(width, height);

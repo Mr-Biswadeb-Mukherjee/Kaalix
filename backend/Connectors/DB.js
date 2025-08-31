@@ -1,7 +1,7 @@
 // database.js (ES module)
 
 import mysql from 'mysql2/promise';
-import { mysql as mysqlConfig } from '../Confs/config.js'; // adjust the path if necessary
+import { mysql as mysqlConfig } from '../Confs/config.js'; // adjust path if necessary
 
 const {
   host,
@@ -62,16 +62,34 @@ export async function initDatabase() {
 }
 
 async function ensureTablesExist(pool) {
+  // Users table (user_id is auto-incremented, unsigned, starting at 10000001)
   const createUsersTable = `
     CREATE TABLE IF NOT EXISTS users (
-      id INT AUTO_INCREMENT PRIMARY KEY,
-      fullName VARCHAR(255) NOT NULL,
+      id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+      user_id VARCHAR(255) UNIQUE NOT NULL ,
       email VARCHAR(255) UNIQUE NOT NULL,
       password VARCHAR(255) NOT NULL,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
   `;
+
+  // Profiles table linked via user_id
+  const createProfilesTable = `
+    CREATE TABLE IF NOT EXISTS profiles (
+      id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+      user_id VARCHAR(255) NOT NULL,
+      profile_id CHAR(36) NOT NULL UNIQUE,
+      fullName VARCHAR(255) NOT NULL,
+      phone VARCHAR(20),
+      bio TEXT,
+      profile_url VARCHAR(255),
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
+    );
+  `;
+
   await pool.execute(createUsersTable);
+  await pool.execute(createProfilesTable);
 }
 
 export { pool };
