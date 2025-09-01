@@ -165,7 +165,7 @@ const Profile = () => {
       </div>
 
       {/* Security Section (now imported separately) */}
-      <Security username={userInfo.username} />
+      <Security useremail={userInfo.useremail} />
 
       {/* Modal for Avatar Editing */}
       {isModalOpen && (

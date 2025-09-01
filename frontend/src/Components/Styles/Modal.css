@@ -1,0 +1,83 @@
+/* Overlay */
+.modal-overlay {
+  position: fixed;
+  inset: 0; /* top:0; right:0; bottom:0; left:0; */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: rgba(7, 7, 7, 0.7); /* semi-transparent black overlay */
+  z-index: 1000;
+}
+
+/* Modal content */
+.modal-content {
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  border-radius: 0.5rem; /* 8px */
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  max-height: 450px;
+  flex-direction: column;
+  width: 100%;
+  padding: 2rem;
+  overflow: hidden;
+}
+
+/* Size variants */
+.modal-sm {
+  max-width: 300px;
+}
+
+.modal-md {
+  max-width: 500px;
+}
+
+.modal-lg {
+  max-width: 800px;
+}
+
+/* Scrollable content */
+.modal-scrollable {
+  overflow-y: auto;
+}
+
+/* Header */
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.modal-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.modal-close {
+  background: transparent;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  line-height: 1;
+}
+
+/* Body */
+.modal-body {
+  flex: 1;
+  margin-bottom: 1rem;
+  overflow-y: auto;
+}
+
+/* Actions */
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.modal-content p {
+  font-size: 0.9rem;
+  margin-bottom: 1.5rem;
+  color: var(--text-color);
+}
+

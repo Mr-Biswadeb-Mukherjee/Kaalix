@@ -5,7 +5,6 @@ import { fileURLToPath } from "url";
 
 import express from "express";
 import cors from "cors";
-import bodyParser from "body-parser";
 
 import API from "@amon/shared";
 import authRouter from "./Modules/auth.js";
@@ -14,12 +13,14 @@ import {
   generateToken,
   verifyToken,
   revokeToken,
+  revokeUserTokens, // 👈 import the new user-wide revocation
 } from "./Utils/JWT.js";
 
 import authMiddleware from "./Middleware/authMiddleware.js";
 import { generateCaptcha } from "./Modules/captcha.js";
 import getSystemStats from "./Modules/status.js";
 import { ChangePassword } from "./Modules/changepass.js";
+import { DeleteAccount } from "./Modules/deleteacc.js";
 
 // Reconstruct __dirname in ES Modules
 const __filename = fileURLToPath(import.meta.url);
@@ -64,16 +65,29 @@ app.post(
 // 🔒 Protect all secure endpoints under API.system.protected.*
 Object.entries(API.system.protected).forEach(([key, { method, endpoint }]) => {
   if (key === "status") {
-    // Special case: system status handler
     app[method.toLowerCase()](endpoint, authMiddleware({ revoke: false }), (req, res) => {
       const stats = getSystemStats();
       res.status(200).json({ success: true, stats });
     });
   } else if (key === "changepass") {
-    // Special case: Change password
     app[method.toLowerCase()](endpoint, authMiddleware({ revoke: true }), ChangePassword);
+  } else if (key === "deleteacc") {
+    // Special case: Delete account + revoke all tokens
+    app[method.toLowerCase()](endpoint, authMiddleware({ revoke: false }), async (req, res) => {
+      await DeleteAccount(req, res);
+
+      // If deletion was successful, revoke all tokens for the user
+      const deletedUserId = res.locals.deletedUserId;
+      if (deletedUserId) {
+        try {
+          await revokeUserTokens(deletedUserId);
+          console.log(`⛔ All tokens revoked for deleted user ${deletedUserId}`);
+        } catch (err) {
+          console.warn(`⚠️ Failed to revoke tokens for user ${deletedUserId}:`, err.message);
+        }
+      }
+    });
   } else {
-    // Default: all protected routes require token but don't revoke it
     app.use(endpoint, authMiddleware({ revoke: false }));
   }
 });
@@ -89,7 +103,5 @@ app.use((err, req, res, next) => {
 
 // 🚀 Start the server
 app.listen(PORT, () => {
-  console.log(
-    `🟢 Server running in ${NODE_ENV} mode at http://localhost:${PORT}`
-  );
+  console.log(`🟢 Server running in ${NODE_ENV} mode at http://localhost:${PORT}`);
 });

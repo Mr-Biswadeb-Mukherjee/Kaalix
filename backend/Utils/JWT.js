@@ -6,6 +6,7 @@ const JWT_SECRET_PREFIX = 'jwt:secret:';
 const CURRENT_KID_KEY = 'jwt:current_kid';
 const KID_LIST_KEY = 'jwt:kid_list';
 const REVOCATION_SET_PREFIX = 'jwt:revoked:';
+const USER_REVOCATION_PREFIX = 'jwt:revoked:user:'; // 👈 NEW
 const ROTATION_INTERVAL = 10 * 60 * 1000; // 10 min
 const TOKEN_TTL_SECONDS = 10 * 60;        // 10 min
 const MAX_KIDS = 2;
@@ -54,7 +55,6 @@ function startRotationScheduler() {
 
 /**
  * 🔑 Generate a JWT with user_id included
- * @param {Object} payload - must include user_id
  */
 async function generateToken(payload) {
   await lazyInit();
@@ -101,6 +101,12 @@ async function verifyToken(token, options = { revoke: true }) {
 
   const payload = jwt.verify(token, secret, { algorithms: ["HS512"] });
 
+  // 🔍 Check if user has been globally revoked
+  const userRevokedAt = await redis.get(`${USER_REVOCATION_PREFIX}${payload.user_id}`);
+  if (userRevokedAt) {
+    throw new Error("User account revoked");
+  }
+
   const jtiKey = `${REVOCATION_SET_PREFIX}${payload.jti}`;
 
   // 🛡️ Always check if token was revoked (replay attack protection)
@@ -134,7 +140,7 @@ async function verifyToken(token, options = { revoke: true }) {
     console.log(`🔎 Token verified (read-only): jti=${payload.jti}`);
   }
 
-  return payload; // now includes user_id from payload
+  return payload; // includes user_id
 }
 
 /**
@@ -156,8 +162,33 @@ async function revokeToken(token) {
   console.log(`⛔ Token manually revoked: jti=${decoded.jti}`);
 }
 
+/**
+ * ❌ Revoke all tokens for a user (account deletion, forced logout) with Redis lock
+ */
+async function revokeUserTokens(userId) {
+  await lazyInit();
+  const redis = getRedisClient();
+  const lockKey = `lock:revoke:${userId}`;
+
+  // acquire lock (set if not exists, expire after 5 sec)
+  const locked = await redis.set(lockKey, "1", { NX: true, EX: 5 });
+  if (!locked) {
+    console.log(`⚠️ Another process is revoking tokens for user ${userId}, skipping`);
+    return;
+  }
+
+  try {
+    await redis.set(`${USER_REVOCATION_PREFIX}${userId}`, Date.now());
+    console.log(`⛔ All tokens revoked for user_id=${userId}`);
+  } finally {
+    await redis.del(lockKey); // release lock
+  }
+}
+
+
 export {
   generateToken,
   verifyToken,
   revokeToken,
+  revokeUserTokens, // 👈 NEW
 };

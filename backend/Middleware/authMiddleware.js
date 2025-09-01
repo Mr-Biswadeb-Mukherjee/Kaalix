@@ -16,10 +16,15 @@ export default function authMiddleware(options = { revoke: true }) {
 
       const payload = await verifyToken(token, { revoke: options.revoke });
       req.user = payload;
+      req.token = token; // optional, useful for revocation
       next();
     } catch (err) {
       console.error("🛑 JWT verification failed:", err.message);
-      res.status(401).json({ message: "Invalid or expired token (replay blocked)" });
+      res.status(401).json({
+        message: err.message.includes("revoked")
+          ? "Your account has been deleted or logged out from all devices."
+          : "Invalid or expired token (replay blocked)"
+      });
     }
   };
 }

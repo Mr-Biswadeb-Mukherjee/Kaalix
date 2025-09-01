@@ -62,7 +62,10 @@ const API = {
         method: 'POST',
         endpoint: '/api/v3/changepass',
       },
-
+      deleteacc: {
+        method: 'POST',
+        endpoint: '/api/v3/deleteacc',
+      },
     },
   },
 };

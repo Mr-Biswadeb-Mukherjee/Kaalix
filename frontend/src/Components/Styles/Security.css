@@ -121,51 +121,6 @@
   background: #666;
 }
 
-/* ==============================
-   Modal
-============================== */
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(3, 3, 5, 0.85);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-}
-
-.modal-container {
-  background: var(--bg-color);
-  padding: 24px;
-  border-radius: 12px;
-  width: 100%;
-  max-width: 450px;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.815);
-  animation: fadeIn 0.3s ease;
-}
-
-.modal-title {
-  font-size: 1.3rem;
-  margin-bottom: 14px;
-  font-weight: 600;
-  color: var(--text-color);
-}
-
-.modal-warning {
-  font-size: 0.95rem;
-  color: var(--text-color);
-  margin-bottom: 20px;
-}
-
-.modal-actions {
-  margin-top: 20px;
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-}
 
 /* ==============================
    Forms
