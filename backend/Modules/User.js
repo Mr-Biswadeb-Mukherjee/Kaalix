@@ -1,6 +1,6 @@
-import bcrypt from 'bcrypt';
-import { v4 as uuidv4 } from 'uuid';
-import { initDatabase } from '../Connectors/DB.js';
+import bcrypt from "bcrypt";
+import { v4 as uuidv4 } from "uuid";
+import { initDatabase } from "../Connectors/DB.js";
 
 const db = await initDatabase();
 
@@ -22,10 +22,19 @@ const findUserByEmail = async (email) => {
   const normalizedEmail = normalizeEmail(email);
 
   const [rows] = await db.execute(
-    'SELECT * FROM users WHERE email = ? LIMIT 1',
+    "SELECT * FROM users WHERE email = ? LIMIT 1",
     [normalizedEmail]
   );
 
+  return rows[0] || null;
+};
+
+// 🔑 Public: Fetch user by ID
+export const findUserById = async (userId) => {
+  const [rows] = await db.execute(
+    "SELECT * FROM users WHERE user_id = ? LIMIT 1",
+    [userId]
+  );
   return rows[0] || null;
 };
 
@@ -43,11 +52,11 @@ export const registerUser = async ({ fullName, email, password }) => {
     await conn.beginTransaction();
 
     // Generate unique user_id in the format AMON-{8hex uuid}-{YYMM}{NN}
-    const hexUuid = uuidv4().replace(/-/g, '').substring(0, 8);
+    const hexUuid = uuidv4().replace(/-/g, "").substring(0, 8);
 
     const now = new Date();
     const year = String(now.getFullYear()).slice(-2); // last 2 digits
-    const month = String(now.getMonth() + 1).padStart(2, '0'); // leading zero
+    const month = String(now.getMonth() + 1).padStart(2, "0"); // leading zero
 
     // Fetch last suffix for this month from DB
     const [[lastRow]] = await conn.execute(
@@ -63,12 +72,12 @@ export const registerUser = async ({ fullName, email, password }) => {
       nextCounter = parseInt(lastSuffix, 10) + 1;
     }
 
-    const suffix = `${year}${month}${String(nextCounter).padStart(2, '0')}`;
+    const suffix = `${year}${month}${String(nextCounter).padStart(2, "0")}`;
     const userId = `AMON-${hexUuid}-${suffix}`;
 
     // Insert into users
     await conn.execute(
-      'INSERT INTO users (user_id, email, password) VALUES (?, ?, ?)',
+      "INSERT INTO users (user_id, email, password) VALUES (?, ?, ?)",
       [userId, normalizeEmail(email), hashedPassword]
     );
 
@@ -107,4 +116,16 @@ export const loginUser = async (email, plainPassword) => {
   // Remove password before returning
   const { password, ...safeUser } = user;
   return safeUser;
+};
+
+// 🔄 Public: Update user password
+export const updateUserPassword = async (userId, newPassword) => {
+  const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+  await db.execute(
+    "UPDATE users SET password = ? WHERE user_id = ?",
+    [hashedPassword, userId]
+  );
+
+  return true;
 };

@@ -6,8 +6,8 @@ const JWT_SECRET_PREFIX = 'jwt:secret:';
 const CURRENT_KID_KEY = 'jwt:current_kid';
 const KID_LIST_KEY = 'jwt:kid_list';
 const REVOCATION_SET_PREFIX = 'jwt:revoked:';
-const ROTATION_INTERVAL = 10 * 60 * 1000;
-const TOKEN_TTL_SECONDS = 10 * 60;
+const ROTATION_INTERVAL = 10 * 60 * 1000; // 10 min
+const TOKEN_TTL_SECONDS = 10 * 60;        // 10 min
 const MAX_KIDS = 2;
 
 let initialized = false;
@@ -53,10 +53,15 @@ function startRotationScheduler() {
 }
 
 /**
- * 🔑 Generate a JWT with a unique JTI and Redis-managed secret
+ * 🔑 Generate a JWT with user_id included
+ * @param {Object} payload - must include user_id
  */
 async function generateToken(payload) {
   await lazyInit();
+
+  if (!payload.user_id) {
+    throw new Error("Payload must include user_id");
+  }
 
   const redis = getRedisClient();
   const kid = await redis.get(CURRENT_KID_KEY);
@@ -77,6 +82,9 @@ async function generateToken(payload) {
   return token;
 }
 
+/**
+ * 🔎 Verify JWT with optional revocation
+ */
 async function verifyToken(token, options = { revoke: true }) {
   await lazyInit();
 
@@ -126,13 +134,11 @@ async function verifyToken(token, options = { revoke: true }) {
     console.log(`🔎 Token verified (read-only): jti=${payload.jti}`);
   }
 
-  return payload;
+  return payload; // now includes user_id from payload
 }
 
-
-
 /**
- * ❌ Revoke JWT by JTI (manual revocation)
+ * ❌ Manual revocation by JTI
  */
 async function revokeToken(token) {
   await lazyInit();

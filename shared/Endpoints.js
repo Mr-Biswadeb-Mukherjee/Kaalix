@@ -57,7 +57,12 @@ const API = {
       status:{
         method: 'POST',
         endpoint: '/api/v3/status',
-      }
+      },
+      changepass: {
+        method: 'POST',
+        endpoint: '/api/v3/changepass',
+      },
+
     },
   },
 };

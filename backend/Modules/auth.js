@@ -168,6 +168,7 @@ router.post("/", async (req, res) => {
       });
 
       const token = await res.generateToken({
+        user_id: newUser.user_id, 
         email: trimmedEmail,
         fullName: newUser.fullName,
       });
@@ -176,6 +177,7 @@ router.post("/", async (req, res) => {
         success: true,
         message: "Registration successful.",
         user: {
+          user_id: newUser.user_id,
           email: trimmedEmail,
           fullName: newUser.fullName,
         },
@@ -195,6 +197,7 @@ router.post("/", async (req, res) => {
       }
 
       const token = await res.generateToken({
+        user_id: user.user_id, 
         email: user.email,
         fullName: user.fullName,
       });
@@ -203,6 +206,7 @@ router.post("/", async (req, res) => {
         success: true,
         message: "Login successful.",
         user: {
+          user_id: user.user_id, 
           email: user.email,
           fullName: user.fullName,
         },

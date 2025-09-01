@@ -19,6 +19,7 @@ import {
 import authMiddleware from "./Middleware/authMiddleware.js";
 import { generateCaptcha } from "./Modules/captcha.js";
 import getSystemStats from "./Modules/status.js";
+import { ChangePassword } from "./Modules/changepass.js";
 
 // Reconstruct __dirname in ES Modules
 const __filename = fileURLToPath(import.meta.url);
@@ -31,7 +32,7 @@ const NODE_ENV = "development";
 const app = express();
 
 app.use(cors());
-app.use(bodyParser.json());
+app.use(express.json());
 
 // Inject JWT utils into res object
 app.use((req, res, next) => {
@@ -49,7 +50,7 @@ app.get(API.system.public.captcha.endpoint, (req, res) => {
 
 // 🟢 Public Routes
 app.use(API.system.public.login.endpoint, authRouter);
-app.post(API.system.public.logout.endpoint, logoutHandler);
+app.post(API.system.public.logout.endpoint, authMiddleware({ revoke: true }), logoutHandler);
 
 // 🔐 Token verification route (read-only check, no revoke)
 app.post(
@@ -68,6 +69,9 @@ Object.entries(API.system.protected).forEach(([key, { method, endpoint }]) => {
       const stats = getSystemStats();
       res.status(200).json({ success: true, stats });
     });
+  } else if (key === "changepass") {
+    // Special case: Change password
+    app[method.toLowerCase()](endpoint, authMiddleware({ revoke: true }), ChangePassword);
   } else {
     // Default: all protected routes require token but don't revoke it
     app.use(endpoint, authMiddleware({ revoke: false }));
