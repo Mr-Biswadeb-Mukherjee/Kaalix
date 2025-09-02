@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useToast } from '../Components/Toast';
 import './Styles/Security.css';
 import API from '@amon/shared';
-import Modal from '../Components/Modal';
+import Modal from './Modal';
 
 const Security = () => {
   const { addToast } = useToast();

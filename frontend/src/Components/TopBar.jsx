@@ -21,48 +21,60 @@ const TopBar = ({ collapsed }) => {
   const [location, setLocation] = useState('Fetching...');
   const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'light');
   const [dropdownVisible, setDropdownVisible] = useState(false);
+  const [user, setUser] = useState({ username: 'Loading...', avatar: null });
 
   const { addToast } = useToast();
+  const token = localStorage.getItem('token');
 
-  // Mock user data (replace with context/store in real app)
-  const [user] = useState({
-    username: 'Biswadeb',
-    avatar: null, // Add avatar URL here if available
-  });
-
+  // Update time every second
   useEffect(() => {
-    const timer = setInterval(() => {
-      setTime(new Date().toLocaleTimeString());
-    }, 1000);
+    const timer = setInterval(() => setTime(new Date().toLocaleTimeString()), 1000);
+    return () => clearInterval(timer);
+  }, []);
 
-    const token = localStorage.getItem('token');
+  // Fetch user profile
+  useEffect(() => {
+    if (!token) return;
 
-    // ✅ Fetch location from backend with Authorization header
+    fetch(API.system.protected.getprofile.endpoint, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error('Failed to fetch profile');
+        return res.json();
+      })
+      .then((data) => {
+        setUser({
+          username: data.fullName || 'Unknown User',
+          avatar: data.avatarUrl || null,
+        });
+      })
+      .catch(() => {
+        setUser({ username: 'Unknown User', avatar: null });
+        addToast('Failed to load profile info', 'error');
+      });
+  }, [token]);
+
+  // Fetch location
+  useEffect(() => {
+    if (!token) return;
+
     fetch(API.system.protected.status.endpoint, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
-      },
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
     })
       .then((res) => {
         if (!res.ok) throw new Error('Failed to fetch location');
         return res.json();
       })
       .then((data) => {
-          if (data.success && data.stats && data.stats.location) {
-              setLocation(data.stats.location);
-          } else {
-              setLocation('Unknown Location');
-          }
+        setLocation(data?.stats?.location || 'Unknown Location');
       })
-      .catch(() => {
-        setLocation('Unknown Location');
-      });
+      .catch(() => setLocation('Unknown Location'));
+  }, [token]);
 
-    return () => clearInterval(timer);
-  }, []);
-
+  // Apply theme
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
     localStorage.setItem('theme', theme);
@@ -81,7 +93,6 @@ const TopBar = ({ collapsed }) => {
   };
 
   const handleLogout = async () => {
-    const token = localStorage.getItem('token');
     if (!token) {
       addToast('You are already logged out.', 'warning');
       window.location.href = '/';
@@ -91,18 +102,13 @@ const TopBar = ({ collapsed }) => {
     try {
       const response = await fetch(API.system.public.logout.endpoint, {
         method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
       });
 
       if (response.ok) {
         addToast('Successfully logged out.', 'success');
         localStorage.removeItem('token');
-
-        setTimeout(() => {
-          window.location.href = '/';
-        }, 1500);
+        setTimeout(() => (window.location.href = '/'), 1500);
       } else {
         const err = await response.json();
         addToast(`Logout failed: ${err.message || 'Unknown error'}`, 'error');
@@ -119,9 +125,7 @@ const TopBar = ({ collapsed }) => {
       <div className="topbar-status theme-dropdown">
         <div className="theme-selected">
           {getThemeIcon()}
-          <span className="topbar-text">
-            {theme.charAt(0).toUpperCase() + theme.slice(1)} Mode
-          </span>
+          <span className="topbar-text">{theme.charAt(0).toUpperCase() + theme.slice(1)} Mode</span>
         </div>
         <div className="theme-options">
           {themes.map((t) => (
@@ -131,9 +135,7 @@ const TopBar = ({ collapsed }) => {
               onClick={() => setTheme(t.name)}
             >
               {t.icon}
-              <span className="topbar-text">
-                {t.name.charAt(0).toUpperCase() + t.name.slice(1)}
-              </span>
+              <span className="topbar-text">{t.name.charAt(0).toUpperCase() + t.name.slice(1)}</span>
             </div>
           ))}
         </div>
@@ -157,7 +159,11 @@ const TopBar = ({ collapsed }) => {
         onMouseEnter={() => setDropdownVisible(true)}
         onMouseLeave={() => setDropdownVisible(false)}
       >
-        <AccountCircleIcon className="topbar-icon" />
+        {user.avatar ? (
+          <img src={user.avatar} alt="Avatar" className="topbar-avatar" />
+        ) : (
+          <AccountCircleIcon className="topbar-icon" />
+        )}
         <span className="topbar-text">{user.username}</span>
 
         {dropdownVisible && (

@@ -12,12 +12,10 @@ const API = {
       verify: {
         method: 'POST',
         endpoint: '/api/v3/verify',
-
       },
       captcha: {
         method: 'GET',
         endpoint: '/api/v3/captcha',
-
       },
     },
 
@@ -54,7 +52,7 @@ const API = {
         method: 'POST',
         endpoint: '/api/v3/settings',
       },
-      status:{
+      status: {
         method: 'POST',
         endpoint: '/api/v3/status',
       },
@@ -65,6 +63,20 @@ const API = {
       deleteacc: {
         method: 'POST',
         endpoint: '/api/v3/deleteacc',
+      },
+
+      getprofile: {
+        method: 'GET', 
+        endpoint: '/api/v3/getprofile',
+      },
+
+      updateprofile: {
+        method: 'POST',
+        endpoint: '/api/v3/updateprofile',
+      },
+      updateavatar: {
+        method: 'POST',
+        endpoint: '/api/v3/updateavatar',
       },
     },
   },

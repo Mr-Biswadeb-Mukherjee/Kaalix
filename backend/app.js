@@ -13,7 +13,7 @@ import {
   generateToken,
   verifyToken,
   revokeToken,
-  revokeUserTokens, // 👈 import the new user-wide revocation
+  revokeUserTokens,
 } from "./Utils/JWT.js";
 
 import authMiddleware from "./Middleware/authMiddleware.js";
@@ -21,6 +21,9 @@ import { generateCaptcha } from "./Modules/captcha.js";
 import getSystemStats from "./Modules/status.js";
 import { ChangePassword } from "./Modules/changepass.js";
 import { DeleteAccount } from "./Modules/deleteacc.js";
+
+// 👇 New imports
+import { FetchProfile, UpdateProfile } from "./Modules/Profile.js";
 
 // Reconstruct __dirname in ES Modules
 const __filename = fileURLToPath(import.meta.url);
@@ -53,7 +56,7 @@ app.get(API.system.public.captcha.endpoint, (req, res) => {
 app.use(API.system.public.login.endpoint, authRouter);
 app.post(API.system.public.logout.endpoint, authMiddleware({ revoke: true }), logoutHandler);
 
-// 🔐 Token verification route (read-only check, no revoke)
+// 🔐 Token verification route
 app.post(
   API.system.public.verify.endpoint,
   authMiddleware({ revoke: false }),
@@ -72,11 +75,9 @@ Object.entries(API.system.protected).forEach(([key, { method, endpoint }]) => {
   } else if (key === "changepass") {
     app[method.toLowerCase()](endpoint, authMiddleware({ revoke: true }), ChangePassword);
   } else if (key === "deleteacc") {
-    // Special case: Delete account + revoke all tokens
     app[method.toLowerCase()](endpoint, authMiddleware({ revoke: false }), async (req, res) => {
       await DeleteAccount(req, res);
 
-      // If deletion was successful, revoke all tokens for the user
       const deletedUserId = res.locals.deletedUserId;
       if (deletedUserId) {
         try {
@@ -87,6 +88,10 @@ Object.entries(API.system.protected).forEach(([key, { method, endpoint }]) => {
         }
       }
     });
+  } else if (key === "getprofile") {
+    app[method.toLowerCase()](endpoint, authMiddleware({ revoke: false }), FetchProfile);
+  } else if (key === "updateprofile") {
+    app[method.toLowerCase()](endpoint, authMiddleware({ revoke: false }), UpdateProfile);
   } else {
     app.use(endpoint, authMiddleware({ revoke: false }));
   }

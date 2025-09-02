@@ -1,135 +1,189 @@
-import React, { useState } from 'react';
-import AvatarEditor from 'react-avatar-editor';
-import { useToast } from '../Components/Toast';   // ✅ Toast hook
-import Security from '../Components/Security'; // Import Security component
+// Profile.jsx
+import React, { useState, useEffect } from 'react';
+import { useToast } from '../Components/Toast';
+import Security from '../Components/Security';
+import PhoneInput from 'react-phone-input-2';
+import 'react-phone-input-2/lib/style.css';
 import './Styles/Profile.css';
+import API from '@amon/shared';
 
 const Profile = () => {
   const { addToast } = useToast();
-
   const [isEditing, setIsEditing] = useState(false);
+  const [phoneEdited, setPhoneEdited] = useState(false);
   const [userInfo, setUserInfo] = useState({
-    username: 'johnny_d',
-    email: 'johndoe@example.com',
-    phone: '+1 234 567 890',
+    fullName: '',
+    email: '',
+    phone: '',
+    profileId: '',
+    bio: ''
   });
+  const [originalUserInfo, setOriginalUserInfo] = useState({
+    fullName: '',
+    email: '',
+    phone: '',
+    profileId: '',
+    bio: ''
+  });
+  const [defaultCountry, setDefaultCountry] = useState('us'); // ISO code default
+  const [location, setLocation] = useState('Unknown Location');
+  const token = localStorage.getItem('token');
 
-  const [avatar, setAvatar] = useState(null);
-  const [tempAvatar, setTempAvatar] = useState(null);
-  const [editorRef, setEditorRef] = useState(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [zoomLevel, setZoomLevel] = useState(1);
-
-  // For avatar source selection
-  const [showUrlInput, setShowUrlInput] = useState(false);
-  const [urlInput, setUrlInput] = useState('');
-
-  // ✅ Centralized Toast Notifications (only for profile-related)
   const notify = {
     profileUpdated: () => addToast('Profile information updated successfully!', 'success'),
-    avatarUpdated: () => addToast('Profile picture has been updated!', 'success'),
   };
+
+  // Fetch profile on mount
+  useEffect(() => {
+    if (!token) return;
+
+    fetch(API.system.protected.getprofile.endpoint, {
+      method: 'GET',
+      headers: { 
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}` 
+      },
+    })
+      .then(res => {
+        if (!res.ok) throw new Error('Failed to fetch profile');
+        return res.json();
+      })
+      .then(data => {
+        setUserInfo({
+          fullName: data.fullName || '',
+          email: data.email || '',
+          phone: data.phone || '',
+          profileId: data.profileId || '',
+          bio: data.bio || ''
+        });
+
+        setOriginalUserInfo({
+          fullName: data.fullName || '',
+          email: data.email || '',
+          phone: data.phone || '',
+          profileId: data.profileId || '',
+          bio: data.bio || ''
+        });
+      })
+      .catch(() => addToast('Failed to load profile info', 'error'));
+  }, [token]);
+
+  // Fetch location once and set default country
+  useEffect(() => {
+    if (!token) return;
+
+    const countryISOMap = {
+      'United States': 'us',
+      India: 'in',
+      'United Kingdom': 'gb',
+      Australia: 'au',
+      // Add more as needed
+    };
+
+    const fetchLocation = async () => {
+      try {
+        const res = await fetch(API.system.protected.status.endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok) throw new Error('Failed to fetch location');
+        const data = await res.json();
+        const loc = data?.stats?.location || 'Unknown Location';
+        setLocation(loc);
+
+        if (countryISOMap[loc] && !phoneEdited) {
+          setDefaultCountry(countryISOMap[loc]);
+        }
+      } catch {
+        setLocation('Unknown Location');
+      }
+    };
+
+    fetchLocation();
+  }, [token, phoneEdited]);
+
+  const hasChanges = Object.keys(originalUserInfo).some(
+    key => originalUserInfo[key] !== userInfo[key]
+  );
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setUserInfo((prev) => ({ ...prev, [name]: value }));
+    setUserInfo(prev => ({ ...prev, [name]: value }));
   };
 
   const handleEditToggle = () => {
+    if (isEditing) {
+      setUserInfo({ ...originalUserInfo });
+      setPhoneEdited(false);
+    }
     setIsEditing(!isEditing);
   };
 
   const handleSave = () => {
-    let updated = false;
+    if (!hasChanges) return;
 
-    if (editorRef && tempAvatar) {
-      const canvas = editorRef.getImageScaledToCanvas().toDataURL();
-      setAvatar(canvas);
-      notify.avatarUpdated();
-      updated = true;
-    } else if (!editorRef && tempAvatar) {
-      setAvatar(tempAvatar);
-      notify.avatarUpdated();
-      updated = true;
-    } else {
-      notify.profileUpdated();
-      updated = true;
-    }
+    fetch(API.system.protected.updateprofile.endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        fullName: userInfo.fullName,
+        email: userInfo.email,
+        phone: userInfo.phone,
+        bio: userInfo.bio
+      }),
+    })
+      .then(async res => {
+        const data = await res.json();
 
-    if (updated) {
-      setIsEditing(false);
-      setIsModalOpen(false);
-      setTempAvatar(null);
-      setUrlInput('');
-      setShowUrlInput(false);
-    }
+        if (!res.ok) {
+          addToast(data.message || 'Something went wrong', 'error');
+          return;
+        }
+
+        notify.profileUpdated();
+        setOriginalUserInfo({ ...userInfo });
+        setIsEditing(false);
+        setPhoneEdited(false);
+      })
+      .catch(err => addToast(err.message || 'Failed to save changes', 'error'));
   };
 
-  const handleFileChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => setTempAvatar(reader.result);
-      reader.readAsDataURL(file);
-    }
-  };
-
-  // Avatar Modal handlers
-  const openModal = () => setIsModalOpen(true);
-  const closeModal = () => {
-    setIsModalOpen(false);
-    setTempAvatar(null);
-    setUrlInput('');
-    setShowUrlInput(false);
-  };
-
-  // Avatar zoom change
-  const handleZoomChange = (e) => {
-    setZoomLevel(parseFloat(e.target.value));
+  const getInitials = (name) => {
+    if (!name) return 'NA';
+    return name.split(' ').map(n => n[0]).join('').toUpperCase();
   };
 
   return (
     <div className="profile-container">
-
-      {/* Profile Header with Avatar Integrated */}
       <div className="profile-header-with-avatar">
-        {avatar ? (
-          <img src={avatar} alt="User Avatar" />
-        ) : (
-          <div className="profile-avatar-placeholder">No Avatar</div>
-        )}
-
+        <div className="profile-avatar-placeholder">{getInitials(userInfo.fullName)}</div>
         <div className="profile-info">
-          <h2>{userInfo.username}</h2>
+          <h2>{userInfo.fullName}</h2>
           <p>{userInfo.email}</p>
-          <button className="edit-btn" onClick={handleEditToggle}>
-            {isEditing ? 'Cancel' : 'Edit Profile'}
-          </button>
-
-          {isEditing && (
-            <div className="avatar-selection">
-              <button onClick={openModal}>Upload Avatar</button>
-            </div>
-          )}
+          <p>Profile ID: {userInfo.profileId}</p>
         </div>
       </div>
 
-      {/* Personal Information Section */}
       <div className="profile-section">
         <h3>Personal Information</h3>
+
         <div className="profile-item">
-          <span>Username:</span>
+          <span>Name:</span>
           {isEditing ? (
             <input
               type="text"
-              name="username"
-              value={userInfo.username}
+              name="fullName"
+              value={userInfo.fullName}
               onChange={handleChange}
             />
           ) : (
-            <p>{userInfo.username}</p>
+            <p>{userInfo.fullName}</p>
           )}
         </div>
+
         <div className="profile-item">
           <span>Email:</span>
           {isEditing ? (
@@ -143,127 +197,66 @@ const Profile = () => {
             <p>{userInfo.email}</p>
           )}
         </div>
+
         <div className="profile-item">
           <span>Phone:</span>
           {isEditing ? (
-            <input
-              type="text"
-              name="phone"
+            <PhoneInput
+              country={defaultCountry}
               value={userInfo.phone}
-              onChange={handleChange}
+              onChange={(value) => {
+                setUserInfo(prev => ({ ...prev, phone: value }));
+                setPhoneEdited(true);
+              }}
+              enableSearch
+              placeholder="Enter phone number"
+              containerStyle={{ width: '60%' }}
+              inputStyle={{
+                width: '100%',
+                padding: '0.5rem 0.75rem',
+                border: '1px solid #cbd5e0',
+                borderRadius: '8px',
+                fontSize: '0.9rem'
+              }}
+              buttonStyle={{ borderRadius: '8px 0 0 8px' }}
             />
           ) : (
             <p>{userInfo.phone}</p>
           )}
         </div>
 
-        {isEditing && (
-          <button className="edit-btn save-btn" onClick={handleSave}>
-            Save Changes
-          </button>
-        )}
+        <div className="profile-item">
+          <span>Bio:</span>
+          {isEditing ? (
+            <textarea
+              name="bio"
+              value={userInfo.bio}
+              onChange={handleChange}
+              placeholder="Tell us something about yourself..."
+              rows={4}
+              style={{ width: '100%' }}
+            />
+          ) : (
+            <div className="bio-display">
+              <p>{userInfo.bio || 'No bio available'}</p>
+            </div>
+          )}
+        </div>
+
+        <div className="profile-actions">
+          {!isEditing && <button className="edit-btn" onClick={handleEditToggle}>Edit</button>}
+          {isEditing && (
+            <>
+              <button className="edit-btn cancel-btn" onClick={handleEditToggle}>Cancel</button>
+              <button className="edit-btn save-btn" onClick={handleSave} disabled={!hasChanges}>
+                Save Changes
+              </button>
+            </>
+          )}
+        </div>
       </div>
 
-      {/* Security Section (now imported separately) */}
-      <Security useremail={userInfo.useremail} />
-
-      {/* Modal for Avatar Editing */}
-      {isModalOpen && (
-        <div className="modal">
-          <div className="modal-content">
-            <h2>Edit Avatar</h2>
-
-            {/* Step 1: Choose source if no tempAvatar yet */}
-            {!tempAvatar && (
-              <div className="avatar-source-options">
-                <button
-                  className="modal-btn"
-                  onClick={() => document.getElementById('avatar-file').click()}
-                >
-                  Upload from Device
-                </button>
-                <button
-                  className="modal-btn"
-                  onClick={() => setShowUrlInput(true)}
-                >
-                  Use Image URL
-                </button>
-
-                {/* Hidden file input */}
-                <input
-                  id="avatar-file"
-                  type="file"
-                  accept="image/*"
-                  style={{ display: 'none' }}
-                  onChange={handleFileChange}
-                />
-
-                {/* URL input */}
-                {showUrlInput && (
-                  <div className="url-input">
-                    <input
-                      type="text"
-                      placeholder="Paste image URL here..."
-                      value={urlInput}
-                      onChange={(e) => setUrlInput(e.target.value)}
-                    />
-                    <button
-                      className="modal-btn save-btn"
-                      onClick={() => {
-                        if (urlInput.trim()) {
-                          setTempAvatar(urlInput.trim());
-                          setShowUrlInput(false);
-                        }
-                      }}
-                    >
-                      Load Image
-                    </button>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Step 2: Avatar Editor */}
-            {tempAvatar && (
-              <>
-                <AvatarEditor
-                  ref={(ref) => setEditorRef(ref)}
-                  image={tempAvatar}
-                  width={250}
-                  height={250}
-                  border={20}
-                  borderRadius={50}
-                  color={[255, 255, 255, 0.6]}
-                  scale={zoomLevel}
-                />
-                <div className="zoom-controls">
-                  <label>Zoom:</label>
-                  <input
-                    type="range"
-                    min="1"
-                    max="3"
-                    step="0.01"
-                    value={zoomLevel}
-                    onChange={handleZoomChange}
-                  />
-                  <span>{zoomLevel.toFixed(2)}</span>
-                </div>
-              </>
-            )}
-
-            <div className="modal-buttons">
-              <button className="modal-btn" onClick={closeModal}>
-                Cancel
-              </button>
-              {tempAvatar && (
-                <button className="modal-btn save-btn" onClick={handleSave}>
-                  Save Changes
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+      <Security useremail={userInfo.email} />
     </div>
   );
 };
