@@ -1,5 +1,5 @@
 // Profile.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useToast } from '../Components/Toast';
 import Security from '../Components/Security';
 import PhoneInput from 'react-phone-input-2';
@@ -16,22 +16,22 @@ const Profile = () => {
     email: '',
     phone: '',
     profileId: '',
-    bio: ''
+    bio: '',
+    createdAt: '',
+    updatedAt: ''
   });
   const [originalUserInfo, setOriginalUserInfo] = useState({
     fullName: '',
     email: '',
     phone: '',
     profileId: '',
-    bio: ''
+    bio: '',
+    createdAt: '',
+    updatedAt: ''
   });
   const [defaultCountry, setDefaultCountry] = useState('us'); // ISO code default
   const [location, setLocation] = useState('Unknown Location');
   const token = localStorage.getItem('token');
-
-  const notify = {
-    profileUpdated: () => addToast('Profile information updated successfully!', 'success'),
-  };
 
   // Fetch profile on mount
   useEffect(() => {
@@ -49,28 +49,22 @@ const Profile = () => {
         return res.json();
       })
       .then(data => {
-        setUserInfo({
+        const profile = {
+          fullName: data.fullName || '',
+          email: data.email || '',
+          phone: data.phone || '',
+          profileId: data.profileId || '',
+          bio: data.bio || '',
           createdAt: data.createdAt || '',
-          updatedAt: data.updatedAt || '',
-          fullName: data.fullName || '',
-          email: data.email || '',
-          phone: data.phone || '',
-          profileId: data.profileId || '',
-          bio: data.bio || ''
-        });
-
-        setOriginalUserInfo({
-          fullName: data.fullName || '',
-          email: data.email || '',
-          phone: data.phone || '',
-          profileId: data.profileId || '',
-          bio: data.bio || ''
-        });
+          updatedAt: data.updatedAt || ''
+        };
+        setUserInfo(profile);
+        setOriginalUserInfo(profile);
       })
       .catch(() => addToast('Failed to load profile info', 'error'));
-  }, [token]);
+  }, [token, addToast]);
 
-  // Fetch location once and set default country
+  // Fetch location once
   useEffect(() => {
     if (!token) return;
 
@@ -79,7 +73,6 @@ const Profile = () => {
       India: 'in',
       'United Kingdom': 'gb',
       Australia: 'au',
-      // Add more as needed
     };
 
     const fetchLocation = async () => {
@@ -104,8 +97,9 @@ const Profile = () => {
     fetchLocation();
   }, [token, phoneEdited]);
 
-  const hasChanges = Object.keys(originalUserInfo).some(
-    key => originalUserInfo[key] !== userInfo[key]
+  const hasChanges = useMemo(
+    () => Object.keys(originalUserInfo).some(key => originalUserInfo[key] !== userInfo[key]),
+    [originalUserInfo, userInfo]
   );
 
   const handleChange = (e) => {
@@ -121,54 +115,55 @@ const Profile = () => {
     setIsEditing(!isEditing);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!hasChanges) return;
 
-    fetch(API.system.protected.updateprofile.endpoint, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({
-        updatedAt: userInfo.updatedAt,
-        fullName: userInfo.fullName,
-        email: userInfo.email,
-        phone: userInfo.phone,
-        bio: userInfo.bio
-      }),
-    })
-      .then(async res => {
-        const data = await res.json();
+    try {
+      const res = await fetch(API.system.protected.updateprofile.endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          updatedAt: userInfo.updatedAt,
+          fullName: userInfo.fullName,
+          email: userInfo.email,
+          phone: userInfo.phone,
+          bio: userInfo.bio
+        }),
+      });
 
-        if (!res.ok) {
-          addToast(data.message || 'Something went wrong', 'error');
-          return;
-        }
+      const data = await res.json();
+      if (!res.ok) {
+        addToast(data.message || 'Something went wrong', 'error');
+        return;
+      }
 
-        notify.profileUpdated();
+      addToast('Profile information updated successfully!', 'success');
 
-        // Use backend response directly
-        const updatedUserInfo = {
-          ...userInfo,
-          updatedAt: data.updatedAt || userInfo.updatedAt, // take backend updatedAt
-          fullName: data.fullName || userInfo.fullName,
-          email: data.email || userInfo.email,
-          phone: data.phone || userInfo.phone,
-          bio: data.bio || userInfo.bio
-        };
+      const updatedUserInfo = {
+        ...userInfo,
+        updatedAt: data.updatedAt || userInfo.updatedAt,
+        fullName: data.fullName || userInfo.fullName,
+        email: data.email || userInfo.email,
+        phone: data.phone || userInfo.phone,
+        bio: data.bio || userInfo.bio
+      };
 
-        setUserInfo(updatedUserInfo);
-        setOriginalUserInfo(updatedUserInfo);
-        setIsEditing(false);
-        setPhoneEdited(false);
-      })
-      .catch(err => addToast(err.message || 'Failed to save changes', 'error'));
+      setUserInfo(updatedUserInfo);
+      setOriginalUserInfo(updatedUserInfo);
+      setIsEditing(false);
+      setPhoneEdited(false);
+
+    } catch (err) {
+      addToast(err.message || 'Failed to save changes', 'error');
+    }
   };
 
   const getInitials = (name) => {
     if (!name) return 'NA';
-    return name.split(' ').map(n => n[0]).join('').toUpperCase();
+    return name.split(' ').filter(Boolean).map(n => n[0]).join('').toUpperCase();
   };
 
   return (
@@ -218,19 +213,19 @@ const Profile = () => {
           <div className="profile-item">
             <span>Phone:</span>
             {isEditing ? (
-            <PhoneInput
-              country={defaultCountry}
-              value={userInfo.phone}
-              onChange={(value) => {
-                setUserInfo(prev => ({ ...prev, phone: value.startsWith('+') ? value : `+${value}` }));
-                setPhoneEdited(true);
-              }}
-              enableSearch
-              placeholder="Enter phone number"
-              containerClass="phone-input-container"
-              inputClass="phone-input-field"
-              buttonClass="phone-input-flag"
-            />
+              <PhoneInput
+                country={defaultCountry}
+                value={userInfo.phone}
+                onChange={(value) => {
+                  setUserInfo(prev => ({ ...prev, phone: value.startsWith('+') ? value : `+${value}` }));
+                  setPhoneEdited(true);
+                }}
+                enableSearch
+                placeholder="Enter phone number"
+                containerClass="phone-input-container"
+                inputClass="phone-input-field"
+                buttonClass="phone-input-flag"
+              />
             ) : (
               <p>{userInfo.phone}</p>
             )}
@@ -288,7 +283,6 @@ const Profile = () => {
       </div>
     </div>
   );
-
 };
 
 export default Profile;

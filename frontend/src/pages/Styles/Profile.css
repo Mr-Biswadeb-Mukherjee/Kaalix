@@ -3,35 +3,24 @@
    =========================== */
 .profile-container {
   display: grid;
-  grid-template-columns: 2fr 1fr; /* left wider than right */
+  grid-template-columns: 2fr 1fr;
   gap: 2rem;
   margin: 2rem auto;
   padding: 2rem;
-  font-family: "Fira Code"; /* Consistent font */
+  font-family: "Fira Code";
   color: var(--text-color);
-  max-width: 1200px; /* allow more breathing space */
+  max-width: 1200px;
 }
 
-/* Left and Right Sections */
-/* ===========================
-   Layout Sections
-   =========================== */
-.profile-left {
+.profile-left, .profile-right {
   display: flex;
   flex-direction: column;
   gap: 2rem;
-}
-
-.profile-right {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
 }
 
 /* ===========================
    Header and Avatar
    =========================== */
-/* Header with Avatar */
 .profile-header-with-avatar {
   display: flex;
   align-items: center;
@@ -39,16 +28,8 @@
   padding: 2rem;
   border-radius: 16px;
   background: var(--bg-color);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.4);
   animation: fadeIn 0.3s ease-in-out;
-}
-
-.profile-header-with-avatar img {
-  width: 120px;
-  height: 120px;
-  border-radius: 50%;
-  object-fit: cover;
-  border: 4px solid #edf2f7;
 }
 
 .profile-avatar-placeholder {
@@ -62,8 +43,7 @@
   justify-content: center;
   font-size: 28px;
   font-weight: bold;
-  text-transform: uppercase;
-  box-shadow: 0 0 12px rgba(74, 144, 226, 0.5);
+  box-shadow: 0 0 12px rgba(74,144,226,0.5);
 }
 
 .profile-info h2 {
@@ -80,13 +60,13 @@
 }
 
 /* ===========================
-   General Section Styling
+   Profile Sections
    =========================== */
 .profile-section {
   padding: 1.5rem 2rem;
   border-radius: 12px;
   background: var(--bg-color);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.35);
   margin-bottom: 2rem;
 }
 
@@ -100,7 +80,7 @@
 }
 
 /* ===========================
-   Profile Item Inputs & Display
+   Profile Item Styling
    =========================== */
 .profile-item {
   display: flex;
@@ -134,21 +114,13 @@
   box-shadow: 0 0 0 2px rgba(49,130,206,0.25);
 }
 
-/* ==============================
-   Phone Input (react-phone-input-2)
-   Themed Overrides
-   ============================== */
-
-/* Container */
-.phone-input-container {
-  width: 65%;
-  font-family: inherit;
-}
-
-/* Input field */
+/* ===========================
+   Phone Input Styling
+   =========================== */
+.phone-input-container { width: 65%; font-family: inherit; }
 .phone-input-field {
   width: 100% !important;
-  padding: 10px 14px 10px 48px !important; /* leave room for flag */
+  padding: 10px 14px 10px 48px !important;
   font-size: 16px !important;
   border-radius: 10px !important;
   color: var(--text-color) !important;
@@ -156,60 +128,16 @@
   border: 1px solid var(--text-color) !important;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
-
-.phone-input-field::placeholder {
-  color: var(--text-color);
-  opacity: 0.6;
-}
-
-.phone-input-field:focus {
-  outline: none !important;
-  border-color: var(--accent-color, var(--text-color)) !important;
-  box-shadow: 0 0 6px rgba(0, 0, 0, 0.25);
-}
-
-/* Flag button */
-.phone-input-flag {
-  background: transparent !important;
-  border: none !important;
-  margin: 0;
-  padding: 0 6px;
-  cursor: pointer;
-}
-
-/* Dropdown menu */
-.react-tel-input .country-list {
-  background-color: var(--bg-color) !important;
-  color: var(--text-color) !important;
-  border: 1px solid var(--text-color) !important;
-  border-radius: 8px;
-  margin-top: 4px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-  max-height: 250px;
-  overflow-y: auto;
-  z-index: 1000; /* ensure it stays above other elements */
-}
-
-/* Dropdown item */
-.react-tel-input .country {
-  padding: 6px 10px;
-  cursor: pointer;
-}
-
-.react-tel-input .country:hover {
-  background-color: rgba(0, 0, 0, 0.08) !important;
-}
-
-/* Selected country */
-.react-tel-input .country.highlight {
-  background-color: var(--accent-color, rgba(0, 0, 0, 0.15)) !important;
-  color: var(--bg-color) !important;
-}
-
-
+.phone-input-field::placeholder { color: var(--text-color); opacity: 0.6; }
+.phone-input-field:focus { outline: none !important; }
+.phone-input-flag { background: transparent !important; border: none !important; padding: 0 6px; cursor: pointer; }
+.react-tel-input .country-list { background-color: var(--bg-color) !important; color: var(--text-color) !important; border-radius: 8px; max-height: 250px; overflow-y: auto; z-index: 1000; }
+.react-tel-input .country { padding: 6px 10px; cursor: pointer; }
+.react-tel-input .country:hover { background-color: rgba(0,0,0,0.08) !important; }
+.react-tel-input .country.highlight { background-color: var(--accent-color, rgba(0,0,0,0.15)) !important; color: var(--bg-color) !important; }
 
 /* ===========================
-   Button Styling
+   Buttons
    =========================== */
 button {
   font-size: 0.9rem;
@@ -221,176 +149,40 @@ button {
   transition: all 0.2s ease;
 }
 
-.edit-btn {
-  background: #3182ce;
-  color: #fff;
-}
+.edit-btn { background: #3182ce; color: #fff; }
+.edit-btn:hover { background: #2b6cb0; }
+.save-btn { background: #38a169; color: #fff; }
+.save-btn:hover:not(:disabled) { background: #2f855a; }
+.save-btn:disabled { background: #a0aec0; color: #e2e8f0; cursor: not-allowed; opacity: 0.7; }
+.cancel-btn { background: #e2e8f0; color: #2d3748; }
+.cancel-btn:hover { background: #cbd5e0; }
 
-.edit-btn:hover {
-  background: #2b6cb0;
-}
-
-.save-btn {
-  background: #38a169;
-  color: #fff;
-  cursor: pointer;
-}
-
-
-/* Save button (hover when active) */
-.save-btn:hover:not(:disabled) {
-  background: #2f855a;
-}
-
-/* Save button (disabled/inactive) */
-.save-btn:disabled {
-  background: #a0aec0;   /* gray tone */
-  color: #e2e8f0;        /* lighter text */
-  cursor: not-allowed;
-  opacity: 0.7;
-}
-
-.secondary-btn {
-  background: #edf2f7;
-  color: #2d3748;
-}
-
-.secondary-btn:hover {
-  background: #e2e8f0;
-}
-
-.danger-btn {
-  background: #e53e3e;
-  color: #fff;
-}
-
-.danger-btn:hover {
-  background: #c53030;
-}
-
-.logout-btn {
-  background: #718096;
-  color: #fff;
-  margin-left: 1rem;
-}
-
-.logout-btn:hover {
-  background: #4a5568;
-}
-
-/* Profile Actions Buttons */
 .profile-actions {
   display: flex;
-  justify-content: space-between; /* pushes first child left, last child right */
+  justify-content: space-between;
   align-items: center;
   margin-top: 1rem;
 }
 
-.modal-content p {
-  font-size: 0.9rem;
-  margin-bottom: 1.5rem;
-  color: var(--text-color);
-  gap: 0.75rem; /* spacing if more buttons appear */
-}
-
-/* Cancel button */
-.cancel-btn {
-  background: #e2e8f0;
-  color: #2d3748;
-}
-
-.cancel-btn:hover {
-  background: #cbd5e0;
-}
-
 /* ===========================
-   Password Inputs
+   Bio Display
    =========================== */
-.password-input {
-  margin-bottom: 1rem;
-}
-
-.password-input input {
-  width: 95%;
-  padding: 0.6rem 0.8rem;
-  border: 1px solid #cbd5e0;
-  border-radius: 8px;
-}
-
-.password-input label {
-  display: block;
-  font-size: 0.85rem;
-  color: var(--text-color);
-  margin-bottom: 0.25rem;
-}
-
-/* ===========================
-   Danger Zone & Modals
-   =========================== */
- .danger-zone {
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.397);
-}
-
-.modal-content h2 {
-  font-size: 1.25rem;
-  margin-bottom: 1rem;
-}
-
-.modal-content p {
-  font-size: 0.9rem;
-  margin-bottom: 1.5rem;
-  color: var(--text-color);
-}
-
-.modal-buttons {
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.75rem;
-}
-
-/* Zoom Controls */
-.zoom-controls {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin: 1rem 0;
-}
-
-.zoom-controls label {
-  font-size: 0.9rem;
-  color: var(--text-color);
-}
-
-.zoom-controls input[type="range"] {
-  flex: 1;
-}
-
-/* Animation */
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(-10px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-/* ===========================
-   Phone Input Styling
-   =========================== */
-
 .bio-display p {
   color: var(--text-color);
-  max-width: 450px;       /* maximum width of the bio */
-  word-wrap: break-word;   /* ensures long words break properly */
-  white-space: pre-wrap;   /* preserves line breaks entered by user */
+  max-width: 450px;
+  word-wrap: break-word;
+  white-space: pre-wrap;
   overflow-wrap: break-word;
 }
 
 /* ===========================
-   Widget Cards (Right Column)
+   Widget Cards
    =========================== */
 .widget-card {
   background: var(--bg-color);
   padding: 1.5rem;
   border-radius: 12px;
-  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 4px 18px rgba(0,0,0,0.35);
   animation: fadeIn 0.4s ease-in-out;
 }
 
@@ -401,16 +193,19 @@ button {
   margin-bottom: 1rem;
 }
 
-.widget-card ul {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-
+.widget-card ul { list-style: none; padding: 0; margin: 0; }
 .widget-card ul li {
   font-size: 0.9rem;
   margin-bottom: 0.5rem;
   color: var(--text-color);
   border-left: 3px solid var(--accent-color8);
   padding-left: 0.5rem;
+}
+
+/* ===========================
+   Animations
+   =========================== */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
