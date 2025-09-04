@@ -1,6 +1,8 @@
 import bcrypt from "bcrypt";
 import { v4 as uuidv4 } from "uuid";
 import { initDatabase } from "../Connectors/DB.js";
+import path from "path";
+import { promises as fs } from "fs";
 
 const db = await initDatabase();
 
@@ -221,17 +223,36 @@ export const deleteacc = async (email, password) => {
   const conn = await db.getConnection();
   try {
     await conn.beginTransaction();
-    const user = await findUserByEmail(email);  // 1️⃣ Find user by email
-    if (!user) throw new Error("Email does not match any account.");
-    
-    const validPassword = await bcrypt.compare(password, user.password);  // 2️⃣ Verify password
-    if (!validPassword) throw new Error("Invalid password.");
-    
-    await conn.execute("DELETE FROM profiles WHERE user_id = ?", [user.user_id]);   // 3️⃣ Delete profile first
 
-    const [result] = await conn.execute("DELETE FROM users WHERE user_id = ?", [    // 4️⃣ Delete user
-      user.user_id,
-    ]);
+    const user = await findUserByEmail(email); // 1️⃣ Find user by email
+    if (!user) throw new Error("Email does not match any account.");
+
+    const validPassword = await bcrypt.compare(password, user.password); // 2️⃣ Verify password
+    if (!validPassword) throw new Error("Invalid password.");
+
+    // 3️⃣ Fetch profile to get avatar path
+    const [profileRows] = await conn.execute(
+      "SELECT profile_url FROM profiles WHERE user_id = ? LIMIT 1",
+      [user.user_id]
+    );
+    const profile = profileRows[0];
+
+    // 4️⃣ Delete avatar file if exists (await ensures it completes before proceeding)
+    if (profile?.profile_url) {
+      const avatarPath = path.join(process.cwd(), "public", profile.profile_url);
+      try {
+        await fs.unlink(avatarPath);
+      } catch (err) {
+        // Any failure in deleting the file will rollback the transaction
+        throw new Error(`Failed to delete avatar file: ${err.message}`);
+      }
+    }
+
+    // 5️⃣ Delete profile
+    await conn.execute("DELETE FROM profiles WHERE user_id = ?", [user.user_id]);
+
+    // 6️⃣ Delete user
+    const [result] = await conn.execute("DELETE FROM users WHERE user_id = ?", [user.user_id]);
     if (result.affectedRows === 0) throw new Error("Failed to delete user.");
 
     await conn.commit();

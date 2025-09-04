@@ -61,46 +61,39 @@ const validateFileSignature = async (filePath) => {
   return fileType && UPLOAD_CONFIG.allowedMimes.includes(fileType.mime);
 };
 
-// ✅ Self-contained avatar processing middleware
-export const processAvatar = async (req, res) => {
-  if (!req.file) {
-    return res.status(400).json({ success: false, message: "No file uploaded." });
-  }
-
-  const userId = req.user.user_id;
-  const finalFilename = `avatar_${userId}.jpg`;
-  const finalPath = path.join(UPLOAD_CONFIG.dir, finalFilename);
-
+export const processAvatar = async (req, res, next) => {
   try {
-    // Check real file signature
-    const isValid = await validateFileSignature(req.file.path);
-    if (!isValid) {
-      await fs.promises.unlink(req.file.path); // cleanup temp file
-      return res.status(400).json({
-        success: false,
-        message: "Invalid image file. Please upload a valid picture.",
-      });
+    if (!req.file) return next(); // No file uploaded, skip
+
+    const tempFilePath = req.file.path;
+
+    // ✅ Validate file signature (magic number)
+    const fileType = await fileTypeFromFile(tempFilePath);
+    if (!fileType || !UPLOAD_CONFIG.allowedMimes.includes(fileType.mime)) {
+      await fs.promises.unlink(tempFilePath);
+      return res.status(400).json({ message: "Invalid image file. Allowed: jpg, png, webp, gif, bmp, tiff." });
     }
 
+    // Prepare final filename
+    const finalFilename = `avatar_${req.user.user_id}.jpg`;
+    const finalPath = path.join(UPLOAD_CONFIG.dir, finalFilename);
+
     // Resize & convert to JPEG
-    await sharp(req.file.path)
+    await sharp(tempFilePath)
       .resize(UPLOAD_CONFIG.avatarSize.width, UPLOAD_CONFIG.avatarSize.height, { fit: "cover" })
       .toFormat("jpeg", { quality: 90 })
       .toFile(finalPath);
 
-    await fs.promises.unlink(req.file.path); // remove temp file
+    // Cleanup temp file
+    await fs.promises.unlink(tempFilePath);
 
-    return res.json({
-      success: true,
-      avatarUrl: `/uploads/${finalFilename}?t=${Date.now()}`,
-    });
+    // Attach processed avatar path to request for controller
+    req.processedAvatarPath = `/uploads/${finalFilename}`;
+    next();
   } catch (err) {
     console.error("❌ Error processing avatar:", err.message);
-    try { await fs.promises.unlink(req.file.path); } catch {}
-    return res.status(400).json({
-      success: false,
-      message: "Failed to process avatar. Please upload a valid picture.",
-    });
+    try { if (req.file?.path) await fs.promises.unlink(req.file.path); } catch {}
+    return res.status(400).json({ message: "Failed to process avatar. Please upload a valid image." });
   }
 };
 

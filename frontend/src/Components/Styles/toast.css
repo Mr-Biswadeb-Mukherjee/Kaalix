@@ -1,6 +1,6 @@
 .toast-container {
   position: fixed;
-  top: 20px;
+  bottom: 45px;
   right: 20px;
   z-index: 9999;
   display: flex;
@@ -36,4 +36,20 @@
 @keyframes slideIn {
   from { opacity: 0; transform: translateX(50px); }
   to   { opacity: 1; transform: translateX(0); }
+}
+
+/* Optional: reverse the slide animation for bottom */
+@keyframes slideIn {
+  from { opacity: 0; transform: translateX(50px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+/* To make it slide up from bottom, you could do: */
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(50px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.toast {
+  animation: slideUp 0.3s ease;  /* use slideUp for bottom toast */
 }

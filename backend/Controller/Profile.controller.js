@@ -1,8 +1,7 @@
 import { 
   fetchProfile as getUserProfile, 
   updateProfile as modifyUserProfile, 
-  updateProfileAvatar as saveUserAvatar 
-} from "../Services/user.service.js";
+  updateProfileAvatar } from "../Services/user.service.js";
 
 import validator from "validator";
 import sanitizeHtml from "sanitize-html";
@@ -142,20 +141,19 @@ export const UpdateAvatar = async (req, res) => {
   try {
     const userId = req.user.user_id;
 
-    if (!req.file) {
+    if (!req.processedAvatarPath) {
       return res.status(400).json({ message: "No file uploaded" });
     }
-    // Always same filename
-    const avatarUrl = `/uploads/${req.file.filename}`;
 
-    const updatedUser = await saveUserAvatar(userId, avatarUrl);
+    // ✅ Update DB using service
+    const updatedUser = await updateProfileAvatar(userId, req.processedAvatarPath);
 
     return res.json({
-      message: "Avatar uploaded successfully",
+      message: "Avatar updated successfully",
       avatarUrl: getFullAvatarUrl(req, updatedUser.profile_url),
     });
   } catch (err) {
     console.error("Error in UpdateAvatar:", err);
-    res.status(500).json({ message: "Internal server error" });
+    return res.status(500).json({ message: "Failed to update avatar" });
   }
 };

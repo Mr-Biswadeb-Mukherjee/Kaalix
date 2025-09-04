@@ -26,16 +26,16 @@ export const DeleteAccount = async (req, res) => {
       });
     }
 
-    // 2️⃣ Delete from DB (profiles + users)
+    // 2️⃣ Delete from DB (profiles + users) AND avatar file
     await deleteacc(email, password);
 
     // 3️⃣ Set deleted user ID for JWT revocation in server.js
     res.locals.deletedUserId = user.user_id;
 
-    // 4️⃣ Success response with personal touch
+    // 4️⃣ Success response
     return res.status(200).json({
       success: true,
-      message: `Hi ${user.first_name || 'there'}, your account has been permanently deleted. We’re sad to see you go! You’ll be redirected shortly.`
+      message: `Hi ${user.fullName || 'there'}, your account has been permanently deleted. We’re sad to see you go!`
     });
   } catch (err) {
     console.error("Error deleting user account:", err);
@@ -51,6 +51,12 @@ export const DeleteAccount = async (req, res) => {
         success: false,
         message: "Oops! That password doesn’t seem correct.",
         tip: "Make sure you enter the password associated with this email."
+      });
+    } else if (err.message.includes("Failed to delete avatar file")) {
+      // Specific catch for avatar deletion failure
+      return res.status(500).json({
+        success: false,
+        message: "Something went wrong while removing your profile picture. Account deletion was rolled back.",
       });
     } else {
       return res.status(500).json({
