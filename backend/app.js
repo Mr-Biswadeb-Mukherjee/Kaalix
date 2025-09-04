@@ -21,7 +21,10 @@ import { generateCaptcha } from "./Services/captcha.service.js";
 import getSystemStats from "./Services/status.service.js";
 import { ChangePassword } from "./Services/changepassword.service.js";
 import { DeleteAccount } from "./Services/deleteaccount.service.js";
-import { FetchProfile, UpdateProfile } from "./Controller/Profile.controller.js";
+
+// ✅ Profile controllers & upload middleware
+import { FetchProfile, UpdateProfile, UpdateAvatar } from "./Controller/Profile.controller.js";
+import { upload, processAvatar, handleUploadErrors } from "./Middleware/upload.middleware.js";
 
 // Reconstruct __dirname in ES Modules
 const __filename = fileURLToPath(import.meta.url);
@@ -35,6 +38,9 @@ const app = express();
 
 app.use(cors());
 app.use(express.json());
+
+// Serve uploaded files statically
+app.use("/uploads", express.static(path.join(__dirname, "public/uploads")));
 
 // Inject JWT utils into res object
 app.use((req, res, next) => {
@@ -63,33 +69,72 @@ app.post(
   }
 );
 
-// 🔒 Protect all secure endpoints under API.system.protected.*
+// 🔒 Protected Routes
 Object.entries(API.system.protected).forEach(([key, { method, endpoint }]) => {
   if (key === "status") {
-    app[method.toLowerCase()](endpoint, authMiddleware({ revoke: false }), (req, res) => {
-      const stats = getSystemStats();
-      res.status(200).json({ success: true, stats });
-    });
+    app[method.toLowerCase()](
+      endpoint,
+      authMiddleware({ revoke: false }),
+      (req, res) => {
+        const stats = getSystemStats();
+        res.status(200).json({ success: true, stats });
+      }
+    );
   } else if (key === "changepass") {
-    app[method.toLowerCase()](endpoint, authMiddleware({ revoke: true }), ChangePassword);
+    app[method.toLowerCase()](
+      endpoint,
+      authMiddleware({ revoke: true }),
+      ChangePassword
+    );
   } else if (key === "deleteacc") {
-    app[method.toLowerCase()](endpoint, authMiddleware({ revoke: false }), async (req, res) => {
-      await DeleteAccount(req, res);
+    app[method.toLowerCase()](
+      endpoint,
+      authMiddleware({ revoke: false }),
+      async (req, res) => {
+        await DeleteAccount(req, res);
 
-      const deletedUserId = res.locals.deletedUserId;
-      if (deletedUserId) {
-        try {
-          await revokeUserTokens(deletedUserId);
-          console.log(`⛔ All tokens revoked for deleted user ${deletedUserId}`);
-        } catch (err) {
-          console.warn(`⚠️ Failed to revoke tokens for user ${deletedUserId}:`, err.message);
+        const deletedUserId = res.locals.deletedUserId;
+        if (deletedUserId) {
+          try {
+            await revokeUserTokens(deletedUserId);
+            console.log(`⛔ All tokens revoked for deleted user ${deletedUserId}`);
+          } catch (err) {
+            console.warn(
+              `⚠️ Failed to revoke tokens for user ${deletedUserId}:`,
+              err.message
+            );
+          }
         }
       }
-    });
+    );
   } else if (key === "getprofile") {
-    app[method.toLowerCase()](endpoint, authMiddleware({ revoke: false }), FetchProfile);
+    app[method.toLowerCase()](
+      endpoint,
+      authMiddleware({ revoke: false }),
+      FetchProfile
+    );
   } else if (key === "updateprofile") {
-    app[method.toLowerCase()](endpoint, authMiddleware({ revoke: false }), UpdateProfile);
+    app[method.toLowerCase()](
+      endpoint,
+      authMiddleware({ revoke: false }),
+      UpdateProfile
+    );
+  } else if (key === "updateavatar") {
+    // ✅ Avatar upload route
+    app[method.toLowerCase()](
+      endpoint,
+      authMiddleware({ revoke: false }),
+      upload.single("avatar"),
+      handleUploadErrors,
+      processAvatar,
+      UpdateAvatar,
+      (req, res) => {
+    return res.json({
+      success: true,
+      avatarUrl: req.file.url,
+    });
+  }
+    );
   } else {
     app.use(endpoint, authMiddleware({ revoke: false }));
   }

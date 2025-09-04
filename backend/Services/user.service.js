@@ -188,6 +188,34 @@ export const updateProfile = async (userId, { fullName, email, phone, bio }) => 
   }
 };
 
+// 📸 Public: Update profile avatar
+export const updateProfileAvatar = async (userId, avatarUrl) => {
+  const conn = await db.getConnection();
+  try {
+    await conn.beginTransaction();
+
+    await conn.execute(
+      "UPDATE profiles SET profile_url = ? WHERE user_id = ?",
+      [avatarUrl, userId]
+    );
+
+    await conn.execute(
+      "UPDATE users SET updated_at = NOW() WHERE user_id = ?",
+      [userId]
+    );
+
+    await conn.commit();
+
+    // Return updated profile (so controller can respond properly)
+    return fetchProfile(userId);
+  } catch (err) {
+    await conn.rollback();
+    throw err;
+  } finally {
+    conn.release();
+  }
+};
+
 
 export const deleteacc = async (email, password) => {
   const conn = await db.getConnection();

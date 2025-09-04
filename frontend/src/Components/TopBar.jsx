@@ -45,9 +45,13 @@ const TopBar = ({ collapsed }) => {
         return res.json();
       })
       .then((data) => {
+        const avatarUrl = data.avatarUrl
+          ? `${data.avatarUrl}?t=${Date.now()}` // ✅ add timestamp cache buster
+          : null;
+
         setUser({
           username: data.fullName || 'Unknown User',
-          avatar: data.avatarUrl || null,
+          avatar: avatarUrl,
         });
       })
       .catch(() => {
@@ -55,6 +59,7 @@ const TopBar = ({ collapsed }) => {
         addToast('Failed to load profile info', 'error');
       });
   }, [token]);
+
 
   // Fetch location
   useEffect(() => {

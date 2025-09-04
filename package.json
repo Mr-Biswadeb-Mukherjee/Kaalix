@@ -37,6 +37,9 @@
   },
   "homepage": "https://github.com/official-biswadeb941/Amon",
   "devDependencies": {
+    "@fortawesome/free-solid-svg-icons": "^7.0.1",
+    "@fortawesome/react-fontawesome": "^3.0.2",
+    "@mui/icons-material": "^7.2.0",
     "axios": "^1.11.0",
     "canvas": "^3.1.2",
     "captcha-canvas": "^2.4.1",
@@ -47,6 +50,7 @@
     "intl-tel-input": "^25.8.5",
     "jest": "^30.1.1",
     "libphonenumber-js": "^1.12.15",
+    "lucide-react": "^0.542.0",
     "node-fetch": "^3.3.2",
     "react-avatar": "^5.0.4",
     "react-avatar-editor": "^13.0.2",
@@ -86,5 +90,11 @@
     "win": {
       "target": "nsis"
     }
+  },
+  "dependencies": {
+    "file-type": "^21.0.0",
+    "multer": "^2.0.2",
+    "react-easy-crop": "^5.5.0",
+    "sharp": "^0.34.3"
   }
 }
