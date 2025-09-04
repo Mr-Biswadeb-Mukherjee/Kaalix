@@ -7,8 +7,8 @@ import express from "express";
 import cors from "cors";
 
 import API from "@amon/shared";
-import authRouter from "./Modules/auth.js";
-import logoutHandler from "./Modules/Logout.js";
+import authRouter from "./Services/auth.service.js";
+import logoutHandler from "./Services/logout.service.js";
 import {
   generateToken,
   verifyToken,
@@ -16,14 +16,12 @@ import {
   revokeUserTokens,
 } from "./Utils/JWT.js";
 
-import authMiddleware from "./Middleware/authMiddleware.js";
-import { generateCaptcha } from "./Modules/captcha.js";
-import getSystemStats from "./Modules/status.js";
-import { ChangePassword } from "./Modules/changepass.js";
-import { DeleteAccount } from "./Modules/deleteacc.js";
-
-// 👇 New imports
-import { FetchProfile, UpdateProfile } from "./Modules/Profile.js";
+import authMiddleware from "./Middleware/auth.middleware.js";
+import { generateCaptcha } from "./Services/captcha.service.js";
+import getSystemStats from "./Services/status.service.js";
+import { ChangePassword } from "./Services/changepassword.service.js";
+import { DeleteAccount } from "./Services/deleteaccount.service.js";
+import { FetchProfile, UpdateProfile } from "./Controller/Profile.controller.js";
 
 // Reconstruct __dirname in ES Modules
 const __filename = fileURLToPath(import.meta.url);

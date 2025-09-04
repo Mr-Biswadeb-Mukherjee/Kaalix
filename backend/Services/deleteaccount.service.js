@@ -1,4 +1,4 @@
-import { deleteacc, findUserByEmail } from "../Modules/User.js";
+import { deleteacc, findUserByEmail } from "./user.service.js";
 
 /**
  * Express handler: Delete a user account.

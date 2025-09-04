@@ -5,30 +5,31 @@
   display: flex;
   flex-direction: column;
   gap: 30px;
+  font-family: 'Inter', sans-serif;
 }
 
 /* ==============================
    Change Password Section
 ============================== */
 .security-section {
-  padding: 20px;
+  padding: 24px;
   background: var(--bg-color);
   color: var(--text-color);
   border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
   border-left: 4px solid var(--accent-color8);
 }
 
 .security-heading {
-  font-size: 1.5rem;
-  margin-bottom: 10px;
+  font-size: 1.6rem;
   font-weight: 600;
+  margin-bottom: 8px;
   color: var(--text-color);
 }
 
 .security-description {
-  font-size: 0.95rem;
-  color: var(--text-color);
+  font-size: 1rem;
+  color: #aaa;
   margin-bottom: 16px;
 }
 
@@ -36,23 +37,23 @@
    Danger Zone Section
 ============================== */
 .danger-zone {
-  padding: 20px;
+  padding: 24px;
   border: 1px solid #ff4d4d;
   border-radius: 12px;
   background: rgba(255, 77, 77, 0.08);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
 }
 
 .danger-zone-heading {
-  font-size: 1.5rem;
+  font-size: 1.6rem;
   font-weight: 600;
   color: #f71717;
   margin-bottom: 10px;
 }
 
 .danger-zone-description {
-  font-size: 0.9rem;
-  color: var(--text-color);
+  font-size: 0.95rem;
+  color: #555;
   margin-bottom: 16px;
 }
 
@@ -66,10 +67,10 @@
    Buttons
 ============================== */
 .btn {
-  padding: 10px 18px;
-  border-radius: 8px;
+  padding: 12px 22px;
+  border-radius: 10px;
   font-size: 0.95rem;
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
   border: none;
   transition: all 0.2s ease;
@@ -79,48 +80,47 @@
 .btn-secondary {
   background: #2d6cdf;
   color: #fff;
+  box-shadow: 0 6px 12px rgba(45,108,223,0.25);
 }
 
 .btn-secondary:hover {
   background: #2556b8;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(37,86,184,0.35);
 }
 
 .btn-danger {
   background: #e63946;
   color: #fff;
+  box-shadow: 0 6px 12px rgba(230,57,70,0.25);
 }
 
 .btn-danger:hover {
   background: #c92836;
-}
-
-.btn-logout {
-  background: #444;
-  color: #f5f5f5;
-}
-
-.btn-logout:hover {
-  background: #333;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(201,40,54,0.35);
 }
 
 .btn-save {
-  background: #2ecc71;
+  background: linear-gradient(135deg, #2ecc71, #27ae60);
   color: #fff;
+  box-shadow: 0 6px 12px rgba(39,174,96,0.25);
 }
 
 .btn-save:hover {
-  background: #27ae60;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(39,174,96,0.35);
 }
 
 .btn-cancel {
-  background: #777;
-  color: #fff;
+  background: #f0f0f0;
+  color: #333;
+  border: 1px solid #ccc;
 }
 
 .btn-cancel:hover {
-  background: #666;
+  background: #e0e0e0;
 }
-
 
 /* ==============================
    Forms
@@ -128,28 +128,31 @@
 .form-group {
   display: flex;
   flex-direction: column;
+  gap: 8px;
   margin-bottom: 16px;
 }
 
 .form-label {
-  font-size: 0.9rem;
-  margin-bottom: 6px;
-  color: var(--text-color);
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: #555;
 }
 
 .form-input {
-  padding: 10px;
-  border: 1px solid #555;
-  border-radius: 8px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid #ccc;
   font-size: 0.95rem;
   background: var(--bg-color);
   color: var(--text-color);
   outline: none;
-  transition: border 0.2s ease;
+  box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);
+  transition: all 0.3s ease;
 }
 
 .form-input:focus {
   border-color: #2d6cdf;
+  box-shadow: 0 0 6px rgba(45,108,223,0.25);
 }
 
 /* ==============================
@@ -158,10 +161,50 @@
 @keyframes fadeIn {
   from {
     opacity: 0;
-    transform: scale(0.9);
+    transform: scale(0.95);
   }
   to {
     opacity: 1;
     transform: scale(1);
   }
+}
+
+/* Security.css */
+input[type="password"] {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 6px;
+  font-size: 16px;
+  outline: none;
+  transition: all 0.3s ease;
+}
+
+
+.form-group input {
+  width: 90%;
+  padding: 10px 12px;
+  border-radius: 6px;
+  font-size: 16px;
+  transition: all 0.3s ease;
+}
+
+.form-group input:focus {
+  border-color: #28a745; /* Green border on focus */
+  box-shadow: 0 0 5px rgba(40, 167, 69, 0.5);
+}
+
+.password-wrapper {
+  position: relative;
+}
+
+.password-wrapper input {
+  padding-right: 40px; /* space for the icon */
+}
+
+.password-wrapper .toggle-icon {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  cursor: pointer;
 }

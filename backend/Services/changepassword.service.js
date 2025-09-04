@@ -1,6 +1,6 @@
 // ChangePassword.js
 import bcrypt from "bcrypt";
-import { findUserById, updateUserPassword } from "../Modules/User.js";
+import { findUserById, updateUserPassword } from "./user.service.js";
 
 export const ChangePassword = async (req, res) => {
   try {

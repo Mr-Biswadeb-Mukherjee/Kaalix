@@ -222,11 +222,11 @@ const Auth = ({ onAuthSuccess }) => {
                   <h2 className="auth-title">
                     {isLogin ? "Access Granted" : "Initiate Sequence"}
                   </h2>
-                  <p className="auth-subtitle">
+                  <h4 className="auth-subtitle">
                     {isLogin
                       ? "Jack in. Let the matrix validate you."
                       : "Create your operator ID. Get in the game."}
-                  </p>
+                  </h4>
                 </motion.div>
               </div>
 

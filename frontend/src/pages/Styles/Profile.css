@@ -1,16 +1,36 @@
 /* ===========================
    Profile Page Styling
    =========================== */
-
 .profile-container {
-  min-height: auto;
-  max-width: 800px;
+  display: grid;
+  grid-template-columns: 2fr 1fr; /* left wider than right */
+  gap: 2rem;
   margin: 2rem auto;
   padding: 2rem;
-  font-family: "Fira Code";
+  font-family: "Fira Code"; /* Consistent font */
   color: var(--text-color);
+  max-width: 1200px; /* allow more breathing space */
 }
 
+/* Left and Right Sections */
+/* ===========================
+   Layout Sections
+   =========================== */
+.profile-left {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.profile-right {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* ===========================
+   Header and Avatar
+   =========================== */
 /* Header with Avatar */
 .profile-header-with-avatar {
   display: flex;
@@ -18,8 +38,9 @@
   gap: 1.5rem;
   padding: 2rem;
   border-radius: 16px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.397);
-  margin-bottom: 2rem;
+  background: var(--bg-color);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  animation: fadeIn 0.3s ease-in-out;
 }
 
 .profile-header-with-avatar img {
@@ -31,8 +52,8 @@
 }
 
 .profile-avatar-placeholder {
-  width: 80px;
-  height: 80px;
+  width: 90px;
+  height: 90px;
   border-radius: 50%;
   background-color: #4a90e2;
   color: white;
@@ -42,12 +63,13 @@
   font-size: 28px;
   font-weight: bold;
   text-transform: uppercase;
+  box-shadow: 0 0 12px rgba(74, 144, 226, 0.5);
 }
-
 
 .profile-info h2 {
   font-size: 1.5rem;
-  font-weight: 600;
+  font-weight: bold;
+  color: var(--profile-header);
   margin: 0 0 0.25rem;
 }
 
@@ -57,49 +79,138 @@
   margin-bottom: 1rem;
 }
 
-/* Sections */
+/* ===========================
+   General Section Styling
+   =========================== */
 .profile-section {
   padding: 1.5rem 2rem;
   border-radius: 12px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.397);
+  background: var(--bg-color);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
   margin-bottom: 2rem;
 }
 
 .profile-section h3 {
-  font-size: 1.1rem;
-  font-weight: 600;
+  font-size: 1.3rem;
+  font-weight: 700;
   margin-bottom: 1.25rem;
-  color: var(--text-color);
+  color: var(--profile-sub-header);
+  border-left: 4px solid var(--accent-color8);
+  padding-left: 0.5rem;
 }
 
-/* Profile Items */
+/* ===========================
+   Profile Item Inputs & Display
+   =========================== */
 .profile-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
   margin-bottom: 1rem;
+  gap: 1rem;
 }
 
 .profile-item span {
   font-weight: 500;
   color: var(--text-color);
+  flex: 1;
 }
 
-.profile-item input {
+.profile-item input,
+.profile-item textarea {
+  flex: 2;
   padding: 0.5rem 0.75rem;
-  border: 1px solid #cbd5e0;
+  border: 1px solid;
   border-radius: 8px;
-  outline: none;
-  width: 60%;
+  background: var(--bg-color);
+  color: var(--text-color);
   font-size: 0.9rem;
-  transition: border 0.2s ease;
+  transition: all 0.2s ease;
 }
 
-.profile-item input:focus {
+.profile-item input:focus,
+.profile-item textarea:focus {
   border-color: #3182ce;
+  box-shadow: 0 0 0 2px rgba(49,130,206,0.25);
 }
 
-/* Buttons */
+/* ==============================
+   Phone Input (react-phone-input-2)
+   Themed Overrides
+   ============================== */
+
+/* Container */
+.phone-input-container {
+  width: 65%;
+  font-family: inherit;
+}
+
+/* Input field */
+.phone-input-field {
+  width: 100% !important;
+  padding: 10px 14px 10px 48px !important; /* leave room for flag */
+  font-size: 16px !important;
+  border-radius: 10px !important;
+  color: var(--text-color) !important;
+  background-color: var(--bg-color) !important;
+  border: 1px solid var(--text-color) !important;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.phone-input-field::placeholder {
+  color: var(--text-color);
+  opacity: 0.6;
+}
+
+.phone-input-field:focus {
+  outline: none !important;
+  border-color: var(--accent-color, var(--text-color)) !important;
+  box-shadow: 0 0 6px rgba(0, 0, 0, 0.25);
+}
+
+/* Flag button */
+.phone-input-flag {
+  background: transparent !important;
+  border: none !important;
+  margin: 0;
+  padding: 0 6px;
+  cursor: pointer;
+}
+
+/* Dropdown menu */
+.react-tel-input .country-list {
+  background-color: var(--bg-color) !important;
+  color: var(--text-color) !important;
+  border: 1px solid var(--text-color) !important;
+  border-radius: 8px;
+  margin-top: 4px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  max-height: 250px;
+  overflow-y: auto;
+  z-index: 1000; /* ensure it stays above other elements */
+}
+
+/* Dropdown item */
+.react-tel-input .country {
+  padding: 6px 10px;
+  cursor: pointer;
+}
+
+.react-tel-input .country:hover {
+  background-color: rgba(0, 0, 0, 0.08) !important;
+}
+
+/* Selected country */
+.react-tel-input .country.highlight {
+  background-color: var(--accent-color, rgba(0, 0, 0, 0.15)) !important;
+  color: var(--bg-color) !important;
+}
+
+
+
+/* ===========================
+   Button Styling
+   =========================== */
 button {
   font-size: 0.9rem;
   font-weight: 500;
@@ -122,10 +233,21 @@ button {
 .save-btn {
   background: #38a169;
   color: #fff;
+  cursor: pointer;
 }
 
-.save-btn:hover {
+
+/* Save button (hover when active) */
+.save-btn:hover:not(:disabled) {
   background: #2f855a;
+}
+
+/* Save button (disabled/inactive) */
+.save-btn:disabled {
+  background: #a0aec0;   /* gray tone */
+  color: #e2e8f0;        /* lighter text */
+  cursor: not-allowed;
+  opacity: 0.7;
 }
 
 .secondary-btn {
@@ -156,8 +278,56 @@ button {
   background: #4a5568;
 }
 
-/* Danger Zone */
-.danger-zone {
+/* Profile Actions Buttons */
+.profile-actions {
+  display: flex;
+  justify-content: space-between; /* pushes first child left, last child right */
+  align-items: center;
+  margin-top: 1rem;
+}
+
+.modal-content p {
+  font-size: 0.9rem;
+  margin-bottom: 1.5rem;
+  color: var(--text-color);
+  gap: 0.75rem; /* spacing if more buttons appear */
+}
+
+/* Cancel button */
+.cancel-btn {
+  background: #e2e8f0;
+  color: #2d3748;
+}
+
+.cancel-btn:hover {
+  background: #cbd5e0;
+}
+
+/* ===========================
+   Password Inputs
+   =========================== */
+.password-input {
+  margin-bottom: 1rem;
+}
+
+.password-input input {
+  width: 95%;
+  padding: 0.6rem 0.8rem;
+  border: 1px solid #cbd5e0;
+  border-radius: 8px;
+}
+
+.password-input label {
+  display: block;
+  font-size: 0.85rem;
+  color: var(--text-color);
+  margin-bottom: 0.25rem;
+}
+
+/* ===========================
+   Danger Zone & Modals
+   =========================== */
+ .danger-zone {
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.397);
 }
 
@@ -176,25 +346,6 @@ button {
   display: flex;
   justify-content: flex-end;
   gap: 0.75rem;
-}
-
-/* Password Inputs */
-.password-input {
-  margin-bottom: 1rem;
-}
-
-.password-input label {
-  display: block;
-  font-size: 0.85rem;
-  color: var(--text-color);
-  margin-bottom: 0.25rem;
-}
-
-.password-input input {
-  width: 95%;
-  padding: 0.6rem 0.8rem;
-  border: 1px solid #cbd5e0;
-  border-radius: 8px;
 }
 
 /* Zoom Controls */
@@ -220,77 +371,46 @@ button {
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* Profile Actions Buttons */
-.profile-actions {
-  display: flex;
-  justify-content: space-between; /* Cancel left, Save right */
-  margin-top: 1rem;
-  gap: 0.75rem; /* spacing if more buttons appear */
-}
-
-
-/* Cancel button */
-.cancel-btn {
-  background: #e2e8f0;
-  color: #2d3748;
-}
-
-.cancel-btn:hover {
-  background: #cbd5e0;
-}
-
 /* ===========================
    Phone Input Styling
    =========================== */
-.phone-input .form-control {
-  width: 60%; /* match other inputs */
-  padding: 0.5rem 0.75rem;
-  border: 1px solid #cbd5e0;
-  border-radius: 8px;
-  font-size: 0.9rem;
-  outline: none;
-  transition: border 0.2s ease;
-}
-
-.phone-input .form-control:focus {
-  border-color: #3182ce;
-  box-shadow: 0 0 0 2px rgba(49,130,206,0.2);
-}
-
-/* ===========================
-   Bio Field Styling
-   =========================== */
-.profile-item textarea {
-  width: 60%; /* match other input fields */
-  padding: 0.5rem 0.75rem;
-  border: 1px solid #cbd5e0;
-  border-radius: 8px;
-  font-size: 0.9rem;
-  font-family: "Fira Code";
-  resize: vertical; /* allow vertical resizing only */
-  min-height: 80px;
-  transition: border 0.2s ease;
-}
-
-.profile-item textarea:focus {
-  border-color: #3182ce;
-  box-shadow: 0 0 0 2px rgba(49,130,206,0.2);
-}
-
-/* Optional: align textarea with label */
-.profile-item span {
-  flex: 1; /* label takes minimal width */
-}
-
-.profile-item input,
-.profile-item textarea,
-.phone-input .form-control {
-  flex: 2; /* input fields take remaining space */
-}
 
 .bio-display p {
+  color: var(--text-color);
   max-width: 450px;       /* maximum width of the bio */
   word-wrap: break-word;   /* ensures long words break properly */
   white-space: pre-wrap;   /* preserves line breaks entered by user */
   overflow-wrap: break-word;
+}
+
+/* ===========================
+   Widget Cards (Right Column)
+   =========================== */
+.widget-card {
+  background: var(--bg-color);
+  padding: 1.5rem;
+  border-radius: 12px;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.35);
+  animation: fadeIn 0.4s ease-in-out;
+}
+
+.widget-card h3 {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: var(--profile-sub-header);
+  margin-bottom: 1rem;
+}
+
+.widget-card ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.widget-card ul li {
+  font-size: 0.9rem;
+  margin-bottom: 0.5rem;
+  color: var(--text-color);
+  border-left: 3px solid var(--accent-color8);
+  padding-left: 0.5rem;
 }

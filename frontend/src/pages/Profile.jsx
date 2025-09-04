@@ -50,6 +50,8 @@ const Profile = () => {
       })
       .then(data => {
         setUserInfo({
+          createdAt: data.createdAt || '',
+          updatedAt: data.updatedAt || '',
           fullName: data.fullName || '',
           email: data.email || '',
           phone: data.phone || '',
@@ -129,6 +131,7 @@ const Profile = () => {
         Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify({
+        updatedAt: userInfo.updatedAt,
         fullName: userInfo.fullName,
         email: userInfo.email,
         phone: userInfo.phone,
@@ -144,7 +147,19 @@ const Profile = () => {
         }
 
         notify.profileUpdated();
-        setOriginalUserInfo({ ...userInfo });
+
+        // Use backend response directly
+        const updatedUserInfo = {
+          ...userInfo,
+          updatedAt: data.updatedAt || userInfo.updatedAt, // take backend updatedAt
+          fullName: data.fullName || userInfo.fullName,
+          email: data.email || userInfo.email,
+          phone: data.phone || userInfo.phone,
+          bio: data.bio || userInfo.bio
+        };
+
+        setUserInfo(updatedUserInfo);
+        setOriginalUserInfo(updatedUserInfo);
         setIsEditing(false);
         setPhoneEdited(false);
       })
@@ -157,108 +172,123 @@ const Profile = () => {
   };
 
   return (
-    <div className="profile-container">
-      <div className="profile-header-with-avatar">
-        <div className="profile-avatar-placeholder">{getInitials(userInfo.fullName)}</div>
-        <div className="profile-info">
-          <h2>{userInfo.fullName}</h2>
-          <p>{userInfo.email}</p>
-          <p>Profile ID: {userInfo.profileId}</p>
-        </div>
-      </div>
-
-      <div className="profile-section">
-        <h3>Personal Information</h3>
-
-        <div className="profile-item">
-          <span>Name:</span>
-          {isEditing ? (
-            <input
-              type="text"
-              name="fullName"
-              value={userInfo.fullName}
-              onChange={handleChange}
-            />
-          ) : (
-            <p>{userInfo.fullName}</p>
-          )}
-        </div>
-
-        <div className="profile-item">
-          <span>Email:</span>
-          {isEditing ? (
-            <input
-              type="email"
-              name="email"
-              value={userInfo.email}
-              onChange={handleChange}
-            />
-          ) : (
+    <div className="profile-container two-column-layout">
+      {/* Left Column */}
+      <div className="profile-left">
+        <div className="profile-header-with-avatar">
+          <div className="profile-avatar-placeholder">{getInitials(userInfo.fullName)}</div>
+          <div className="profile-info">
+            <h2>{userInfo.fullName}</h2>
             <p>{userInfo.email}</p>
-          )}
+            <p>Profile ID: {userInfo.profileId}</p>
+          </div>
         </div>
 
-        <div className="profile-item">
-          <span>Phone:</span>
-          {isEditing ? (
+        <div className="profile-section">
+          <h3>Personal Information</h3>
+
+          <div className="profile-item">
+            <span>Name:</span>
+            {isEditing ? (
+              <input
+                type="text"
+                name="fullName"
+                value={userInfo.fullName}
+                onChange={handleChange}
+              />
+            ) : (
+              <p>{userInfo.fullName}</p>
+            )}
+          </div>
+
+          <div className="profile-item">
+            <span>Email:</span>
+            {isEditing ? (
+              <input
+                type="email"
+                name="email"
+                value={userInfo.email}
+                onChange={handleChange}
+              />
+            ) : (
+              <p>{userInfo.email}</p>
+            )}
+          </div>
+
+          <div className="profile-item">
+            <span>Phone:</span>
+            {isEditing ? (
             <PhoneInput
               country={defaultCountry}
               value={userInfo.phone}
               onChange={(value) => {
-                setUserInfo(prev => ({ ...prev, phone: value }));
+                setUserInfo(prev => ({ ...prev, phone: value.startsWith('+') ? value : `+${value}` }));
                 setPhoneEdited(true);
               }}
               enableSearch
               placeholder="Enter phone number"
-              containerStyle={{ width: '60%' }}
-              inputStyle={{
-                width: '100%',
-                padding: '0.5rem 0.75rem',
-                border: '1px solid #cbd5e0',
-                borderRadius: '8px',
-                fontSize: '0.9rem'
-              }}
-              buttonStyle={{ borderRadius: '8px 0 0 8px' }}
+              containerClass="phone-input-container"
+              inputClass="phone-input-field"
+              buttonClass="phone-input-flag"
             />
-          ) : (
-            <p>{userInfo.phone}</p>
-          )}
+            ) : (
+              <p>{userInfo.phone}</p>
+            )}
+          </div>
+
+          <div className="profile-item">
+            <span>Bio:</span>
+            {isEditing ? (
+              <textarea
+                name="bio"
+                value={userInfo.bio}
+                onChange={handleChange}
+                placeholder="Tell us something about yourself..."
+                rows={4}
+                style={{ width: '100%' }}
+              />
+            ) : (
+              <div className="bio-display">
+                <p>{userInfo.bio || 'No bio available'}</p>
+              </div>
+            )}
+          </div>
+
+          <div className="profile-actions">
+            {!isEditing && <button className="edit-btn" onClick={handleEditToggle}>Edit</button>}
+            {isEditing && (
+              <>
+                <button className="edit-btn cancel-btn" onClick={handleEditToggle}>Cancel</button>
+                <button className="edit-btn save-btn" onClick={handleSave} disabled={!hasChanges}>
+                  Save Changes
+                </button>
+              </>
+            )}
+          </div>
         </div>
 
-        <div className="profile-item">
-          <span>Bio:</span>
-          {isEditing ? (
-            <textarea
-              name="bio"
-              value={userInfo.bio}
-              onChange={handleChange}
-              placeholder="Tell us something about yourself..."
-              rows={4}
-              style={{ width: '100%' }}
-            />
-          ) : (
-            <div className="bio-display">
-              <p>{userInfo.bio || 'No bio available'}</p>
-            </div>
-          )}
-        </div>
-
-        <div className="profile-actions">
-          {!isEditing && <button className="edit-btn" onClick={handleEditToggle}>Edit</button>}
-          {isEditing && (
-            <>
-              <button className="edit-btn cancel-btn" onClick={handleEditToggle}>Cancel</button>
-              <button className="edit-btn save-btn" onClick={handleSave} disabled={!hasChanges}>
-                Save Changes
-              </button>
-            </>
-          )}
-        </div>
+        <Security useremail={userInfo.email} />
       </div>
 
-      <Security useremail={userInfo.email} />
+      {/* Right Column */}
+      <div className="profile-right">
+        <div className="widget-card">
+          <h3>Recent Activity</h3>
+          <ul>
+            <li>Logged in from {location}</li>
+          </ul>
+        </div>
+
+        <div className="widget-card">
+          <h3>Account Status</h3>
+          <h4>Created-At: {userInfo.createdAt}</h4>
+          <h4>Updated-At: {userInfo.updatedAt}</h4>
+          <h4>Last login: Today</h4>
+        </div>
+      </div>
     </div>
   );
+
 };
 
 export default Profile;

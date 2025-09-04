@@ -1,12 +1,3 @@
-:root {
-  --vampire-red: #a30000;
-  --vampire-glow: rgba(163, 0, 0, 0.75);
-  --dark-glass: rgba(10, 0, 0, 0.6);
-  --text-light: #f8d3d3;
-  --accent-crimson: #e60026;
-  --dark-black: #0a0000;
-}
-
 .auth-wrapper {
   position: relative;
   width: 100%;
@@ -90,7 +81,7 @@
 
 .auth-subtitle {
   font-size: 0.95rem;
-  color: #e5a7a7;
+  color: #ffc3c3;
   font-family: Orbitron;
   letter-spacing: 1px;
   text-align: center;
@@ -110,7 +101,7 @@
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 10px;
   padding: 10px 12px;
-  color: var(--text-light);
+  color: white;
 }
 
 .custom-input input {

@@ -14,7 +14,7 @@
 
 .vampire-modal {
   background: linear-gradient(145deg, #1a0000, #2b0000);
-  color: #ffdddd;
+  color: var(--text-color);
   padding: 2rem 2.5rem;
   border: 2px solid #7a0000;
   border-radius: 12px;
@@ -23,19 +23,19 @@
   position: relative;
   text-align: center;
   animation: fadeInModal 0.5s ease-in-out;
-  font-family: "Orbitron";
+  font-family: "Fira Code";
 }
 
 .vampire-header {
   font-size: 1.5rem;
-  color: #ff0033;
+  color: #ffffff;
   margin-bottom: 1rem;
   text-shadow: 0 0 10px red;
 }
 
 .vampire-body {
-  font-size: 0.9rem;
-  color: #ffeaea;
+  font-size: 1.2rem;
+  color: var(--inactivity-modal);
   line-height: 1.6;
 }
 
@@ -112,6 +112,6 @@
   margin-top: 1.5rem;
   font-size: 0.95rem;
   font-style: bold;
-  color: #ffb3b3;
+  color: var(--inactivity-modal);
   opacity: 0.85;
 }

@@ -14,16 +14,17 @@ let cachedStats = {
   location: 'N/A'
 };
 
-// Cache for public IP + location (memory only, reset on restart/logout)
 let cachedPublicIP = 'N/A';
 let cachedLocation = 'N/A';
 let lastIPFetch = 0;
+let networkWasDown = false;
 
+// Get private IPv4 address
 function getPrivateIP() {
   const interfaces = os.networkInterfaces();
   for (const name of Object.keys(interfaces)) {
     for (const iface of interfaces[name]) {
-      if (iface.family === 'IPv4' && !iface.internal) {
+      if (iface.family === 'IPv4' && !iface.internal && iface.address) {
         return iface.address;
       }
     }
@@ -31,21 +32,57 @@ function getPrivateIP() {
   return 'N/A';
 }
 
+// Check if machine is offline (no active non-internal interfaces)
+function isOffline() {
+  const interfaces = os.networkInterfaces();
+  for (const name of Object.keys(interfaces)) {
+    for (const iface of interfaces[name]) {
+      if (iface.family === 'IPv4' && !iface.internal && iface.address) {
+        return false; // At least one active interface
+      }
+    }
+  }
+  return true; // No active non-internal interfaces
+}
+
+// Fetch public IP and location (only if online)
 async function fetchPublicIPAndLocation() {
   try {
-    const now = Date.now();
-
-    // Only refresh if 15 min passed or not set yet
-    if (now - lastIPFetch < 15 * 60 * 1000 && cachedPublicIP !== 'N/A') {
+    if (isOffline()) {
+      if (!networkWasDown) {
+        console.warn('Machine is offline, skipping public IP & location fetch.');
+        networkWasDown = true;
+      }
       return { publicIP: cachedPublicIP, location: cachedLocation };
     }
 
-    // 1. Get Public IP
-    const ipRes = await fetch('https://api.ipify.org?format=json');
-    const ipData = await ipRes.json();
-    cachedPublicIP = ipData.ip || 'N/A';
+    networkWasDown = false;
+    const now = Date.now();
 
-    // 2. Get Location from IP
+    // Return cached values if fetched recently
+    if (now - lastIPFetch < 5 * 60 * 1000 && cachedPublicIP !== 'N/A') {
+      return { publicIP: cachedPublicIP, location: cachedLocation };
+    }
+
+    let publicIP = 'N/A';
+
+    // Try primary service: ifconfig.me
+    try {
+      const res = await fetch('https://ifconfig.me/ip');
+      if (res.ok) publicIP = (await res.text()).trim();
+    } catch {
+      // Fallback: api.ipify.org
+      try {
+        const res = await fetch('https://api.ipify.org?format=json');
+        const data = await res.json();
+        publicIP = data.ip || 'N/A';
+      } catch (err2) {
+        console.error('Failed to fetch public IP from both services:', err2);
+      }
+    }
+
+    cachedPublicIP = publicIP;
+
     let location = 'N/A';
     if (cachedPublicIP !== 'N/A') {
       try {
@@ -62,13 +99,14 @@ async function fetchPublicIPAndLocation() {
     cachedLocation = location;
     lastIPFetch = now;
 
-    return { publicIP: cachedPublicIP, location: cachedLocation };
+    return { publicIP, location };
   } catch (err) {
     console.error('Failed to fetch public IP & location:', err);
     return { publicIP: cachedPublicIP, location: cachedLocation };
   }
 }
 
+// Probe system stats (CPU, RAM, Swap, GPU, IPs)
 async function probeSystemStats() {
   try {
     const [cpuLoad, mem, gpu] = await Promise.all([
@@ -99,17 +137,23 @@ async function probeSystemStats() {
   }
 }
 
-// Refresh system stats every 5s
-setInterval(probeSystemStats, 100);
+// Refresh system stats every 5 seconds
+setInterval(probeSystemStats, 5000);
 
 // Run immediately at startup
 probeSystemStats();
 
+// Get latest cached system stats
 function getSystemStats() {
   return cachedStats;
 }
 
-// 👇 Clears cached public IP + location (call this on logout)
+// Get public IP & location (can be used separately)
+async function getPublicIPAndLocation() {
+  return await fetchPublicIPAndLocation();
+}
+
+// Reset cached public IP & location (on logout)
 function resetPublicIPAndLocation() {
   cachedPublicIP = 'N/A';
   cachedLocation = 'N/A';
@@ -119,5 +163,5 @@ function resetPublicIPAndLocation() {
   cachedStats.location = 'N/A';
 }
 
-export { getSystemStats, resetPublicIPAndLocation };
+export { getSystemStats, resetPublicIPAndLocation, getPublicIPAndLocation };
 export default getSystemStats;

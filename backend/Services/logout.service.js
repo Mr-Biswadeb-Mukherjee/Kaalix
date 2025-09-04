@@ -1,5 +1,5 @@
 // Modules/Logout.js
-import { resetPublicIPAndLocation } from "./status.js"; // 👈 import the reset function
+import { resetPublicIPAndLocation } from "./status.service.js"; // 👈 import the reset function
 
 /**
  * 🔒 Secure logout handler — revokes JWT and clears cached system IP/location

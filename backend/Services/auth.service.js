@@ -1,6 +1,6 @@
 import express from "express";
-import { registerUser, loginUser } from "./User.js";
-import { verifyCaptcha, getStoredCaptcha } from "./captcha.js";
+import { registerUser, loginUser } from "./user.service.js";
+import { verifyCaptcha, getStoredCaptcha } from "./captcha.service.js";
 
 
 const router = express.Router();

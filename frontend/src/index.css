@@ -55,12 +55,15 @@
   --icon-muted: #000000;
   --text-color: #000000;
   --hamburger-color: #000000;
+  --profile-sub-header: #535200;
+  --inactivity-modal: yellow;
   animation: gradientShift 15s ease infinite;
   --accent-color1:  #ff6b00;
   --accent-color8:  #9c27b0; 
   --accent-color10: #00dd00;
   --accent-color6:  #2196f3; 
   --accent-color:   #ff3c00; 
+  --profile-header: navy;
 }
 
 [data-theme='dark'] body {
@@ -70,6 +73,7 @@
   --icon-muted: #ffffffa6;
   --hamburger-color: #ffffff;
   --text-color: #ffffff;
+  --profile-header: rgb(255, 255, 255);
   animation: gradientShift 15s ease infinite;
 
   --accent-color1:  #ff6b00;
@@ -88,6 +92,7 @@
   --text-color: #ffffff;
   --hamburger-color: #ff3333;
   --border-color: #63887c;
+  --profile-header: rgb(255, 255, 255);
   animation: gradientShift 15s ease infinite;
 
   --accent-color1:  #ff6b00;
@@ -106,6 +111,7 @@
   --text-color: #ffffff;
   --hamburger-color: #ffffff;
   --border-color: #d34e4e;
+  --profile-header: rgb(255, 255, 255);
 
 
   --primary-text: #ff4d4d;

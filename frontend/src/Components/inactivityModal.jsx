@@ -14,12 +14,12 @@ const InactivityModal = ({ open, countdown }) => {
           Session Timeout Warning
         </div>
         <div className="vampire-body">
-          <p>Your session has been idle for a while.</p>
-          <p>
+          <h4>Your session has been idle for a while.</h4>
+          <h4>
             <AccessTimeIcon fontSize="small" style={{ verticalAlign: 'middle', marginRight: '4px' }} />
             You will be automatically signed out in <span className="countdown">{countdown}</span> seconds.
-          </p>
-          <p className="stay-hint">Move your mouse or press any key to remain logged in.</p>
+          </h4>
+          <h4 className="stay-hint">Move your mouse or press any key to remain logged in.</h4>
         </div>
         <div className="blood-drip" />
       </div>
