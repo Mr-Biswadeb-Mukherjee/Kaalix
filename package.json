@@ -92,6 +92,7 @@
     }
   },
   "dependencies": {
+    "compression": "^1.8.1",
     "file-type": "^21.0.0",
     "multer": "^2.0.2",
     "react-easy-crop": "^5.5.0",

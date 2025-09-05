@@ -1,4 +1,4 @@
-import { verifyToken } from "../Utils/JWT.js";
+import { verifyToken } from "../Utils/JWT.utils.js";
 
 /**
  * Middleware factory to control token revocation
