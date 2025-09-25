@@ -12,6 +12,7 @@ import {
   Person as PersonIcon
 } from '@mui/icons-material';
 
+import SafeImage from './safeImage';
 import API from '@amon/shared';
 import './Styles/TopBar.css';
 import { useToast } from './Toast';
@@ -165,7 +166,12 @@ const TopBar = ({ collapsed }) => {
         onMouseLeave={() => setDropdownVisible(false)}
       >
         {user.avatar ? (
-          <img src={user.avatar} alt="Avatar" className="topbar-avatar" />
+          <SafeImage
+            src={user.avatar}
+            alt="Avatar"
+            className="topbar-avatar"
+            fallback={<div className="avatar-placeholder" />} // optional fallback UI
+          />
         ) : (
           <AccountCircleIcon className="topbar-icon" />
         )}

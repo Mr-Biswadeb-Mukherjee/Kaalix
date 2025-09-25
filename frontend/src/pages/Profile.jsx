@@ -8,6 +8,7 @@ import Security from '../Components/Security';
 import PhoneInput from 'react-phone-input-2';
 import 'react-phone-input-2/lib/style.css';
 import './Styles/Profile.css';
+import SafeImage from '../Components/safeImage';
 import API from '@amon/shared';
 import CameraAltIcon from "@mui/icons-material/CameraAlt";
 import Cropper from "react-easy-crop";
@@ -197,15 +198,18 @@ const Profile = () => {
         <div className="profile-avatar-wrapper">
           <div className="profile-avatar-ring">
             {avatarPreview || userInfo.avatarUrl ? (
-              <img
+              <SafeImage
                 src={
                   avatarPreview ||
-                  (userInfo.avatarUrl
-                    ? `${userInfo.avatarUrl}?t=${Date.now()}`
-                    : null)
+                  (userInfo.avatarUrl ? `${userInfo.avatarUrl}?t=${Date.now()}` : null)
                 }
                 alt="Profile Avatar"
                 className="profile-avatar"
+                fallback={
+                  <span className="avatar-initials">
+                    {getInitials(userInfo.fullName)}
+                  </span>
+                }
               />
             ) : (
               <span className="avatar-initials">{getInitials(userInfo.fullName)}</span>

@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { initBloodFlow } from "./BloodRain";
 import { useToast } from "./Toast";
 import API from "@amon/shared";
+import SafeImage from "./safeImage";
 import "./Styles/auth.css";
 
 const Auth = ({ onAuthSuccess }) => {
@@ -169,15 +170,14 @@ const Auth = ({ onAuthSuccess }) => {
     <React.Fragment key="captcha">
       <div className="captcha-container">
         {captchaImage ? (
-          <img
+          <SafeImage
             src={captchaImage}
             alt="Captcha"
             className="captcha-image"
             onClick={fetchCaptcha}
+            fallback={<div className="captcha-placeholder">Loading...</div>}
           />
-        ) : (
-          <div className="captcha-placeholder">Loading...</div>
-        )}
+        ) : null}
         <button type="button" className="captcha-refresh" onClick={fetchCaptcha}>
           <Refresh />
         </button>

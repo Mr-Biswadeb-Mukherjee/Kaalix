@@ -9,12 +9,13 @@ import {
   revokeToken,
 } from "../Utils/JWT.utils.js";
 
-import publicRoutes from "./public.route.js";
+import publicRoutes from "./public.route.js"
 import protectedRoutes from "./protected.route.js";
 import Ratelimiter from "../Utils/ratelimiter.utils.js"; 
 
 const app = express();
 
+app.disable("x-powered-by");
 app.use(cors());
 //app.use(helmet());             // Secure headers
 app.use(compression());        // Gzip compression

@@ -3,7 +3,7 @@ import path from "path";
 import fs from "fs";
 import sharp from "sharp";
 import { fileURLToPath } from "url";
-import { fileTypeFromFile } from "file-type";
+import { fileTypeFromBuffer } from "file-type";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -20,6 +20,7 @@ const UPLOAD_CONFIG = {
     "image/tiff",
   ],
   avatarSize: { width: 400, height: 400 },
+  maxDimensions: { width: 5000, height: 5000 }, // prevent huge images
 };
 
 // Ensure upload directory exists
@@ -27,12 +28,8 @@ if (!fs.existsSync(UPLOAD_CONFIG.dir)) {
   fs.mkdirSync(UPLOAD_CONFIG.dir, { recursive: true });
 }
 
-// Multer storage (temporary files)
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, UPLOAD_CONFIG.dir),
-  filename: (req, file, cb) =>
-    cb(null, `temp-${Date.now()}${path.extname(file.originalname)}`),
-});
+// Multer memory storage
+const storage = multer.memoryStorage();
 
 // Multer file filter (basic MIME type check)
 const fileFilter = (req, file, cb) => {
@@ -55,23 +52,26 @@ export const upload = multer({
   limits: { fileSize: UPLOAD_CONFIG.maxSize },
 });
 
-// Validate file signature (magic number)
-const validateFileSignature = async (filePath) => {
-  const fileType = await fileTypeFromFile(filePath);
-  return fileType && UPLOAD_CONFIG.allowedMimes.includes(fileType.mime);
-};
-
+// Process avatar safely
 export const processAvatar = async (req, res, next) => {
   try {
-    if (!req.file) return next(); // No file uploaded, skip
+    if (!req.file) return next(); // no file uploaded
 
-    const tempFilePath = req.file.path;
+    const buffer = req.file.buffer;
 
-    // ✅ Validate file signature (magic number)
-    const fileType = await fileTypeFromFile(tempFilePath);
+    // Validate file signature (magic number)
+    const fileType = await fileTypeFromBuffer(buffer);
     if (!fileType || !UPLOAD_CONFIG.allowedMimes.includes(fileType.mime)) {
-      await fs.promises.unlink(tempFilePath);
-      return res.status(400).json({ message: "Invalid image file. Allowed: jpg, png, webp, gif, bmp, tiff." });
+      return res.status(400).json({ message: "Invalid image file." });
+    }
+
+    // Validate dimensions
+    const metadata = await sharp(buffer).metadata();
+    if (
+      metadata.width > UPLOAD_CONFIG.maxDimensions.width ||
+      metadata.height > UPLOAD_CONFIG.maxDimensions.height
+    ) {
+      return res.status(400).json({ message: "Image dimensions too large." });
     }
 
     // Prepare final filename
@@ -79,25 +79,21 @@ export const processAvatar = async (req, res, next) => {
     const finalPath = path.join(UPLOAD_CONFIG.dir, finalFilename);
 
     // Resize & convert to JPEG
-    await sharp(tempFilePath)
+    await sharp(buffer)
       .resize(UPLOAD_CONFIG.avatarSize.width, UPLOAD_CONFIG.avatarSize.height, { fit: "cover" })
-      .toFormat("jpeg", { quality: 90 })
+      .jpeg({ quality: 90 })
       .toFile(finalPath);
 
-    // Cleanup temp file
-    await fs.promises.unlink(tempFilePath);
-
-    // Attach processed avatar path to request for controller
+    // Attach processed avatar path to request
     req.processedAvatarPath = `/uploads/${finalFilename}`;
     next();
   } catch (err) {
     console.error("❌ Error processing avatar:", err.message);
-    try { if (req.file?.path) await fs.promises.unlink(req.file.path); } catch {}
     return res.status(400).json({ message: "Failed to process avatar. Please upload a valid image." });
   }
 };
 
-// ✅ Graceful Multer error handling middleware
+// Graceful Multer error handling middleware
 export const handleUploadErrors = (err, req, res, next) => {
   if (err instanceof multer.MulterError) {
     if (err.code === "LIMIT_FILE_SIZE") {

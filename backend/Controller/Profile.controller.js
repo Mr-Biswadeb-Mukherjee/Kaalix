@@ -57,10 +57,10 @@ export const UpdateProfile = async (req, res) => {
     const userId = req.user.user_id;
     let { fullName, email, phone, bio } = req.body;
 
-    fullName = fullName?.trim();
-    email = email?.trim().toLowerCase();
-    phone = phone?.trim();
-    bio = bio?.trim();
+    fullName = typeof fullName === "string" ? fullName.trim() : "";
+    email = typeof email === "string" ? email.trim().toLowerCase() : "";
+    phone = typeof phone === "string" ? phone.trim() : "";
+    bio = typeof bio === "string" ? bio.trim() : "";
 
     const namePattern = /^[a-zA-Z\s.'-]{1,50}$/;
     const bioPattern = /^[a-zA-Z0-9\s.,'"\-!?()]*$/;

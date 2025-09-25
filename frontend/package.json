@@ -1,36 +1,27 @@
 {
-  "name": "amon-ui",
-  "private": true,
-  "version": "0.0.0",
+  "name": "amon-frontend",
+  "version": "1.0.0",
+  "description": "Frontend made using React with Vite, connected to the amon backend",
   "type": "module",
+  "private": true,
   "scripts": {
     "dev": "vite --host",
     "build": "vite build",
-    "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "clean": "rm -rf node_modules package-lock.json dist && npm install"
   },
+  "keywords": [
+    "system",
+    "stats",
+    "frontend",
+    "amon",
+    "react",
+    "vite",
+    "ui"
+  ],
+  "author": "Mr. Biswadeb Mukherjee",
+  "license": "Non Shareable",
   "dependencies": {
-    "@amon/shared": "*",
-    "@emotion/react": "^11.14.0",
-    "@emotion/styled": "^11.14.1",
-    "@mui/icons-material": "^7.2.0",
-    "@mui/material": "^7.2.0",
-    "axios": "^1.11.0",
-    "framer-motion": "^12.23.9",
-    "react": "^19.1.0",
-    "react-dom": "^19.1.0",
-    "react-google-recaptcha": "^3.1.0",
-    "react-router-dom": "^7.7.0"
-  },
-  "devDependencies": {
-    "@eslint/js": "^9.30.1",
-    "@types/react": "^19.1.8",
-    "@vitejs/plugin-react": "^4.6.0",
-    "electron": "^37.2.5",
-    "eslint": "^9.30.1",
-    "eslint-plugin-react-hooks": "^5.2.0",
-    "eslint-plugin-react-refresh": "^0.4.20",
-    "globals": "^16.3.0",
-    "vite": "^7.0.4"
+    "@amon/shared": "workspace:^"
   }
 }

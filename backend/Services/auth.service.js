@@ -134,9 +134,9 @@ router.post("/", async (req, res) => {
       const captchaValid = verifyCaptcha(captchaId, captchaText);
 
       if (!captchaValid) {
-        // Detect case mismatch
         if (
-          storedCaptcha &&
+          typeof storedCaptcha === "string" &&
+          typeof captchaText === "string" &&
           storedCaptcha.toLowerCase() === captchaText.toLowerCase()
         ) {
           return res.status(400).json({
@@ -147,6 +147,7 @@ router.post("/", async (req, res) => {
             ],
           });
         }
+
 
         // Generic failure
         return res.status(400).json({
