@@ -6,7 +6,7 @@
 
 ### 🔍 What is Amon?
 
-**Amon** is a **fast**, **flexible**, and **hardware-accelerated** brute-force and password spraying engine built using **Python (Flask)** and **React (Vite)**.
+**Amon** is a **fast**, **flexible**, and **hardware-accelerated** brute-force and password spraying engine built using **NodeJS** and **React (Vite)**.
 
 Designed for **red teams**, **penetration testers**, and **security researchers**, Amon lets you simulate real-world credential attacks with surgical precision and real-time operational visibility — all from a powerful, modern web-based interface.
 
@@ -61,20 +61,6 @@ Amon is built with **scalability and innovation in mind**. Here’s a sneak peek
 * 🧠 **AI-assisted guess generation** from real breach corpora
 * 🔁 **Attack replays** and campaign scheduling
 * 💾 **Headless CLI version** for stealthy ops
-
----
-
-### 📦 Quickstart
-
-> *Full installation guide coming soon. For now, run manually:*
-
-```bash
-git clone https://github.com/yourname/amon
-cd amon
-pip install -r requirements.txt
-cd frontend && npm install && npm run build
-cd .. && python app.py
-```
 
 ---
 

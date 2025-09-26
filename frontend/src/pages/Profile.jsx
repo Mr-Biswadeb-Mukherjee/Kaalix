@@ -392,7 +392,23 @@ const Profile = () => {
             )}
 
             {modalStep === "preview" && (
-              <div className="preview-wrapper">
+              <div className="preview-wrapper" style={{ position: 'relative' }}>
+                
+                {/* Zoom Overlay */}
+                <div style={{
+                  position: 'absolute',
+                  top: '10px',
+                  right: '10px',
+                  background: 'rgba(0,0,0,0.6)',
+                  color: '#fff',
+                  padding: '5px 10px',
+                  borderRadius: '5px',
+                  fontWeight: 'bold',
+                  zIndex: 10
+                }}>
+                  {zoom.toFixed(1)}x
+                </div>
+
                 <div className="preview-container">
                   <Cropper
                     image={selectedImage}
@@ -407,7 +423,7 @@ const Profile = () => {
                   />
                 </div>
 
-                {/* Controls placed BELOW the cropper */}
+                {/* Controls below cropper */}
                 <div className="preview-controls">
                   <input
                     type="range"
@@ -419,9 +435,7 @@ const Profile = () => {
                   />
 
                   <div className="preview-buttons">
-                  <button
-                    className="save-btn"
-                    onClick={async () => {
+                    <button className="save-btn" onClick={async () => {
                       if (!croppedAreaPixels) return;
                       const { blob, fileUrl } = await getCroppedImg(selectedImage, croppedAreaPixels);
 
@@ -431,7 +445,7 @@ const Profile = () => {
                       try {
                         const res = await fetch(API.system.protected.updateavatar.endpoint, {
                           method: "POST",
-                          headers: { Authorization: `Bearer ${token}` }, // ❌ do NOT set Content-Type, fetch sets it automatically
+                          headers: { Authorization: `Bearer ${token}` },
                           body: formData
                         });
 
@@ -440,28 +454,21 @@ const Profile = () => {
 
                         addToast("Profile picture updated successfully!", "success");
 
-                        // Update frontend state
-                        setUserInfo(prev => ({ ...prev, avatarUrl: `${data.avatarUrl}?t=${Date.now()}`}));
+                        setUserInfo(prev => ({ ...prev, avatarUrl: `${data.avatarUrl}?t=${Date.now()}` }));
                         setAvatarPreview(`${data.avatarUrl}?t=${Date.now()}`);
                       } catch (err) {
                         addToast(err.message || "Failed to upload avatar", "error");
                       }
 
                       setIsModalOpen(false);
-                    }}
-                  >
-                    Save
-                  </button>
-                    <button
-                      className="cancel-btn"
-                      onClick={() => setModalStep("choice")}
-                    >
-                      ← Back
-                    </button>
+                    }}>Save</button>
+
+                    <button className="cancel-btn" onClick={() => setModalStep("choice")}>← Back</button>
                   </div>
                 </div>
               </div>
             )}
+
 
 
             <div className="modal-actions">

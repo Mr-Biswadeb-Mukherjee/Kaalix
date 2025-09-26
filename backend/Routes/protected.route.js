@@ -10,11 +10,11 @@ import { revokeUserTokens } from "../Utils/JWT.utils.js";
 
 const router = express.Router();
 
-// Async wrapper
+
 const asyncHandler = (fn) => (req, res, next) =>
   Promise.resolve(fn(req, res, next)).catch(next);
 
-// Route definitions
+
 const routes = [
   {
     method: "post", endpoint: API.system.protected.status.endpoint,
@@ -59,27 +59,26 @@ const routes = [
     handler: UpdateProfile,
   },
   {
-    method: "post", endpoint: API.system.protected.updateavatar.endpoint,
+    method: "post",
+    endpoint: API.system.protected.updateavatar.endpoint,
     middleware: [
       authMiddleware({ revoke: false }),
-      upload.single("avatar"),
-      handleUploadErrors,
-      processAvatar
+      upload.single("avatar"),    
+      handleUploadErrors,          
+      processAvatar              
     ],
     handler: async (req, res) => {
-      if (!req.file || !req.file.url) {
+      if (!req.processedAvatarPath) {
         return res.status(400).json({
           success: false,
           message: "Avatar upload failed",
         });
       }
+      req.avatarUrl = req.processedAvatarPath;
       await UpdateAvatar(req, res);
-      return res.json({
-        success: true,
-        avatarUrl: req.file.url,
-      });
     },
   },
+
 ];
 
 // Dynamically register all routes

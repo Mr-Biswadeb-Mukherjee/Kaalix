@@ -1,39 +1,51 @@
-# AMON Security Notes 
+# AMON Security Notes
 
-This document tracks vulnerabilities, fixes, and pending `Bugs & Issues` in this project reported by `Snyk`.  
-For internal development team use only.  
-
-`Security Vulnerabilities ID: AMON-v1.0.0 (Internal)`
-
----
-
-## ✅ Fixed Issues
-
-| CWE   | Issue | Status | Fix Applied In | How It’s Applied |
-|-------|-------|--------|----------------|------------------|
-| 79    | DOM-based XSS from unsanitized `useState` value flowing into `<img src>` | ✅ Fixed | `Auth.jsx`, `Topbar.jsx`, `Profile.jsx` | Sanitized inputs and removed direct interpolation into DOM/script/img attributes. Introduced `safeImage.jsx` component for safe rendering. |
-| 918   | SSRF via vulnerable `ip` package (CVE-2025-59436) | ✅ Fixed | Dependency Tree (`pnpm-lock.yaml`) | Removed unused `ip` package from project. |
-| 770   | File system operations without rate-limiting the filesize → possible DoS & heavy disk usage | ✅ Fixed | `upload.middleware.js` | Added file size limiting. |
-| 200   | Information exposure via `X-Powered-By` header | ✅ Fixed | `Routes/index.js` | Disabled header with `app.disable('x-powered-by')`. |
-| 1287  | Improper type validation | ✅ Fixed | `changepassword.service.js`, `auth.service.js`, `profile.controller.js` | Implemented strict type validation before processing input. |
+This document tracks vulnerabilities, fixes, and pending issues in the `AMON` project as reported by `Snyk`.  
+**Strictly restricted to Internal Development Team Use Only.**  
+All vulnerabilities are tracked with a unique **Vulnerability ID (V-)**.
 
 ---
 
-## ⏳ Pending / Backlog
+## Vulnerability ID: **AMON-V-2025-001**  
+**Status:** ✅ Fixed  
+**Scope:** UI components, backend services, middleware, and dependency tree  
+**Description:** This ID covers several vulnerabilities identified across the project, which have been remediated successfully.
 
-| CWE   | Issue | Status | Target Fix Version | Notes |
-|-------|-------|--------|--------------------|-------|
-| –     | *(None currently pending)* | – | – | – |
+### Issues & Fixes
+
+1. **CWE-79 – DOM-based XSS**  
+   - **Scope:** Frontend components rendering user-controlled data: `Auth.jsx`, `Topbar.jsx`, `Profile.jsx`  
+   - **Description:** Unsanitized `useState` values flowed into `<img src>` → potential XSS attack vector.  
+   - **Fix Applied:** Sanitized all inputs and removed direct DOM interpolation. Introduced `safeImage.jsx` component for safe image rendering.
+
+2. **CWE-918 – SSRF via vulnerable `ip` package (CVE-2025-59436)**  
+   - **Scope:** Backend dependency tree: `pnpm-lock.yaml`  
+   - **Description:** Vulnerable package could be exploited for SSRF attacks.  
+   - **Fix Applied:** Removed the unused `ip` package from the project.
+
+3. **CWE-770 – File system operations without rate-limiting**  
+   - **Scope:** Upload middleware: `upload.middleware.js`  
+   - **Description:** File uploads were unbounded → potential DoS and high disk usage.  
+   - **Fix Applied:** Implemented file size limits and validation in upload middleware.
+
+4. **CWE-200 – Information Exposure via `X-Powered-By` header**  
+   - **Scope:** Express server configuration: `Routes/index.js`  
+   - **Description:** Server exposed technology stack through headers.  
+   - **Fix Applied:** Disabled header using `app.disable('x-powered-by')`.
+
+5. **CWE-1287 – Improper type validation**  
+   - **Scope:** Backend services handling user input: `changepassword.service.js`, `auth.service.js`, `profile.controller.js`  
+   - **Description:** Inputs lacked strict type validation → risk of processing errors or security exploits.  
+   - **Fix Applied:** Enforced strict type validation before input processing.
+
+**_Last updated: 25 September 2025_**
 
 ---
 
 ## 🔒 Operational & Preventive Measures
-- **Regular Scans**: Run `pnpm audit` and `snyk` regularly to detect new issues.  
-- **Schema Validation**: Enforce Joi/Yup or equivalent across all API inputs.  
-- **Rate Limiting**: Apply to all endpoints with heavy or sensitive operations.  
-- **Security Headers**: Harden Express with `helmet` for default security headers.  
-- **CI/CD Enforcement**: Integrate linting, unit tests, and security scans into the pipeline.  
 
----
-
-_Last updated: 25, September 2025_  
+- **Regular Security Scans:** Schedule `pnpm audit` and `snyk` scans to detect new vulnerabilities.  
+- **Schema Validation:** Enforce Joi/Yup or equivalent validation for all API inputs to prevent malformed data.  
+- **Rate Limiting:** Apply rate limits to endpoints handling large or sensitive operations.  
+- **Security Headers:** Harden Express using `helmet` for standard security headers.  
+- **CI/CD Enforcement:** Integrate linting, unit tests, and security scans into deployment pipelines to ensure continuous protection.  
