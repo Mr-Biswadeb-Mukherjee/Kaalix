@@ -130,8 +130,10 @@ router.post("/", async (req, res) => {
         });
       }
 
-      const storedCaptcha = getStoredCaptcha(captchaId); // ✅ Use helper
-      const captchaValid = verifyCaptcha(captchaId, captchaText);
+    // ✅ Correct
+    const storedCaptcha = await getStoredCaptcha(captchaId); 
+    const captchaValid = await verifyCaptcha(captchaId, captchaText);
+
 
       if (!captchaValid) {
         if (

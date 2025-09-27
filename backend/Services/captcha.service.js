@@ -1,9 +1,10 @@
 // Modules/captcha.js
 import { createCanvas } from "canvas";
 import { v4 as uuidv4 } from "uuid";
+import { getRedisClient } from "../Connectors/Redis.js";
 
-// ✅ In-memory store (for development only)
-const captchaStore = new Map();
+// Use Redis for captcha storage
+const REDIS_CAPTCHA_PREFIX = 'captcha:';
 
 /**
  * Generate a captcha with adjustable difficulty (0 = easy, 10 = hard)
@@ -11,6 +12,7 @@ const captchaStore = new Map();
  */
 export const generateCaptcha = (difficulty = 5) => {
   const width = 160;
+  const redis = getRedisClient();
   const height = 60;
   const canvas = createCanvas(width, height);
   const ctx = canvas.getContext("2d");
@@ -86,24 +88,28 @@ export const generateCaptcha = (difficulty = 5) => {
     ctx.fill();
   }
 
-  // Store captcha in memory
-  const image = canvas.toDataURL();
-  captchaStore.set(id, text);
+  // Store captcha in Redis with a 5-minute expiry
+  const captchaKey = `${REDIS_CAPTCHA_PREFIX}${id}`;
+  redis.setEx(captchaKey, 5 * 60, text); // 5 minutes expiry
 
-  // Auto-expire in 5 minutes
-  setTimeout(() => captchaStore.delete(id), 5 * 60 * 1000);
+  const image = canvas.toDataURL(); // Base64 image
 
   return { id, image };
 };
 
 /**
  * Strict verification
+ * @param {string} id Captcha ID
+ * @param {string} userInput User's input for the captcha
+ * @returns {Promise<boolean>} True if valid, false otherwise
  */
-export function verifyCaptcha(id, userInput) {
-  const stored = captchaStore.get(id);
+export async function verifyCaptcha(id, userInput) {
+  const redis = getRedisClient();
+  const captchaKey = `${REDIS_CAPTCHA_PREFIX}${id}`;
+  const stored = await redis.get(captchaKey);
   if (!stored) return false;
   const isValid = stored === userInput;
-  if (isValid) captchaStore.delete(id); // One-time use
+  if (isValid) await redis.del(captchaKey); // One-time use
   return isValid;
 }
 
@@ -111,7 +117,9 @@ export function verifyCaptcha(id, userInput) {
  * Get stored captcha text (for debug/logging)
  */
 export function getStoredCaptcha(id) {
-  return captchaStore.get(id);
+  const redis = getRedisClient();
+  const captchaKey = `${REDIS_CAPTCHA_PREFIX}${id}`;
+  return redis.get(captchaKey);
 }
 
 /**
@@ -125,3 +133,4 @@ function randomColor(alpha = 1) {
 }
 
 export default { generateCaptcha, verifyCaptcha, getStoredCaptcha };
+
