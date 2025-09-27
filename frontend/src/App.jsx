@@ -43,7 +43,7 @@ function AppRoutes() {
 
   const handleAuthSuccess = (data) => {
     login(data.token);
-    navigate("/dashboard");
+    navigate("/profile");
   };
 
   return (

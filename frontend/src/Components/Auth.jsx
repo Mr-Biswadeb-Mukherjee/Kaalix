@@ -117,25 +117,31 @@ const Auth = ({ onAuthSuccess }) => {
 
         // ✅ Clear all fields if auth fails
         setFormData({});
-
-        // ✅ Refresh CAPTCHA
         fetchCaptcha();
         return;
       }
 
-      addToast(
-        isLogin
-          ? `Welcome back, ${data.user.fullName || formData.email}.`
-          : `Registration complete. Welcome, ${data.user.fullName || formData.fullName}!`,
-        "success"
-      );
+      // ✅ Success flow
+      if (isLogin) {
+        addToast(
+          `Welcome back, ${data.user.fullName || formData.email}.`,
+          "success"
+        );
+        localStorage.setItem("token", data.token);
+        onAuthSuccess?.(data);
+      } else {
+        addToast(
+          `Registration complete. You can now log in, ${data.user.fullName || formData.fullName}!`,
+          "success"
+        );
 
-      localStorage.setItem("token", data.token);
-      onAuthSuccess?.(data);
+        // ✅ After registration, reset form & go to login screen
+        setFormData({});
+        setTabIndex(0);
+        fetchCaptcha();
+      }
     } catch {
       handleError("Server error. Please try again later.");
-      
-      // ✅ Clear all fields on server error too
       setFormData({});
       fetchCaptcha();
     } finally {
@@ -258,3 +264,5 @@ const Auth = ({ onAuthSuccess }) => {
 };
 
 export default Auth;
+
+

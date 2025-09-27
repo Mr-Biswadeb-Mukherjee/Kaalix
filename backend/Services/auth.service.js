@@ -161,36 +161,52 @@ router.post("/", async (req, res) => {
     }
 
 
-
     // 🔐 Registration
     if (type === "register") {
+      // Strip any token included by client (malicious attempt)
+      if (req.body.token || req.headers.authorization) {
+        delete req.body.token;
+        delete req.headers.authorization;
+
+        console.warn('Suspicious registration request: token included', {
+          ip: req.ip,
+          bodyKeys: Object.keys(req.body),
+        });
+      }
+
+      // Whitelist allowed fields
+      const allowedFields = ["fullName", "email", "password", "captchaId", "captcha"];
+      Object.keys(req.body).forEach(key => {
+        if (!allowedFields.includes(key)) delete req.body[key];
+      });
+
+      // Create user
       const newUser = await registerUser({
         fullName: trimmedFullName,
         email: trimmedEmail,
         password: trimmedPassword,
       });
 
-      const token = await res.generateToken({
-        user_id: newUser.user_id, 
-        email: trimmedEmail,
-        fullName: newUser.fullName,
-      });
-
+      // ✅ Do NOT generate token for registration
       return res.json({
         success: true,
-        message: "Registration successful.",
+        message: "Registration successful. Please log in.",
         user: {
           user_id: newUser.user_id,
           email: trimmedEmail,
           fullName: newUser.fullName,
         },
-        token,
       });
     }
 
+
     // 🔐 Login
     if (type === "login") {
-      const user = await loginUser(trimmedEmail, trimmedPassword);
+      // Strip any malicious fields except email/password
+      const loginEmail = trimmedEmail;
+      const loginPassword = trimmedPassword;
+
+      const user = await loginUser(loginEmail, loginPassword);
       if (!user) {
         return res.status(401).json({
           success: false,
@@ -217,34 +233,34 @@ router.post("/", async (req, res) => {
       });
     }
 
-    // Invalid request type
-    return res.status(400).json({
-      success: false,
-      message: "Invalid request type.",
-      errors: ["Invalid request type."],
-    });
-  } catch (err) {
-  // ✅ Skip console.error for expected, known errors
-      if (err.code !== "USER_EXISTS") {
-        console.error("Auth error:", err); // Only logs unexpected issues
-      }
-
-      // 🎯 Handle known user conflict
-      if (err.code === "USER_EXISTS" || err.name === "UserExistsError") {
-        return res.status(409).json({
-          success: false,
-          message: err.message,
-          errors: [err.message],
-        });
-      }
-
-  // ❌ Default internal server error
-  return res.status(500).json({
+  // Invalid request type
+  return res.status(400).json({
     success: false,
-    message: "Server error. Please try again later.",
-    errors: ["Server error. Please try again later."],
-  });
-}
+    message: "Invalid request type.",
+        errors: ["Invalid request type."],
+      });
+    } catch (err) {
+    // ✅ Skip console.error for expected, known errors
+        if (err.code !== "USER_EXISTS") {
+          console.error("Auth error:", err); // Only logs unexpected issues
+        }
+
+        // 🎯 Handle known user conflict
+        if (err.code === "USER_EXISTS" || err.name === "UserExistsError") {
+          return res.status(409).json({
+            success: false,
+            message: err.message,
+            errors: [err.message],
+          });
+        }
+
+    // ❌ Default internal server error
+    return res.status(500).json({
+      success: false,
+      message: "Server error. Please try again later.",
+      errors: ["Server error. Please try again later."],
+    });
+  }
 
 });
 
