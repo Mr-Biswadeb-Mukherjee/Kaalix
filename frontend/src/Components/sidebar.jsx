@@ -7,7 +7,7 @@ import DashboardIcon from '@mui/icons-material/Dashboard';
 import TerminalIcon from '@mui/icons-material/Terminal';
 import LayersIcon from '@mui/icons-material/Layers';
 import StorageIcon from '@mui/icons-material/Storage';
-import SettingsIcon from '@mui/icons-material/Settings';
+import ListAltIcon from '@mui/icons-material/ListAlt';
 import InfoIcon from '@mui/icons-material/Info';
 import MenuBookIcon from '@mui/icons-material/MenuBook';
 import LanIcon from '@mui/icons-material/Lan';
@@ -77,13 +77,13 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
       {/* Bottom Section: Settings Link */}
       <div className="sidebar-bottom">
         <Link
-          to="/settings"
-          className={`sidebar-item ${location.pathname === '/settings' ? 'active' : ''}`}
-          data-tooltip={collapsed ? 'Settings' : ''}
-          onClick={() => setActive('/settings')}
+          to="/logs"
+          className={`sidebar-item ${location.pathname === '/logs' ? 'active' : ''}`}
+          data-tooltip={collapsed ? 'Logs' : ''}
+          onClick={() => setActive('/logs')}
         >
-          <span className="sidebar-icon"><SettingsIcon /></span>
-          {!collapsed && <span className="sidebar-label">Settings</span>}
+          <span className="sidebar-icon"><ListAltIcon /></span>
+          {!collapsed && <span className="sidebar-label">Logs</span>}
         </Link>
       </div>
     </div>

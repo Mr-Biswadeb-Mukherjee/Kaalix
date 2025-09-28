@@ -1,0 +1,231 @@
+.logs-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 20px 0;
+}
+
+.logs-controls {
+  display: flex;
+  align-items: center;
+  gap: 30px; /* spacing between mode toggle & switch */
+}
+
+.logs-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  margin-top: 15px;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: #fff;
+}
+
+.logs-table th {
+  background-color: #f4f4f4;
+  text-align: left;
+  padding: 12px 15px;
+  font-weight: 600;
+  font-size: 14px;
+  color: #333;
+}
+
+.logs-table td {
+  padding: 10px 15px;
+  font-size: 13px;
+  color: #555;
+  border-bottom: 1px solid #eee;
+}
+
+/* Rounded corners for table */
+.logs-table th:first-child {
+  border-top-left-radius: 8px;
+}
+
+.logs-table th:last-child {
+  border-top-right-radius: 8px;
+}
+
+.logs-table tr:last-child td:first-child {
+  border-bottom-left-radius: 8px;
+}
+
+.logs-table tr:last-child td:last-child {
+  border-bottom-right-radius: 8px;
+}
+
+/* Zebra striping */
+.logs-table tbody tr:nth-child(odd) {
+  background-color: #fafafa;
+}
+
+/* Hover effect */
+.logs-table tbody tr:hover {
+  background-color: #e8f4ff;
+  cursor: default;
+  transition: background 0.3s ease;
+}
+
+/* Log level colors */
+.logs-table td:nth-child(2) {
+  font-weight: 600;
+}
+
+.logs-table td:nth-child(2):contains("INFO") {
+  color: #2e7d32; /* green */
+}
+
+.logs-table td:nth-child(2):contains("WARN") {
+  color: #f9a825; /* amber */
+}
+
+.logs-table td:nth-child(2):contains("ERROR") {
+  color: #d32f2f; /* red */
+}
+
+/* ===== Draggable Segmented Mode Toggle ===== */
+.view-mode-toggle {
+  position: relative;
+  display: flex;
+  width: 200px;
+  border-radius: 25px;
+  background: #e0e0e0;
+  overflow: hidden;
+  box-shadow: inset 0 0 5px rgba(0,0,0,0.1);
+  cursor: pointer;
+  user-select: none;
+}
+
+.view-mode-toggle button {
+  flex: 1;
+  padding: 8px 0;
+  border: none;
+  background: transparent;
+  color: #000000;
+  font-weight: bold;
+  cursor: pointer;
+  z-index: 2;
+  position: relative;
+  transition: color 0.3s ease;
+  font-size: 14px;
+}
+
+.view-mode-toggle button.active {
+  color: #fff;
+}
+
+.view-mode-toggle button:hover:not(.active) {
+  color: #222;
+}
+
+
+/* Sliding Highlight */
+.highlight {
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  width: 50%;
+  background: #4caf50;
+  border-radius: 20px;
+  z-index: 1;
+  transition: left 0.35s cubic-bezier(0.25, 1.25, 0.5, 1);
+}
+
+/* ===== Switch with Integrated LED ===== */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 50px;
+  height: 28px;
+  border-radius: 28px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-color: #ccc;
+  transition: background 0.4s;
+  border-radius: 28px;
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 20px;
+  width: 20px;
+  left: 4px;
+  bottom: 4px;
+  background-color: white;
+  transition: transform 0.35s cubic-bezier(0.25, 1.25, 0.5, 1), background 0.4s;
+  border-radius: 50%;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+}
+
+/* Switch states */
+.switch-off .slider {
+  background-color: #777;
+}
+
+.switch-on .slider {
+  background-color: #0f0;
+}
+
+.switch-pending .slider {
+  background-color: #ff0;
+  animation: blink 1s infinite;
+}
+
+@keyframes blink {
+  50% { opacity: 0.3; }
+}
+
+/* Slider movement */
+.switch input:checked + .slider:before {
+  transform: translateX(22px);
+}
+
+/* Toggle text */
+.toggle-text {
+  margin-left: 12px;
+  font-weight: 500;
+}
+
+/* ===== Logs Table ===== */
+.logs-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 15px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+}
+
+.logs-table th,
+.logs-table td {
+  border: 1px solid #ddd;
+  padding: 10px;
+}
+
+.logs-table th {
+  background-color: #f4f4f4;
+  text-align: left;
+}
+
+/* ===== Studio Mode Logs ===== */
+.studio-mode {
+  background: #111;
+  color: #0f0;
+  padding: 15px;
+  border-radius: 8px;
+  margin-top: 15px;
+  font-family: 'Courier New', monospace;
+  box-shadow: inset 0 0 8px rgba(0,255,0,0.1);
+}

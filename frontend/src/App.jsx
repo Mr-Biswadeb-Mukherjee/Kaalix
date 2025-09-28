@@ -32,7 +32,7 @@ const routeConfig = [
   { path: 'proxy', element: <Pages.Proxy />, title: 'Proxy | Amon' },
   { path: 'about', element: <Pages.AboutUs />, title: 'About Us | Amon' },
   { path: 'docs', element: <Pages.Documentation />, title: 'Documentation | Amon' },
-  { path: 'settings', element: <Pages.Settings />, title: 'Settings | Amon' },
+  { path: 'logs', element: <Pages.Logs />, title: 'Logs | Amon' },
   { path: 'profile', element: <Pages.Profile />, title: 'Profile | Amon' },
 ];
 
