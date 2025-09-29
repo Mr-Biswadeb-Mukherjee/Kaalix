@@ -1,5 +1,11 @@
 import express from "express";
-import { registerUser, loginUser } from "./user.service.js";
+import { 
+  registerUser, 
+  loginUser, 
+  comparePassword, 
+  updateFailedAttempts 
+} from "./user.service.js";
+
 import { verifyCaptcha, getStoredCaptcha } from "./captcha.service.js";
 
 
@@ -200,38 +206,101 @@ router.post("/", async (req, res) => {
     }
 
 
-    // 🔐 Login
-    if (type === "login") {
-      // Strip any malicious fields except email/password
-      const loginEmail = trimmedEmail;
-      const loginPassword = trimmedPassword;
+  // 🔐 Login
+  if (type === "login") {
+    const loginEmail = trimmedEmail;
+    const loginPassword = trimmedPassword;
 
-      const user = await loginUser(loginEmail, loginPassword);
-      if (!user) {
-        return res.status(401).json({
-          success: false,
-          message: "Invalid credentials.",
-          errors: ["Invalid credentials."],
-        });
-      }
+    const MAX_ATTEMPTS = 5;
+    const LOCK_MINUTES = 30;
 
-      const token = await res.generateToken({
-        user_id: user.user_id, 
-        email: user.email,
-        fullName: user.fullName,
-      });
-
-      return res.json({
-        success: true,
-        message: "Login successful.",
-        user: {
-          user_id: user.user_id, 
-          email: user.email,
-          fullName: user.fullName,
-        },
-        token,
+    // 1️⃣ Fetch user by email
+    const user = await loginUser(loginEmail);
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid credentials.",
+        errors: ["Invalid credentials."],
       });
     }
+
+    // 2️⃣ Check if account is already locked
+    if (user.lock_until && new Date(user.lock_until) > new Date()) {
+      const lockUntil = new Date(user.lock_until);
+      const remainingMs = lockUntil - new Date();
+      const remainingMinutes = Math.ceil(remainingMs / 60000);
+
+      return res.status(403).json({
+        success: false,
+        message: `Account locked. Try again in ${remainingMinutes} minute(s).`,
+        errors: ["Account temporarily locked due to too many failed attempts."],
+        lock_info: {
+          lock_until: lockUntil,
+          remaining_ms: remainingMs
+        }
+      });
+    }
+
+    // 3️⃣ Verify password
+    const passwordMatches = await comparePassword(user, loginPassword);
+    if (!passwordMatches) {
+      const newAttempts = (user.failed_attempts || 0) + 1;
+      let lockUntil = null;
+
+      if (newAttempts >= MAX_ATTEMPTS) {
+        // 🚫 Lock the account
+        lockUntil = new Date(Date.now() + LOCK_MINUTES * 60 * 1000);
+        await updateFailedAttempts(user.user_id, 0, lockUntil);
+
+        return res.status(403).json({
+          success: false,
+          message: `Account locked due to too many failed attempts. Try again in ${LOCK_MINUTES} minutes.`,
+          errors: ["Account locked."],
+          lock_info: {
+            lock_until: lockUntil,
+            remaining_ms: LOCK_MINUTES * 60 * 1000
+          }
+        });
+      } else {
+        // ⚠️ Warn about attempts left
+        await updateFailedAttempts(user.user_id, newAttempts, null);
+        const attemptsLeft = MAX_ATTEMPTS - newAttempts;
+
+        return res.status(401).json({
+          success: false,
+          message: `Invalid credentials. Your account will be locked after ${attemptsLeft} more failed attempt(s).`,
+          errors: ["Invalid credentials."],
+          attempts_info: {
+            attempts_used: newAttempts,
+            attempts_left: attemptsLeft,
+            max_attempts: MAX_ATTEMPTS
+          }
+        });
+      }
+    }
+
+    // 4️⃣ Reset attempts on success
+    await updateFailedAttempts(user.user_id, 0, null);
+
+    // 5️⃣ Issue JWT
+    const token = await res.generateToken({
+      user_id: user.user_id,
+      email: user.email,
+      fullName: user.fullName,
+    });
+
+    return res.json({
+      success: true,
+      message: "Login successful.",
+      user: {
+        user_id: user.user_id,
+        email: user.email,
+        fullName: user.fullName,
+      },
+      token,
+    });
+  }
+
 
   // Invalid request type
   return res.status(400).json({

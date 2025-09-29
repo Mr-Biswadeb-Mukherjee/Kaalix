@@ -35,7 +35,7 @@
   border: 1px solid rgba(255, 0, 0, 0.12);
   backdrop-filter: blur(20px);
   color: var(--text-light);
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'Orbitron';
 }
 
 .auth-card:hover {
@@ -93,6 +93,43 @@
   gap: 15px;
 }
 
+.lock-timer-container {
+  display: flex;
+  flex-direction: column; /* stack message and timer vertically */
+  align-items: center;    /* center horizontally */
+  justify-content: center;
+  padding: 10px 0;
+  margin: 10px 0;
+  background-color: #1a0a0f; /* dark background to match form */
+  border: 1px solid #330014;  /* subtle border for visibility */
+  border-radius: 8px;
+  font-weight: 500;
+  color: #ff6b81; /* pinkish-red text for message */
+  font-size: 17px;
+}
+
+.lock-message {
+  margin-bottom: 5px;
+  color: #ff6b81; /* match timer message color */
+}
+
+.lock-timer {
+  font-weight: bold;
+  font-size: 1.5rem;
+  color: #ff3b5c; /* bright red timer for emphasis */
+  padding: 6px 20px;
+  border: 1px solid #ff3b5c;
+  border-radius: 10px;
+  min-width: 100px;
+  text-align: center;
+  background-color: #330014; /* slightly brighter than form background */
+  box-shadow: 0 0 6px #ff3b5c66; /* glowing effect to match theme */
+}
+
+.auth-input {
+  position: relative
+}
+
 .custom-input {
   position: relative;
   display: flex;
@@ -112,7 +149,7 @@
   color: var(--text-light);
   font-size: 0.95rem;
   padding-left: 10px;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: Orbitron;
 }
 
 .input-icon {

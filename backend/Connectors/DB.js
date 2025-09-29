@@ -60,19 +60,21 @@ export async function initDatabase() {
 }
 
 async function ensureTablesExist(pool) {
-  // Users table (user_id is auto-incremented, unsigned, starting at 10000001)
+  // Users table
   const createUsersTable = `
     CREATE TABLE IF NOT EXISTS users (
       id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-      user_id VARCHAR(255) UNIQUE NOT NULL ,
+      user_id VARCHAR(255) UNIQUE NOT NULL,
       email VARCHAR(255) UNIQUE NOT NULL,
       password VARCHAR(255) NOT NULL,
+      failed_attempts INT DEFAULT 0,
+      lock_until TIMESTAMP NULL DEFAULT NULL,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
     );
   `;
 
-  // Profiles table linked via user_id
+  // Profiles table
   const createProfilesTable = `
     CREATE TABLE IF NOT EXISTS profiles (
       id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -90,5 +92,6 @@ async function ensureTablesExist(pool) {
   await pool.execute(createUsersTable);
   await pool.execute(createProfilesTable);
 }
+
 
 export { pool };

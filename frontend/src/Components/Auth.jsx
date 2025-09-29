@@ -19,6 +19,8 @@ const Auth = ({ onAuthSuccess }) => {
   const [loading, setLoading] = useState(false);
   const [formValid, setFormValid] = useState(false);
   const [captchaImage, setCaptchaImage] = useState(null);
+  const [lockInfo, setLockInfo] = useState(null);
+  const [remainingTime, setRemainingTime] = useState(0);
   const lastErrorRef = useRef("");
 
   const isLogin = tabIndex === 0;
@@ -34,9 +36,9 @@ const Auth = ({ onAuthSuccess }) => {
   const fetchCaptcha = async () => {
     try {
       const res = await fetch(API.system.public.captcha.endpoint);
-      const data = await res.json(); // ⬅️ Fix here
+      const data = await res.json();
       setCaptchaImage(data.image);
-      setFormData(prev => ({ ...prev, captchaId: data.id })); // Save ID
+      setFormData(prev => ({ ...prev, captchaId: data.id }));
     } catch {
       addToast("Error loading CAPTCHA.", "error");
     }
@@ -87,10 +89,27 @@ const Auth = ({ onAuthSuccess }) => {
     }
   };
 
+  // ⬇️ Countdown timer effect for lockout
+  useEffect(() => {
+    if (!remainingTime || remainingTime <= 0) return;
+
+    const interval = setInterval(() => {
+      setRemainingTime(prev => {
+        if (prev <= 1000) {
+          clearInterval(interval);
+          setLockInfo(null);
+          return 0;
+        }
+        return prev - 1000;
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [remainingTime]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // ✅ Client-side required field check
     for (let field of fieldConfig.filter(f => f.show && f.required)) {
       if (!formData[field.name]?.trim()) {
         addToast(`${field.placeholder} is required.`, "error");
@@ -115,7 +134,12 @@ const Auth = ({ onAuthSuccess }) => {
       if (!response.ok || !data.success) {
         handleError(data.message || "Authentication failed.");
 
-        // ✅ Clear all fields if auth fails
+        // ⬇️ Capture lock info if account is locked
+        if (data.lock_info) {
+          setLockInfo(data.lock_info);
+          setRemainingTime(data.lock_info.remaining_ms);
+        }
+
         setFormData({});
         fetchCaptcha();
         return;
@@ -134,8 +158,6 @@ const Auth = ({ onAuthSuccess }) => {
           `Registration complete. You can now log in, ${data.user.fullName || formData.fullName}!`,
           "success"
         );
-
-        // ✅ After registration, reset form & go to login screen
         setFormData({});
         setTabIndex(0);
         fetchCaptcha();
@@ -159,7 +181,7 @@ const Auth = ({ onAuthSuccess }) => {
         value={formData[name] || ""}
         onChange={handleChange}
         onBlur={() => validateForm(name)}
-        disabled={loading}
+        disabled={loading || (remainingTime > 0)}
       />
       {toggle && (
         <span
@@ -191,6 +213,13 @@ const Auth = ({ onAuthSuccess }) => {
       {renderField(fieldConfig.find(f => f.name === "captcha"))}
     </React.Fragment>
   );
+
+  // ⬇️ Helper to format remainingTime
+  const formatTime = (ms) => {
+    const minutes = Math.floor(ms / 60000).toString().padStart(2, "0");
+    const seconds = Math.floor((ms % 60000) / 1000).toString().padStart(2, "0");
+    return `${minutes}:${seconds}`;
+  };
 
   return (
     <div className="auth-wrapper">
@@ -241,10 +270,19 @@ const Auth = ({ onAuthSuccess }) => {
                   field.name === "captcha" ? renderCaptcha() : renderField(field)
                 )}
 
+                {/* ⬇️ Inline lockout countdown display */}
+                {lockInfo && remainingTime > 0 && (
+                  <div className="lock-timer-container">
+                    <span className="lock-message">Your account is locked. Try again in</span>
+                    <span className="lock-timer">{formatTime(remainingTime)}</span>
+                  </div>
+                )}
+
+
                 <button
                   type="submit"
                   className="auth-btn"
-                  disabled={loading || !formValid || !formData.captcha?.trim()}
+                  disabled={loading || !formValid || !formData.captcha?.trim() || (remainingTime > 0)}
                 >
                   {loading
                     ? isLogin
@@ -264,5 +302,3 @@ const Auth = ({ onAuthSuccess }) => {
 };
 
 export default Auth;
-
-

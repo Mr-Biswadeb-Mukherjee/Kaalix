@@ -94,12 +94,22 @@ export const registerUser = async ({ fullName, email, password }) => {
   }
 };
 
-// 🔐 Public: Login
-export const loginUser = async (email, plainPassword) => {
+// 🔐 Public: Login (fetch only, don’t enforce lockout here)
+export const loginUser = async (email) => {
   const user = await findUserByEmail(email);
   if (!user) return null;
-  const isMatch = await bcrypt.compare(plainPassword, user.password);
-  if (!isMatch) return null;
-  const { password, ...safeUser } = user;
-  return safeUser;
+  return user; // includes failed_attempts + lock_until
+};
+
+// 🔑 Compare password safely
+export const comparePassword = async (user, plainPassword) => {
+  return bcrypt.compare(plainPassword, user.password);
+};
+
+// 🔄 Update failed attempts + lock_until
+export const updateFailedAttempts = async (userId, failedAttempts, lockUntil) => {
+  await db.execute(
+    "UPDATE users SET failed_attempts = ?, lock_until = ? WHERE user_id = ?",
+    [failedAttempts, lockUntil, userId]
+  );
 };
