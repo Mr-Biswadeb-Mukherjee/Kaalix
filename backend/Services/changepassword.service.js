@@ -1,7 +1,24 @@
-// ChangePassword.js
 import bcrypt from "bcrypt";
-import { findUserById, updateUserPassword } from "./user.service.js";
+import { initDatabase } from "../Connectors/DB.js";
+import { findUserById } from "./user.service.js";
 
+const db = await initDatabase();
+
+/**
+ * Service: Update user password
+ */
+const updateUserPassword = async (userId, newPassword) => {
+  const hashedPassword = await bcrypt.hash(newPassword, 10);
+  await db.execute(
+    "UPDATE users SET password = ?, updated_at = NOW() WHERE user_id = ?",
+    [hashedPassword, userId]
+  );
+  return true;
+};
+
+/**
+ * Controller: Change Password
+ */
 export const ChangePassword = async (req, res) => {
   try {
     const { oldPassword, newPassword } = req.body;
@@ -11,16 +28,16 @@ export const ChangePassword = async (req, res) => {
       return res.status(401).json({ message: "Unauthorized: user not found" });
     }
 
-    // ✅ Ensure both fields are strings
+    // ✅ Validate inputs
     if (
       typeof oldPassword !== "string" ||
       typeof newPassword !== "string" ||
       !oldPassword.trim() ||
       !newPassword.trim()
     ) {
-      return res
-        .status(400)
-        .json({ message: "Both old and new passwords must be non-empty strings" });
+      return res.status(400).json({
+        message: "Both old and new passwords must be non-empty strings",
+      });
     }
 
     if (newPassword.length < 6) {
@@ -29,16 +46,19 @@ export const ChangePassword = async (req, res) => {
         .json({ message: "Password must be at least 6 characters long" });
     }
 
+    // ✅ Check user existence
     const user = await findUserById(userId);
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
 
+    // ✅ Verify old password
     const isMatch = await bcrypt.compare(oldPassword, user.password);
     if (!isMatch) {
       return res.status(401).json({ message: "Old password is incorrect" });
     }
 
+    // ✅ Update password
     await updateUserPassword(userId, newPassword);
 
     return res.json({ message: "Password changed successfully" });

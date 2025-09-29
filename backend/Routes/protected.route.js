@@ -30,22 +30,28 @@ const routes = [
     handler: ChangePassword,
   },
   {
-    method: "post", endpoint: API.system.protected.deleteacc.endpoint,
+    method: "post",
+    endpoint: API.system.protected.deleteacc.endpoint,
     middleware: [authMiddleware({ revoke: false })],
-    handler: async (req, res) => {
-      await DeleteAccount(req, res);
+    handler: async (req, res, next) => {
+      try {
+        await DeleteAccount(req, res);
 
-      const deletedUserId = res.locals.deletedUserId;
-      if (deletedUserId) {
-        try {
-          await revokeUserTokens(deletedUserId);
-          console.log(`⛔ Revoked all tokens for deleted user ${deletedUserId}`);
-        } catch (err) {
-          console.error(`⚠️ Failed to revoke tokens for user ${deletedUserId}: ${err.message}`);
+        const deletedUserId = res.locals.deletedUserId;
+        if (deletedUserId) {
+          try {
+            await revokeUserTokens(deletedUserId);
+            console.log(`⛔ Revoked all tokens for deleted user ${deletedUserId}`);
+          } catch (err) {
+            console.error(`⚠️ Failed to revoke tokens for user ${deletedUserId}: ${err.message}`);
+          }
         }
-      }
 
-      return res.status(200).json({ success: true, message: "Account deleted" });
+        // ❌ DO NOT send another res.json here
+        return;
+      } catch (err) {
+        next(err);
+      }
     },
   },
   {

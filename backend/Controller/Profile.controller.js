@@ -1,7 +1,7 @@
 import { 
   fetchProfile as getUserProfile, 
   updateProfile as modifyUserProfile, 
-  updateProfileAvatar } from "../Services/user.service.js";
+  updateProfileAvatar } from "../Services/profile.service.js";
 
 import validator from "validator";
 import sanitizeHtml from "sanitize-html";

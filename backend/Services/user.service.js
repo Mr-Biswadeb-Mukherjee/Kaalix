@@ -1,19 +1,17 @@
 import bcrypt from "bcrypt";
 import { v4 as uuidv4 } from "uuid";
 import { initDatabase } from "../Connectors/DB.js";
-import path from "path";
-import { promises as fs } from "fs";
 
 const db = await initDatabase();
 
 // 🧼 Normalize email for consistent matching
-const normalizeEmail = (email) => {
+export const normalizeEmail = (email) => {
   if (!email || typeof email !== "string") return "";
   return email.trim().toLowerCase();
 };
 
 // ❗ Custom error class for "user already exists"
-class UserExistsError extends Error {
+export class UserExistsError extends Error {
   constructor(message = "User already exists.") {
     super(message);
     this.name = "UserExistsError";
@@ -22,7 +20,7 @@ class UserExistsError extends Error {
   }
 }
 
-// 🔍 Internal helper: Fetch user by email (handles normalization)
+// 🔍 Internal helper: Fetch user by email
 export const findUserByEmail = async (email) => {
   const normalizedEmail = normalizeEmail(email);
   const [rows] = await db.execute(
@@ -53,28 +51,34 @@ export const registerUser = async ({ fullName, email, password }) => {
     const now = new Date();
     const year = String(now.getFullYear()).slice(-2);
     const month = String(now.getMonth() + 1).padStart(2, "0");
+
     const [[lastRow]] = await conn.execute(
       `SELECT user_id FROM users 
        WHERE user_id LIKE ? 
        ORDER BY user_id DESC LIMIT 1`,
       [`AMON-%-${year}${month}%`]
     );
+
     let nextCounter = 1;
     if (lastRow && lastRow.user_id) {
       const lastSuffix = lastRow.user_id.slice(-2);
       nextCounter = parseInt(lastSuffix, 10) + 1;
     }
+
     const suffix = `${year}${month}${String(nextCounter).padStart(2, "0")}`;
     const userId = `AMON-${hexUuid}-${suffix}`;
+
     await conn.execute(
       "INSERT INTO users (user_id, email, password) VALUES (?, ?, ?)",
       [userId, normalizeEmail(email), hashedPassword]
     );
+
     const profileId = uuidv4();
     await conn.execute(
       "INSERT INTO profiles (user_id, profile_id, fullName) VALUES (?, ?, ?)",
       [userId, profileId, fullName]
     );
+
     await conn.commit();
     return {
       user_id: userId,
@@ -90,7 +94,7 @@ export const registerUser = async ({ fullName, email, password }) => {
   }
 };
 
-// 🔐 Public: Login by verifying password
+// 🔐 Public: Login
 export const loginUser = async (email, plainPassword) => {
   const user = await findUserByEmail(email);
   if (!user) return null;
@@ -98,169 +102,4 @@ export const loginUser = async (email, plainPassword) => {
   if (!isMatch) return null;
   const { password, ...safeUser } = user;
   return safeUser;
-};
-
-// 🔄 Public: Update user password (also bumps updated_at)
-export const updateUserPassword = async (userId, newPassword) => {
-  const hashedPassword = await bcrypt.hash(newPassword, 10);
-  await db.execute(
-    "UPDATE users SET password = ?, updated_at = NOW() WHERE user_id = ?",
-    [hashedPassword, userId]
-  );
-  return true;
-};
-
-// 📂 Public: Fetch profile (returns keys matching frontend)
-export const fetchProfile = async (userId) => {
-  const [rows] = await db.execute(
-    `SELECT 
-        u.created_at AS createdAt,
-        u.updated_at AS updatedAt,
-        p.profile_id AS profileId,
-        u.email AS email,
-        p.fullName AS fullName,
-        p.phone AS phone,
-        p.bio AS bio,
-        p.profile_url AS profile_url
-     FROM users u
-     JOIN profiles p ON u.user_id = p.user_id
-     WHERE u.user_id = ?
-     LIMIT 1`,
-    [userId]
-  );
-  return rows[0] || null;
-};
-
-export const updateProfile = async (userId, { fullName, email, phone, bio }) => {
-  const conn = await db.getConnection();
-  try {
-    await conn.beginTransaction();
-
-    if (email) {
-      const normalizedEmail = normalizeEmail(email);
-      const [rows] = await conn.execute(
-        "SELECT user_id FROM users WHERE email = ? AND user_id != ? LIMIT 1",
-        [normalizedEmail, userId]
-      );
-      if (rows.length > 0) {
-        const err = new Error("Email is already in use by another account.");
-        err.name = "EmailExistsError";
-        err.code = "EMAIL_EXISTS";
-        err.status = 409;
-        throw err;
-      }
-
-      await conn.execute(
-        "UPDATE users SET email = ?, updated_at = NOW() WHERE user_id = ?",
-        [normalizedEmail, userId]
-      );
-    } else {
-
-      await conn.execute(
-        "UPDATE users SET updated_at = NOW() WHERE user_id = ?",
-        [userId]
-      );
-    }
-
-    if (phone) {
-      const [rows] = await conn.execute(
-        "SELECT user_id FROM profiles WHERE phone = ? AND user_id != ? LIMIT 1",
-        [phone, userId]
-      );
-      if (rows.length > 0) {
-        const err = new Error("Phone number is already in use by another account.");
-        err.name = "PhoneExistsError";
-        err.code = "PHONE_EXISTS";
-        err.status = 409;
-        throw err;
-      }
-    }
-
-    await conn.execute(
-      "UPDATE profiles SET fullName = ?, phone = ?, bio = ? WHERE user_id = ?",
-      [fullName || null, phone || null, bio || null, userId]
-    );
-    await conn.commit();
-    return fetchProfile(userId);
-  } catch (err) {
-    await conn.rollback();
-    throw err;
-  } finally {
-    conn.release();
-  }
-};
-
-// 📸 Public: Update profile avatar
-export const updateProfileAvatar = async (userId, avatarUrl) => {
-  const conn = await db.getConnection();
-  try {
-    await conn.beginTransaction();
-
-    await conn.execute(
-      "UPDATE profiles SET profile_url = ? WHERE user_id = ?",
-      [avatarUrl, userId]
-    );
-
-    await conn.execute(
-      "UPDATE users SET updated_at = NOW() WHERE user_id = ?",
-      [userId]
-    );
-
-    await conn.commit();
-
-    // Return updated profile (so controller can respond properly)
-    return fetchProfile(userId);
-  } catch (err) {
-    await conn.rollback();
-    throw err;
-  } finally {
-    conn.release();
-  }
-};
-
-
-export const deleteacc = async (email, password) => {
-  const conn = await db.getConnection();
-  try {
-    await conn.beginTransaction();
-
-    const user = await findUserByEmail(email); // 1️⃣ Find user by email
-    if (!user) throw new Error("Email does not match any account.");
-
-    const validPassword = await bcrypt.compare(password, user.password); // 2️⃣ Verify password
-    if (!validPassword) throw new Error("Invalid password.");
-
-    // 3️⃣ Fetch profile to get avatar path
-    const [profileRows] = await conn.execute(
-      "SELECT profile_url FROM profiles WHERE user_id = ? LIMIT 1",
-      [user.user_id]
-    );
-    const profile = profileRows[0];
-
-    // 4️⃣ Delete avatar file if exists (await ensures it completes before proceeding)
-    if (profile?.profile_url) {
-      const avatarPath = path.join(process.cwd(), "public", profile.profile_url);
-      try {
-        await fs.unlink(avatarPath);
-      } catch (err) {
-        // Any failure in deleting the file will rollback the transaction
-        throw new Error(`Failed to delete avatar file: ${err.message}`);
-      }
-    }
-
-    // 5️⃣ Delete profile
-    await conn.execute("DELETE FROM profiles WHERE user_id = ?", [user.user_id]);
-
-    // 6️⃣ Delete user
-    const [result] = await conn.execute("DELETE FROM users WHERE user_id = ?", [user.user_id]);
-    if (result.affectedRows === 0) throw new Error("Failed to delete user.");
-
-    await conn.commit();
-    return true;
-  } catch (err) {
-    await conn.rollback();
-    throw err;
-  } finally {
-    conn.release();
-  }
 };

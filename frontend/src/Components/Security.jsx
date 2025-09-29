@@ -3,6 +3,7 @@ import { useToast } from '../Components/Toast';
 import './Styles/Security.css';
 import API from '@amon/shared';
 import Modal from './Modal';
+import { Visibility, VisibilityOff } from "@mui/icons-material";
 
 const Security = () => {
   const { addToast } = useToast();
@@ -21,6 +22,12 @@ const Security = () => {
   const [deleteEmail, setDeleteEmail] = useState('');
   const [deletePassword, setDeletePassword] = useState('');
   const [countdown, setCountdown] = useState(3); // countdown in seconds
+
+  // Password visibility states
+  const [showOldPassword, setShowOldPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [showDeletePassword, setShowDeletePassword] = useState(false);
 
   const token = localStorage.getItem('token');
 
@@ -150,17 +157,46 @@ const Security = () => {
           </>
         }
       >
-        <div className="form-group">
+        <div className="form-group password-input">
           <label>Old Password:</label>
-          <input type="password" value={oldPassword} onChange={(e) => setOldPassword(e.target.value)} />
+          <div className="password-wrapper">
+            <input
+              type={showOldPassword ? "text" : "password"}
+              value={oldPassword}
+              onChange={(e) => setOldPassword(e.target.value)}
+            />
+            <span className="toggle-eye" onClick={() => setShowOldPassword(prev => !prev)}>
+              {showOldPassword ? <VisibilityOff /> : <Visibility />}
+            </span>
+          </div>
         </div>
-        <div className="form-group">
+
+        <div className="form-group password-input">
           <label>New Password:</label>
-          <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} />
+          <div className="password-wrapper">
+            <input
+              type={showNewPassword ? "text" : "password"}
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+            />
+            <span className="toggle-eye" onClick={() => setShowNewPassword(prev => !prev)}>
+              {showNewPassword ? <VisibilityOff /> : <Visibility />}
+            </span>
+          </div>
         </div>
-        <div className="form-group">
+
+        <div className="form-group password-input">
           <label>Confirm New Password:</label>
-          <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} />
+          <div className="password-wrapper">
+            <input
+              type={showConfirmPassword ? "text" : "password"}
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+            />
+            <span className="toggle-eye" onClick={() => setShowConfirmPassword(prev => !prev)}>
+              {showConfirmPassword ? <VisibilityOff /> : <Visibility />}
+            </span>
+          </div>
         </div>
       </Modal>
 
@@ -192,9 +228,18 @@ const Security = () => {
               <label>Email:</label>
               <input type="text" value={deleteEmail} onChange={(e) => setDeleteEmail(e.target.value)} />
             </div>
-            <div className="form-group">
+            <div className="form-group password-input">
               <label>Password:</label>
-              <input type="password" value={deletePassword} onChange={(e) => setDeletePassword(e.target.value)} />
+              <div className="password-wrapper">
+                <input
+                  type={showDeletePassword ? "text" : "password"}
+                  value={deletePassword}
+                  onChange={(e) => setDeletePassword(e.target.value)}
+                />
+                <span className="toggle-eye" onClick={() => setShowDeletePassword(prev => !prev)}>
+                  {showDeletePassword ? <VisibilityOff /> : <Visibility />}
+                </span>
+              </div>
             </div>
           </>
         ) : (
