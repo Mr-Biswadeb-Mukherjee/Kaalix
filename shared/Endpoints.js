@@ -78,6 +78,10 @@ const API = {
         method: 'POST',
         endpoint: '/api/v3/updateavatar',
       },
+      MFA: {
+        method: 'POST',
+        endpoint: '/api/v3/mfa',
+      },
     },
   },
 };

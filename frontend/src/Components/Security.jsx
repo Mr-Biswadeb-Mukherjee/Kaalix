@@ -4,6 +4,7 @@ import './Styles/Security.css';
 import API from '@amon/shared';
 import Modal from './Modal';
 import { Visibility, VisibilityOff } from "@mui/icons-material";
+import MFA from "./MFA"
 
 const Security = () => {
   const { addToast } = useToast();
@@ -132,7 +133,8 @@ const Security = () => {
           Change Password
         </button>
       </section>
-
+    {/* MFA Section */}
+    <MFA />
       <section className="danger-zone">
         <h3>Danger Zone</h3>
         <p>
@@ -195,7 +197,7 @@ const Security = () => {
             />
             <span className="toggle-eye" onClick={() => setShowConfirmPassword(prev => !prev)}>
               {showConfirmPassword ? <VisibilityOff /> : <Visibility />}
-            </span>
+            </span>Change Password
           </div>
         </div>
       </Modal>
