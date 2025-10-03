@@ -1,7 +1,7 @@
 // About Us.jsx
 
 import './Styles/Aboutus.css';
-import Logo from '../Components/Logo'
+import Logo from '../Components/UI/Logo'
 import Avatar from '../assets/Avatar.png'
 
 const AboutUs = () => {

@@ -2,7 +2,7 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.jsx'
-import Mobile from './Components/Mobile.jsx'
+import Mobile from './Components/UI/Mobile.jsx'
 
 // Strict desktop detection logic
 // Smarter device detection

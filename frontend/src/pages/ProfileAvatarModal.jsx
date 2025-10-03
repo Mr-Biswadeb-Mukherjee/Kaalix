@@ -4,7 +4,7 @@ import { Button, TextField } from "@mui/material";
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import LinkIcon from "@mui/icons-material/Link";
 import Cropper from "react-easy-crop";
-import { useToast } from "../Components/Toast";
+import { useToast } from "../Components/UI/Toast";
 import API from "@amon/shared";
 
 const ProfileAvatarModal = ({

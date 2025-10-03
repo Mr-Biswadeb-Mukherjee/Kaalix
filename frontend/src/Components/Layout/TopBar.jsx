@@ -12,10 +12,10 @@ import {
   Person as PersonIcon
 } from '@mui/icons-material';
 
-import SafeImage from './safeImage';
+import SafeImage from '../UI/safeImage';
 import API from '@amon/shared';
 import './Styles/TopBar.css';
-import { useToast } from './Toast';
+import { useToast } from '../UI/Toast';
 
 const TopBar = ({ collapsed }) => {
   const [time, setTime] = useState(new Date().toLocaleTimeString());

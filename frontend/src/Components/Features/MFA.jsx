@@ -1,8 +1,8 @@
 import React, { useState } from "react";
-import Modal from "./Modal";
+import Modal from "../UI/Modal";
 import "./Styles/MFA.css";
 import API from "@amon/shared";
-import { useToast } from "../Components/Toast";
+import { useToast } from "../UI/Toast";
 
 const MFA = () => {
   const { addToast } = useToast();

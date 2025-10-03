@@ -12,7 +12,7 @@ import InfoIcon from '@mui/icons-material/Info';
 import MenuBookIcon from '@mui/icons-material/MenuBook';
 import LanIcon from '@mui/icons-material/Lan';
 import './Styles/sidebar.css';
-import Logo from '../Components/Logo'
+import Logo from '../UI/Logo'
 
 
 // ----------------------------------------------------------------------------------------------------

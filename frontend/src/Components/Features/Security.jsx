@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { useToast } from '../Components/Toast';
+import { useToast } from '../UI/Toast';
 import './Styles/Security.css';
 import API from '@amon/shared';
-import Modal from './Modal';
+import Modal from '../UI/Modal';
 import { Visibility, VisibilityOff } from "@mui/icons-material";
 import MFA from "./MFA"
 

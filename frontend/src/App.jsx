@@ -3,12 +3,12 @@
 import { BrowserRouter as Router, Routes, Route, useNavigate } from 'react-router-dom';
 import React, { useEffect, useState } from 'react';
 import MainLayout from './Layout/MainLayout';
-import Auth from './Components/Auth';
-import { ToastProvider } from './Components/Toast';
+import Auth from './Components/Features/Auth';
+import { ToastProvider } from './Components/UI/Toast';
 import * as Pages from './pages';
 import { AuthProvider, useAuth } from './Context/AuthContext';
-import ProtectedRoute from './Components/ProtectedRoute';
-import Preloader from './Components/Preloader';
+import ProtectedRoute from './Components/Features/ProtectedRoute';
+import Preloader from './Components/UI/Preloader';
 
 // === Preloader Control Flags ===
 const ENABLE_PRELOADER = 0; // 1 = Enable Preloader, 0 = Disable Preloader

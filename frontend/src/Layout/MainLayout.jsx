@@ -2,12 +2,12 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Box } from '@mui/material';
 import { Outlet } from 'react-router-dom';
 
-import Sidebar from '../Components/sidebar';
-import StatusBar from '../Components/Status';
-import TopBar from '../Components/TopBar';
+import Sidebar from '../Components/Layout/sidebar';
+import StatusBar from '../Components/Layout/Status';
+import TopBar from '../Components/Layout/TopBar';
 
 import { useAuth } from '../Context/AuthContext';
-import InactivityModal from '../Components/inactivityModal';
+import InactivityModal from '../Components/Layout/inactivityModal';
 
 const topbarHeight = 48;
 

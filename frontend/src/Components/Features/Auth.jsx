@@ -3,10 +3,10 @@ import {
   Email, Lock, Person, Visibility, VisibilityOff, Security, Refresh
 } from "@mui/icons-material";
 import { motion, AnimatePresence } from "framer-motion";
-import { initBloodFlow } from "./BloodRain";
-import { useToast } from "./Toast";
+import { initBloodFlow } from "../Animation/BloodRain";
+import { useToast } from "../UI/Toast";
 import API from "@amon/shared";
-import SafeImage from "./safeImage";
+import SafeImage from "../UI/safeImage";
 import "./Styles/auth.css";
 
 const Auth = ({ onAuthSuccess }) => {

@@ -1,15 +1,15 @@
 // Profile.jsx
 import React, { useState, useEffect, useMemo } from "react";
-import { useToast } from "../Components/Toast";
+import { useToast } from "../Components/UI/Toast";
 import CameraAltIcon from "@mui/icons-material/CameraAlt";
-import Security from "../Components/Security";
+import Security from "../Components/Features/Security";
 import ProfileInfo from "./ProfileInfo";
-import SafeImage from "../Components/safeImage";
+import SafeImage from "../Components/UI/safeImage";
 import API from "@amon/shared";
 import "react-phone-input-2/lib/style.css";
 import "./Styles/Profile.css";
 import ProfileAvatarModal from "./ProfileAvatarModal";
-import MFA from "../Components/MFA"
+
 const Profile = () => {
   const { addToast } = useToast();
 
