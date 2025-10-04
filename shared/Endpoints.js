@@ -80,7 +80,11 @@ const API = {
       },
       MFA: {
         method: 'POST',
-        endpoint: '/api/v3/mfa',
+        endpoint: '/api/v3/MFA',
+      },
+      MFA_verify: {
+        method: 'POST',
+        endpoint: '/api/v3/MFA/verify',
       },
     },
   },

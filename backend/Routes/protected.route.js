@@ -7,98 +7,144 @@ import { DeleteAccount } from "../Services/deleteaccount.service.js";
 import { FetchProfile, UpdateProfile, UpdateAvatar } from "../Controller/Profile.controller.js";
 import { upload, processAvatar, handleUploadErrors } from "../Middleware/upload.middleware.js";
 import { revokeUserTokens } from "../Utils/JWT.utils.js";
+import { MFAService } from "../Services/MFA.service.js";
 
 const router = express.Router();
-
-
 const asyncHandler = (fn) => (req, res, next) =>
   Promise.resolve(fn(req, res, next)).catch(next);
 
+// ===================== Routes =====================
 
-const routes = [
-  {
-    method: "post", endpoint: API.system.protected.status.endpoint,
-    middleware: [authMiddleware({ revoke: false })], 
-    handler: async (req, res) => {
-      const stats = getSystemStats();
-      return res.status(200).json({ success: true, stats });
-    },
-  },
-  {
-    method: "post", endpoint: API.system.protected.changepass.endpoint,
-    middleware: [authMiddleware({ revoke: true })],
-    handler: ChangePassword,
-  },
-  {
-    method: "post",
-    endpoint: API.system.protected.deleteacc.endpoint,
-    middleware: [authMiddleware({ revoke: false })],
-    handler: async (req, res, next) => {
+// System status
+router.post(
+  API.system.protected.status.endpoint,
+  authMiddleware({ revoke: false }),
+  asyncHandler(async (req, res) => {
+    const stats = getSystemStats();
+    return res.status(200).json({ success: true, stats });
+  })
+);
+
+// Change password
+router.post(
+  API.system.protected.changepass.endpoint,
+  authMiddleware({ revoke: true }),
+  ChangePassword
+);
+
+// Delete account
+router.post(
+  API.system.protected.deleteacc.endpoint,
+  authMiddleware({ revoke: false }),
+  asyncHandler(async (req, res) => {
+    await DeleteAccount(req, res);
+
+    const deletedUserId = res.locals.deletedUserId;
+    if (deletedUserId) {
       try {
-        await DeleteAccount(req, res);
-
-        const deletedUserId = res.locals.deletedUserId;
-        if (deletedUserId) {
-          try {
-            await revokeUserTokens(deletedUserId);
-            console.log(`⛔ Revoked all tokens for deleted user ${deletedUserId}`);
-          } catch (err) {
-            console.error(`⚠️ Failed to revoke tokens for user ${deletedUserId}: ${err.message}`);
-          }
-        }
-
-        // ❌ DO NOT send another res.json here
-        return;
+        await revokeUserTokens(deletedUserId);
+        console.log(`⛔ Revoked all tokens for deleted user ${deletedUserId}`);
       } catch (err) {
-        next(err);
+        console.error(`⚠️ Failed to revoke tokens for user ${deletedUserId}: ${err.message}`);
       }
-    },
-  },
-  {
-    method: "get", endpoint: API.system.protected.getprofile.endpoint,
-    middleware: [authMiddleware({ revoke: false })],
-    handler: FetchProfile,
-  },
-  {
-    method: "post", endpoint: API.system.protected.updateprofile.endpoint,
-    middleware: [authMiddleware({ revoke: false })],
-    handler: UpdateProfile,
-  },
-  {
-    method: "post",
-    endpoint: API.system.protected.updateavatar.endpoint,
-    middleware: [
-      authMiddleware({ revoke: false }),
-      upload.single("avatar"),    
-      handleUploadErrors,          
-      processAvatar              
-    ],
-    handler: async (req, res) => {
-      if (!req.processedAvatarPath) {
-        return res.status(400).json({
-          success: false,
-          message: "Avatar upload failed",
-        });
+    }
+  })
+);
+
+// Get profile
+router.get(
+  API.system.protected.getprofile.endpoint,
+  authMiddleware({ revoke: false }),
+  FetchProfile
+);
+
+// Update profile
+router.post(
+  API.system.protected.updateprofile.endpoint,
+  authMiddleware({ revoke: false }),
+  UpdateProfile
+);
+
+// Update avatar
+router.post(
+  API.system.protected.updateavatar.endpoint,
+  authMiddleware({ revoke: false }),
+  upload.single("avatar"),
+  handleUploadErrors,
+  processAvatar,
+  asyncHandler(async (req, res) => {
+    if (!req.processedAvatarPath) {
+      return res.status(400).json({ success: false, message: "Avatar upload failed" });
+    }
+    req.avatarUrl = req.processedAvatarPath;
+    await UpdateAvatar(req, res);
+  })
+);
+
+// ===================== MFA Routes =====================
+
+// GET MFA Status
+router.get(
+  API.system.protected.MFA.endpoint + "/status",
+  authMiddleware({ revoke: false }),
+  asyncHandler(async (req, res) => {
+    const userId = req.user.user_id;
+    const status = await MFAService.getStatus(userId);
+    return res.status(200).json({ success: true, status });
+  })
+);
+
+// POST MFA Setup / Toggle
+router.post(
+  API.system.protected.MFA.endpoint,
+  authMiddleware({ revoke: false }),
+  asyncHandler(async (req, res) => {
+    const userId = req.user.user_id;
+    const { method, action } = req.body; // action: 'setup' or 'disable'
+
+    if (!method || !["setup", "disable"].includes(action)) {
+      return res.status(400).json({ success: false, message: "Invalid request" });
+    }
+
+    try {
+      if (action === "setup") {
+        const result = await MFAService.toggle(userId, method);
+        return res.status(200).json({ success: true, ...result });
+      } else if (action === "disable") {
+        await MFAService.disable(userId, method);
+        return res.status(200).json({ success: true, message: `${method} disabled` });
       }
-      req.avatarUrl = req.processedAvatarPath;
-      await UpdateAvatar(req, res);
-    },
-  },
+    } catch (err) {
+      return res.status(400).json({ success: false, message: err.message });
+    }
+  })
+);
 
-];
+// POST MFA Verify
+router.post(
+  API.system.protected.MFA.endpoint + "/verify",
+  authMiddleware({ revoke: false }),
+  asyncHandler(async (req, res) => {
+    const userId = req.user.user_id;
+    const { method, token } = req.body;
 
-// Dynamically register all routes
-routes.forEach(({ method, endpoint, middleware, handler }) => {
-  router[method](endpoint, ...middleware, asyncHandler(handler));
-});
+    if (!method || !token) {
+      return res.status(400).json({ success: false, message: "Missing method or token" });
+    }
 
-// Global error handler
+    try {
+      await MFAService.verify(userId, method, token);
+      return res.status(200).json({ success: true, message: "MFA verified and enabled" });
+    } catch (err) {
+      return res.status(400).json({ success: false, message: err.message });
+    }
+  })
+);
+
+// -------------------- Error Handler --------------------
 router.use((err, req, res, next) => {
   console.error("🚨 Router Error:", err);
-  return res.status(500).json({
-    success: false,
-    message: "Internal Server Error",
-  });
+  return res.status(500).json({ success: false, message: "Internal Server Error" });
 });
 
 export default router;
