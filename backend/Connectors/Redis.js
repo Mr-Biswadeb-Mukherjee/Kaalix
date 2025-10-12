@@ -1,5 +1,8 @@
 import { createClient } from 'redis';
 import { redis as redisConfig } from '../Confs/config.js'; // Adjust path if needed
+import { LoggerContainer, flushLogger } from "../Logger/Logger.js";
+
+const RLogger = LoggerContainer.get("Redis");
 
 const {
   host: REDIS_HOST,
@@ -27,16 +30,17 @@ export async function initRedis() {
     });
 
     redisClient.on('error', (err) => {
-      console.error('❌ Redis Client Error', err);
+      RLogger.error('❌ Redis Client Error', err);
     });
 
     await redisClient.connect();
-    //console.log('🔗 Redis connected');
+    RLogger.info('🔗 Redis connected');
 
     // ✅ Start eviction loop only after Redis is ready
     startEvictionScheduler();
   } catch (error) {
-    console.error('❌ Redis Initialization Error:', error.message);
+    RLogger.error('❌ Redis Initialization Error:', err);
+    await flushLogger();
     process.exit(1);
   }
 }
@@ -97,8 +101,6 @@ export async function userLogout(userId) {
   await redis.zRem(LRU_ZSET_KEY, key);
   await redis.lRem(LIFO_STACK_KEY, 1, key);
   await redis.sRem('meta:active', key);
-
-  console.log(`🚪 Logged out: ${userId}`);
 }
 
 /**
@@ -108,20 +110,15 @@ async function enforceHybridEviction() {
   const redis = getRedisClient();
   const currentSessions = await redis.zCard(LRU_ZSET_KEY);
   const maxSessions = parseInt(REDIS_MAX_SESSIONS, 10);
-
   if (currentSessions <= maxSessions) return;
-
   const [lruEvict] = await redis.zRange(LRU_ZSET_KEY, 0, 0);
   const [lifoEvict] = await redis.lRange(LIFO_STACK_KEY, -1, -1);
-
   const candidate = Math.random() < 0.5 ? lruEvict : lifoEvict;
-
   if (candidate) {
     await redis.del(candidate);
     await redis.zRem(LRU_ZSET_KEY, candidate);
     await redis.lRem(LIFO_STACK_KEY, 1, candidate);
     await redis.sRem('meta:active', candidate);
-    console.log(`♻️ Evicted stale session: ${candidate}`);
   }
 }
 
@@ -130,7 +127,7 @@ async function enforceHybridEviction() {
  */
 function startEvictionScheduler() {
   setInterval(() => {
-    enforceHybridEviction().catch(console.error);
+    enforceHybridEviction().catch(RLogger.error);
   }, 60_000); // every 60 seconds
 }
 
