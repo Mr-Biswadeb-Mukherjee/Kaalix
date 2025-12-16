@@ -133,7 +133,7 @@
     "react-router-dom": "^7.7.0",
     "redis": "^5.8.0",
     "sharp": "^0.34.4",
-    "systeminformation": "^5.27.7",
+    "systeminformation": "^5.27.14",
     "ws": "^8.18.3"
   }
 }
