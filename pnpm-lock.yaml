@@ -19,7 +19,7 @@ importers:
         version: 7.3.2(@mui/material@7.3.2)(@types/react@19.1.13)(react@19.1.1)
       '@mui/material':
         specifier: ^7.2.0
-        version: 7.3.2(@emotion/react@11.14.0)(@emotion/styled@11.14.1)(@types/react@19.1.13)(react-dom@19.1.1)(react@19.1.1)
+        version: 7.3.2(@emotion/react@11.14.0)(@emotion/styled@11.14.1)(@types/react@19.1.13)(react-dom@19.2.3)(react@19.1.1)
       bcrypt:
         specifier: ^6.0.0
         version: 6.0.0
@@ -40,7 +40,7 @@ importers:
         version: 21.0.0
       framer-motion:
         specifier: ^12.23.11
-        version: 12.23.21(react-dom@19.1.1)(react@19.1.1)
+        version: 12.23.21(react-dom@19.2.3)(react@19.1.1)
       ioredis:
         specifier: ^5.7.0
         version: 5.8.0
@@ -60,17 +60,17 @@ importers:
         specifier: ^19.1.0
         version: 19.1.1
       react-dom:
-        specifier: ^19.1.0
-        version: 19.1.1(react@19.1.1)
+        specifier: ^19.2.3
+        version: 19.2.3(react@19.1.1)
       react-easy-crop:
         specifier: ^5.5.1
-        version: 5.5.2(react-dom@19.1.1)(react@19.1.1)
+        version: 5.5.2(react-dom@19.2.3)(react@19.1.1)
       react-google-recaptcha:
         specifier: ^3.1.0
         version: 3.1.0(react@19.1.1)
       react-router-dom:
         specifier: ^7.7.0
-        version: 7.9.2(react-dom@19.1.1)(react@19.1.1)
+        version: 7.9.2(react-dom@19.2.3)(react@19.1.1)
       redis:
         specifier: ^5.8.0
         version: 5.8.2
@@ -173,13 +173,13 @@ importers:
         version: 5.0.4(@babel/runtime@7.28.4)(core-js-pure@3.45.1)(prop-types@15.8.1)(react@19.1.1)
       react-avatar-editor:
         specifier: ^13.0.2
-        version: 13.0.2(@babel/core@7.28.4)(react-dom@19.1.1)(react@19.1.1)
+        version: 13.0.2(@babel/core@7.28.4)(react-dom@19.2.3)(react@19.1.1)
       react-modal:
         specifier: ^3.16.3
-        version: 3.16.3(react-dom@19.1.1)(react@19.1.1)
+        version: 3.16.3(react-dom@19.2.3)(react@19.1.1)
       react-phone-input-2:
         specifier: ^2.15.1
-        version: 2.15.1(react-dom@19.1.1)(react@19.1.1)
+        version: 2.15.1(react-dom@19.2.3)(react@19.1.1)
       sanitize-html:
         specifier: ^2.17.0
         version: 2.17.0
@@ -1868,12 +1868,12 @@ packages:
         optional: true
     dependencies:
       '@babel/runtime': 7.28.4
-      '@mui/material': 7.3.2(@emotion/react@11.14.0)(@emotion/styled@11.14.1)(@types/react@19.1.13)(react-dom@19.1.1)(react@19.1.1)
+      '@mui/material': 7.3.2(@emotion/react@11.14.0)(@emotion/styled@11.14.1)(@types/react@19.1.13)(react-dom@19.2.3)(react@19.1.1)
       '@types/react': 19.1.13
       react: 19.1.1
     dev: false
 
-  /@mui/material@7.3.2(@emotion/react@11.14.0)(@emotion/styled@11.14.1)(@types/react@19.1.13)(react-dom@19.1.1)(react@19.1.1):
+  /@mui/material@7.3.2(@emotion/react@11.14.0)(@emotion/styled@11.14.1)(@types/react@19.1.13)(react-dom@19.2.3)(react@19.1.1):
     resolution: {integrity: sha512-qXvbnawQhqUVfH1LMgMaiytP+ZpGoYhnGl7yYq2x57GYzcFL/iPzSZ3L30tlbwEjSVKNYcbiKO8tANR1tadjUg==}
     engines: {node: '>=14.0.0'}
     peerDependencies:
@@ -1907,9 +1907,9 @@ packages:
       csstype: 3.1.3
       prop-types: 15.8.1
       react: 19.1.1
-      react-dom: 19.1.1(react@19.1.1)
+      react-dom: 19.2.3(react@19.1.1)
       react-is: 19.1.1
-      react-transition-group: 4.4.5(react-dom@19.1.1)(react@19.1.1)
+      react-transition-group: 4.4.5(react-dom@19.2.3)(react@19.1.1)
     dev: false
 
   /@mui/private-theming@7.3.2(@types/react@19.1.13)(react@19.1.1):
@@ -4752,7 +4752,7 @@ packages:
     engines: {node: '>= 0.6'}
     dev: true
 
-  /framer-motion@12.23.21(react-dom@19.1.1)(react@19.1.1):
+  /framer-motion@12.23.21(react-dom@19.2.3)(react@19.1.1):
     resolution: {integrity: sha512-UWDtzzPdRA3UpSNGril5HjUtPF1Uo/BCt5VKG/YQ8tVpSkAZ22+q8o+hYO0C1uDAZuotQjcfzsTsDtQxD46E/Q==}
     peerDependencies:
       '@emotion/is-prop-valid': '*'
@@ -4769,7 +4769,7 @@ packages:
       motion-dom: 12.23.21
       motion-utils: 12.23.6
       react: 19.1.1
-      react-dom: 19.1.1(react@19.1.1)
+      react-dom: 19.2.3(react@19.1.1)
       tslib: 2.8.1
     dev: false
 
@@ -7111,7 +7111,7 @@ packages:
       react: 19.1.1
     dev: false
 
-  /react-avatar-editor@13.0.2(@babel/core@7.28.4)(react-dom@19.1.1)(react@19.1.1):
+  /react-avatar-editor@13.0.2(@babel/core@7.28.4)(react-dom@19.2.3)(react@19.1.1):
     resolution: {integrity: sha512-a4ajbi7lwDh98kgEtSEeKMu0vs0CHTczkq4Xcxr1EiwMFH1GlgHCEtwGU8q/H5W8SeLnH4KPK8LUjEEaZXklxQ==}
     peerDependencies:
       react: ^0.14.0 || ^16.0.0 || ^17.0.0 || ^18.0.0
@@ -7121,7 +7121,7 @@ packages:
       '@babel/runtime': 7.28.4
       prop-types: 15.8.1
       react: 19.1.1
-      react-dom: 19.1.1(react@19.1.1)
+      react-dom: 19.2.3(react@19.1.1)
     transitivePeerDependencies:
       - '@babel/core'
       - supports-color
@@ -7143,15 +7143,15 @@ packages:
       react: 19.1.1
     dev: true
 
-  /react-dom@19.1.1(react@19.1.1):
-    resolution: {integrity: sha512-Dlq/5LAZgF0Gaz6yiqZCf6VCcZs1ghAJyrsu84Q/GT0gV+mCxbfmKNoGRKBYMJ8IEdGPqu49YWXD02GCknEDkw==}
+  /react-dom@19.2.3(react@19.1.1):
+    resolution: {integrity: sha512-yELu4WmLPw5Mr/lmeEpox5rw3RETacE++JgHqQzd2dg+YbJuat3jH4ingc+WPZhxaoFzdv9y33G+F7Nl5O0GBg==}
     peerDependencies:
-      react: ^19.1.1
+      react: ^19.2.3
     dependencies:
       react: 19.1.1
-      scheduler: 0.26.0
+      scheduler: 0.27.0
 
-  /react-easy-crop@5.5.2(react-dom@19.1.1)(react@19.1.1):
+  /react-easy-crop@5.5.2(react-dom@19.2.3)(react@19.1.1):
     resolution: {integrity: sha512-8sxx7x7QBMF8fi+zd9QTf9MXovPzQUASNCRrXy/ZUQe9r25U0yDweyM38CaoNTAfX9+k/v52ywLRXiwDN3TBtQ==}
     peerDependencies:
       react: '>=16.4.0'
@@ -7159,7 +7159,7 @@ packages:
     dependencies:
       normalize-wheel: 1.0.1
       react: 19.1.1
-      react-dom: 19.1.1(react@19.1.1)
+      react-dom: 19.2.3(react@19.1.1)
       tslib: 2.8.1
     dev: false
 
@@ -7188,7 +7188,7 @@ packages:
     resolution: {integrity: sha512-fBASbA6LnOU9dOU2eW7aQ8xmYBSXUIWr+UmF9b1efZBazGNO+rcXT/icdKnYm2pTwcRylVUYwW7H1PHfLekVzA==}
     dev: true
 
-  /react-modal@3.16.3(react-dom@19.1.1)(react@19.1.1):
+  /react-modal@3.16.3(react-dom@19.2.3)(react@19.1.1):
     resolution: {integrity: sha512-yCYRJB5YkeQDQlTt17WGAgFJ7jr2QYcWa1SHqZ3PluDmnKJ/7+tVU+E6uKyZ0nODaeEj+xCpK4LcSnKXLMC0Nw==}
     peerDependencies:
       react: ^0.14.0 || ^15.0.0 || ^16 || ^17 || ^18 || ^19
@@ -7197,12 +7197,12 @@ packages:
       exenv: 1.2.2
       prop-types: 15.8.1
       react: 19.1.1
-      react-dom: 19.1.1(react@19.1.1)
+      react-dom: 19.2.3(react@19.1.1)
       react-lifecycles-compat: 3.0.4
       warning: 4.0.3
     dev: true
 
-  /react-phone-input-2@2.15.1(react-dom@19.1.1)(react@19.1.1):
+  /react-phone-input-2@2.15.1(react-dom@19.2.3)(react@19.1.1):
     resolution: {integrity: sha512-W03abwhXcwUoq+vUFvC6ch2+LJYMN8qSOiO889UH6S7SyMCQvox/LF3QWt+cZagZrRdi5z2ON3omnjoCUmlaYw==}
     peerDependencies:
       react: ^16.12.0 || ^17.0.0 || ^18.0.0 || ^19.0.0 || ^20.0.0 || ^21.0.0
@@ -7215,7 +7215,7 @@ packages:
       lodash.startswith: 4.2.1
       prop-types: 15.8.1
       react: 19.1.1
-      react-dom: 19.1.1(react@19.1.1)
+      react-dom: 19.2.3(react@19.1.1)
     dev: true
 
   /react-refresh@0.17.0:
@@ -7223,7 +7223,7 @@ packages:
     engines: {node: '>=0.10.0'}
     dev: true
 
-  /react-router-dom@7.9.2(react-dom@19.1.1)(react@19.1.1):
+  /react-router-dom@7.9.2(react-dom@19.2.3)(react@19.1.1):
     resolution: {integrity: sha512-pagqpVJnjZOfb+vIM23eTp7Sp/AAJjOgaowhP1f1TWOdk5/W8Uk8d/M/0wfleqx7SgjitjNPPsKeCZE1hTSp3w==}
     engines: {node: '>=20.0.0'}
     peerDependencies:
@@ -7231,11 +7231,11 @@ packages:
       react-dom: '>=18'
     dependencies:
       react: 19.1.1
-      react-dom: 19.1.1(react@19.1.1)
-      react-router: 7.9.2(react-dom@19.1.1)(react@19.1.1)
+      react-dom: 19.2.3(react@19.1.1)
+      react-router: 7.9.2(react-dom@19.2.3)(react@19.1.1)
     dev: false
 
-  /react-router@7.9.2(react-dom@19.1.1)(react@19.1.1):
+  /react-router@7.9.2(react-dom@19.2.3)(react@19.1.1):
     resolution: {integrity: sha512-i2TPp4dgaqrOqiRGLZmqh2WXmbdFknUyiCRmSKs0hf6fWXkTKg5h56b+9F22NbGRAMxjYfqQnpi63egzD2SuZA==}
     engines: {node: '>=20.0.0'}
     peerDependencies:
@@ -7247,11 +7247,11 @@ packages:
     dependencies:
       cookie: 1.0.2
       react: 19.1.1
-      react-dom: 19.1.1(react@19.1.1)
+      react-dom: 19.2.3(react@19.1.1)
       set-cookie-parser: 2.7.1
     dev: false
 
-  /react-transition-group@4.4.5(react-dom@19.1.1)(react@19.1.1):
+  /react-transition-group@4.4.5(react-dom@19.2.3)(react@19.1.1):
     resolution: {integrity: sha512-pZcd1MCJoiKiBR2NRxeCRg13uCXbydPnmB4EOeRrY7480qNWO8IIgQG6zlDkm6uRMsURXPuKq0GWtiM59a5Q6g==}
     peerDependencies:
       react: '>=16.6.0'
@@ -7262,7 +7262,7 @@ packages:
       loose-envify: 1.4.0
       prop-types: 15.8.1
       react: 19.1.1
-      react-dom: 19.1.1(react@19.1.1)
+      react-dom: 19.2.3(react@19.1.1)
     dev: false
 
   /react@19.1.1:
@@ -7505,8 +7505,8 @@ packages:
     resolution: {integrity: sha512-+aWOz7yVScEGoKNd4PA10LZ8sk0A/z5+nXQG5giUO5rprX9jgYsTdov9qCchZiPIZezbZH+jRut8nPodFAX4Jg==}
     dev: true
 
-  /scheduler@0.26.0:
-    resolution: {integrity: sha512-NlHwttCI/l5gCPR3D1nNXtWABUmBwvZpEQiD4IXSbIDq8BzLIK/7Ir5gTFSGZDUu37K5cMNp0hFtzO38sC7gWA==}
+  /scheduler@0.27.0:
+    resolution: {integrity: sha512-eNv+WrVbKu1f3vbYJT/xtiF5syA5HPIMtf9IgY/nKg0sWqzAUEvqY/xm7OcZc/qafLx/iO9FgOmeSAp4v5ti/Q==}
 
   /semver-compare@1.0.0:
     resolution: {integrity: sha512-YM3/ITh2MJ5MtzaM429anh+x2jiLVjqILF4m4oyQB18W7Ggea7BfqdH/wGMK7dDiMghv/6WG7znWMwUDzJiXow==}
