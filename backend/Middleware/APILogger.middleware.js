@@ -1,33 +1,41 @@
-// File: Middleware/autoLogger.middleware.js
-import { LoggerContainer } from "../Logger/Logger.js";
+// File: Middleware/logger.middleware.js
+import { LoggerContainer } from "../Logger/Logger.js"; // adjust path if needed
 
-const logger = LoggerContainer.get("HTTP", { console: true, level: "info" });
+export default function requestLogger(req, res, next) {
+  const start = process.hrtime();
 
-export default function autoLogger(req, res, next) {
-  const start = process.hrtime.bigint();
-  const ip = req.ip || req.headers["x-forwarded-for"] || "unknown";
+  // Infer module name from URL
+  let moduleName = "unknown";
+  const url = req.originalUrl || "";
 
-  logger.http(`→ ${req.method} ${req.originalUrl} | from ${ip}`);
+  if (url.startsWith("/public")) moduleName = "public";
+  else if (url.startsWith("/protected")) moduleName = "protected";
+  else if (url.startsWith("/admin")) moduleName = "admin";
+  else moduleName = "misc";
 
-  res.on("finish", () => {
-    const end = process.hrtime.bigint();
-    const duration = Number(end - start) / 1_000_000;
-    const status = res.statusCode;
-    const userId = req.user?.user_id || "guest";
-
-    const level =
-      status >= 500 ? "error" :
-      status >= 400 ? "warn" :
-      "info";
-
-    logger.log(
-      level,
-      `← ${req.method} ${req.originalUrl} | ${status} | user:${userId} | ${duration.toFixed(2)}ms`
-    );
+  // Get logger instance for that module
+  const logger = LoggerContainer.get(`router-${moduleName}`, {
+    console: false,
+    level: "info",
   });
 
-  res.on("error", (err) => {
-    logger.error(`❌ Response error in ${req.method} ${req.originalUrl}: ${err.message}`);
+  // When response finishes, record the log
+  res.on("finish", () => {
+    const [sec, nano] = process.hrtime(start);
+    const duration = (sec * 1e3 + nano / 1e6).toFixed(2);
+
+    const logData = {
+      method: req.method,
+      url: req.originalUrl,
+      status: res.statusCode,
+      duration: `${duration}ms`,
+      ip: req.ip,
+    };
+
+    // Categorize log severity
+    if (res.statusCode >= 500) logger.error(JSON.stringify(logData));
+    else if (res.statusCode >= 400) logger.warn(JSON.stringify(logData));
+    else logger.info(JSON.stringify(logData));
   });
 
   next();

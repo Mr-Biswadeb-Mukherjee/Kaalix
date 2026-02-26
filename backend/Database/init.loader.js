@@ -3,8 +3,11 @@ import fs from "fs";
 import path from "path";
 import crypto from "crypto";
 import { fileURLToPath } from "url";
+import { LoggerContainer } from "../Logger/Logger.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const logger = LoggerContainer.get("Schemas");
+
 
 /**
  * Initialize the database by executing all SQL files in order.
@@ -13,7 +16,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
  * @param {import('mysql2/promise').Pool} pool - The MySQL connection pool
  */
 export async function initializeDatabase(pool) {
-  console.log("\n🧩 Database initialization started...");
+  logger.info("🧩 Database initialization started...");
 
   // Path to the Schemas folder
   const dbDir = path.join(__dirname, "Schemas");
@@ -44,10 +47,10 @@ export async function initializeDatabase(pool) {
 
     if (existing.length > 0) {
       if (existing[0].hash === hash) {
-        console.log(`⚙️  Skipping ${file} (unchanged)`);
+        logger.verbose(`⚙️  Skipping ${file} (unchanged)`);
         continue;
       } else {
-        console.log(`🔄 Re-applying ${file} (file changed)`);
+        logger.warn(`🔄 Re-applying ${file} (file changed)`);
         try {
           await pool.query(sql);
           await pool.query(
@@ -55,7 +58,7 @@ export async function initializeDatabase(pool) {
             [hash, file]
           );
         } catch (err) {
-          console.error(`❌ Error executing ${file}:`, err.message);
+          logger.error(`❌ Error executing ${file}: ${err.message}`);
           process.exit(1);
         }
         continue;
@@ -63,20 +66,20 @@ export async function initializeDatabase(pool) {
     }
 
     // First-time execution
-    try {
-      console.log(`📦 Executing ${file}...`);
+    try { 
+      logger.info(`📦 Executing ${file}...`);
       await pool.query(sql);
       await pool.query(
         "INSERT INTO _init_history (filename, hash) VALUES (?, ?)",
         [file, hash]
       );
     } catch (err) {
-      console.error(`❌ Error executing ${file}:`, err.message);
+      logger.error(`❌ Error executing ${file}: ${err.message}`);
       process.exit(1);
     }
   }
 
-  console.log("✅ Database initialization complete.\n");
+  logger.info("✅ Database initialization complete.");
 }
 
 /**

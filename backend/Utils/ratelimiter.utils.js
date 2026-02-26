@@ -1,5 +1,6 @@
 // filename: AdaptiveRateLimiter.js
 import { initRedis } from "../Connectors/Redis.js";
+import { LoggerContainer } from "../Logger/Logger.js";
 
 const REDIS_PREFIX = "ratelimit:";
 const DEFAULT_WINDOW_MS = 60 * 1000;       // 1 minute
@@ -9,6 +10,8 @@ const DEFAULT_BURST_WINDOW_MS = 10 * 1000; // 10 seconds
 const REDIS_FAILURE_THRESHOLD = 3;     // how many consecutive failures before tripping
 const REDIS_FAILURE_WINDOW_MS = 10 * 1000; // window to count failures
 const REDIS_COOLDOWN_MS = 30 * 1000;  // stay in fallback for this long when tripped
+
+const logger = LoggerContainer.get("RateLimiter");
 
 let redisClient;
 let initialized = false;
@@ -33,7 +36,7 @@ async function lazyInit() {
     await initRedis();
     // your getRedisClient() should return an already connected redis v4 client
     redisClient = (await import("../Connectors/Redis.js")).getRedisClient();
-    initialized = true;
+    initialized = true; // Set initialized to true only if Redis connection is successful
   } catch (err) {
     console.warn("Redis initialization failed, using in-memory fallback:", err.message);
     redisClient = null;
@@ -88,11 +91,11 @@ async function safeRedisCall(fn, fallbackValue) {
     if (redisFailureCount >= REDIS_FAILURE_THRESHOLD) {
       // trip the circuit for cooldown duration
       redisTrippedUntil = now + REDIS_COOLDOWN_MS;
-      console.warn(`Redis circuit tripped until ${new Date(redisTrippedUntil).toISOString()}. Error:`, err?.message || err);
+      logger.warn(`Redis circuit tripped until ${new Date(redisTrippedUntil).toISOString()}. Error: ${err?.message || err}`);
     } else {
-      console.warn("Redis transient error:", err?.message || err);
+      logger.warn(`Redis transient error: ${err?.message || err}`);
     }
-
+    logger.debug(`Redis failure count: ${redisFailureCount}`);
     return fallbackValue;
   }
 }
@@ -197,6 +200,7 @@ const Ratelimiter = ({
   let penalty = 0;
 
   const useRedis = redisClient && (!redisTrippedUntil || Date.now() >= redisTrippedUntil);
+  logger.debug(`Request from IP: ${ip}, Endpoint: ${endpoint}, Using Redis: ${useRedis}`);
 
   if (useRedis) {
     // Attempt atomic read/update via Lua. If it fails the safeRedisCall will manage circuit.
@@ -209,6 +213,7 @@ const Ratelimiter = ({
       fixedCount = parseInt(resArr[0], 10) || 0;
       burstCount = parseInt(resArr[1], 10) || 0;
       penalty = parseInt(resArr[2], 10) || 0;
+      logger.debug(`Redis counts - Fixed: ${fixedCount}, Burst: ${burstCount}, Penalty: ${penalty}`);
     } else {
       // fallback to in-memory if redis read failed or circuit tripped
       // Note: safeRedisCall already updates circuit breaker if needed.
@@ -249,6 +254,7 @@ const Ratelimiter = ({
     fixedCount = record.fixed.length;
     burstCount = record.burst.length;
     penalty = record.penalty;
+    logger.debug(`Memory counts - Fixed: ${fixedCount}, Burst: ${burstCount}, Penalty: ${penalty}`);
   }
 
   // --- Adaptive thresholds (same hybrid idea) ---
@@ -260,6 +266,7 @@ const Ratelimiter = ({
   // Hard closing: penalties cut limits aggressively (tweak multiplier to taste)
   const adaptiveMax = Math.max(5, baseMax + activityBoost - penaltyFactor * 15);
   const adaptiveBurst = Math.max(3, baseBurst + Math.floor(burstCount / 5) - penaltyFactor * 5);
+  logger.debug(`Adaptive limits - Max: ${adaptiveMax}, Burst: ${adaptiveBurst}`);
 
   // --- Enforcement ---
   if (fixedCount > adaptiveMax || burstCount > adaptiveBurst) {
@@ -279,6 +286,7 @@ const Ratelimiter = ({
         memoryStore.set(ip, rec);
       }
     }
+    logger.warn(`Rate limit exceeded for IP: ${ip}, Endpoint: ${endpoint}. Fixed: ${fixedCount}/${adaptiveMax}, Burst: ${burstCount}/${adaptiveBurst}, Penalty: ${penalty}`);
 
     // helpful headers
     res.set("Retry-After", Math.ceil(windowMs / 1000));
@@ -301,6 +309,7 @@ const Ratelimiter = ({
   res.set("X-RateLimit-Burst-Limit", adaptiveBurst);
   res.set("X-RateLimit-Burst-Remaining", Math.max(0, adaptiveBurst - burstCount));
   res.set("X-RateLimit-Penalty", penalty);
+  logger.verbose(`Rate limit check passed for IP: ${ip}, Endpoint: ${endpoint}. Fixed: ${fixedCount}/${adaptiveMax}, Burst: ${burstCount}/${adaptiveBurst}, Penalty: ${penalty}`);
 
   next();
 };
