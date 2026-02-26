@@ -1,18 +1,11 @@
-// App.js
-
 import { BrowserRouter as Router, Routes, Route, useNavigate } from 'react-router-dom';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import MainLayout from './Layout/MainLayout';
 import Auth from './Components/Features/Auth';
 import { ToastProvider } from './Components/UI/Toast';
 import * as Pages from './pages';
 import { AuthProvider, useAuth } from './Context/AuthContext';
 import ProtectedRoute from './Components/Features/ProtectedRoute';
-import Preloader from './Components/UI/Preloader';
-
-// === Preloader Control Flags ===
-const ENABLE_PRELOADER = 0; // 1 = Enable Preloader, 0 = Disable Preloader
-const PERSIST_PRELOADER_IN_SESSION = 0; // 1 = Store in sessionStorage after first load, 0 = Always show when enabled
 
 // === Route Wrapper to Dynamically Set Page Title ===
 function RouteWrapper({ title, children }) {
@@ -76,30 +69,8 @@ function AppRoutes() {
   );
 }
 
-// === Root App Component with Preloader + Providers ===
+// === Root App Component ===
 function App() {
-  const [loading, setLoading] = useState(() => {
-    if (!ENABLE_PRELOADER) return false;
-
-    if (PERSIST_PRELOADER_IN_SESSION) {
-      const hasLoaded = sessionStorage.getItem("hasLoadedOnce");
-      return !hasLoaded;
-    }
-
-    return true; // Always show if persistence is off and enabled
-  });
-
-  const handlePreloaderFinish = () => {
-    if (PERSIST_PRELOADER_IN_SESSION) {
-      sessionStorage.setItem("hasLoadedOnce", "true");
-    }
-    setLoading(false);
-  };
-
-  if (loading) {
-    return <Preloader onFinish={handlePreloaderFinish} />;
-  }
-
   return (
     <ToastProvider>
       <Router>

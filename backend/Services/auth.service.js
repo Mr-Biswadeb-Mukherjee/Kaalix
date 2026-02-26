@@ -1,13 +1,11 @@
 import express from "express";
-import { 
-  registerUser, 
-  loginUser, 
-  comparePassword, 
-  updateFailedAttempts 
+import {
+  loginUser,
+  comparePassword,
+  updateFailedAttempts
 } from "./user.service.js";
 
 import { verifyCaptcha, getStoredCaptcha } from "./captcha.service.js";
-
 
 const router = express.Router();
 
@@ -17,18 +15,8 @@ const allowedEmailDomains = [
   "protonmail.com", "icloud.com", "zoho.com",
 ];
 
-// 🧪 Basic email format regex
+// 📧 Basic email format regex
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-// 🔤 Full name must be first & last, letters only
-function isValidFullName(name) {
-  const trimmed = name.trim();
-  return (
-    name === trimmed &&
-    trimmed.split(/\s+/).length >= 2 &&
-    /^[a-zA-Z\s]+$/.test(trimmed)
-  );
-}
 
 // 📧 Validate email domain + format
 function isValidEmail(email) {
@@ -36,25 +24,29 @@ function isValidEmail(email) {
   return emailRegex.test(email) && allowedEmailDomains.includes(domain);
 }
 
-// 🔐 Password policy: strong AF
-function isStrongPassword(password) {
-  return (
-    password.length >= 15 &&
-    /[A-Z]/.test(password) &&
-    /[a-z]/.test(password) &&
-    /[0-9]/.test(password) &&
-    /[^A-Za-z0-9]/.test(password)
-  );
-}
-
-// 🚪 POST /auth
+// 🚪 POST /auth  → LOGIN ONLY
 router.post("/", async (req, res) => {
-  const { type, email, password, fullName, validateOnly, captchaId, captcha: captchaText } = req.body;
+  const {
+    type,
+    email,
+    password,
+    validateOnly,
+    captchaId,
+    captcha: captchaText
+  } = req.body;
 
   const errors = [];
 
-  // Basic type checks
-  if (!type || typeof email !== "string" || typeof password !== "string") {
+  // ❌ Only login allowed
+  if (type !== "login") {
+    return res.status(400).json({
+      success: false,
+      message: "Invalid request type.",
+      errors: ["Invalid request type."],
+    });
+  }
+
+  if (typeof email !== "string" || typeof password !== "string") {
     return res.status(400).json({
       success: false,
       message: "Missing or invalid input types.",
@@ -62,49 +54,17 @@ router.post("/", async (req, res) => {
     });
   }
 
-  if (type === "register" && typeof fullName !== "string") {
-    return res.status(400).json({
-      success: false,
-      message: "Full name is required for registration.",
-      errors: ["Full name is required for registration."],
-    });
-  }
-
   const trimmedEmail = email.trim();
   const trimmedPassword = password.trim();
-  const trimmedFullName = fullName?.trim();
 
   if (!trimmedEmail) {
-    if (type === "register") {
-      errors.push("Personal email is required.");
-    } else {
-      errors.push("Email is required.");
-    }
+    errors.push("Email is required.");
   } else if (!isValidEmail(trimmedEmail)) {
-    if (type === "register") {
-      errors.push("Only personal email providers like Gmail, Yahoo, Outlook, etc. are allowed.");
-    } else {
-      errors.push("Invalid email address.");
-    }
+    errors.push("Invalid email address.");
   }
 
   if (!trimmedPassword) {
-    if (type === "register") {
-      errors.push("Password must be at least 15 characters and include uppercase, lowercase, number, and special character.");
-    } else {
-      errors.push("Password is required.");
-    }
-  } else if (type === "register" && !isStrongPassword(trimmedPassword)) {
-    errors.push("Password must be at least 15 characters and include uppercase, lowercase, number, and special character.");
-  }
-
-  // ✅ Validate full name
-  if (type === "register") {
-    if (!trimmedFullName) {
-      errors.push("Full name is required.");
-    } else if (!isValidFullName(trimmedFullName)) {
-      errors.push("Full name must include first and last name with no extra spaces or symbols.");
-    }
+    errors.push("Password is required.");
   }
 
   // 💬 Validation-only mode
@@ -115,7 +75,7 @@ router.post("/", async (req, res) => {
     });
   }
 
-  // ❌ If validation errors exist
+  // ❌ Validation errors
   if (errors.length > 0) {
     return res.status(400).json({
       success: false,
@@ -125,97 +85,45 @@ router.post("/", async (req, res) => {
   }
 
   try {
+    // 🔐 CAPTCHA validation
+    if (!captchaId || !captchaText) {
+      return res.status(400).json({
+        success: false,
+        message: "Captcha verification required.",
+        errors: ["Captcha verification required."],
+      });
+    }
 
-    // CAPTCHA validation (skip if validateOnly)
-    if (!validateOnly) {
-      if (!captchaId || !captchaText) {
-        return res.status(400).json({
-          success: false,
-          message: "Captcha verification required.",
-          errors: ["Captcha verification required."],
-        });
-      }
-
-    // ✅ Correct
-    const storedCaptcha = await getStoredCaptcha(captchaId); 
+    const storedCaptcha = await getStoredCaptcha(captchaId);
     const captchaValid = await verifyCaptcha(captchaId, captchaText);
 
-
-      if (!captchaValid) {
-        if (
-          typeof storedCaptcha === "string" &&
-          typeof captchaText === "string" &&
-          storedCaptcha.toLowerCase() === captchaText.toLowerCase()
-        ) {
-          return res.status(400).json({
-            success: false,
-            message: "Captcha verification failed due to case sensitivity.",
-            errors: [
-              "Captcha is case-sensitive. Please enter it exactly as shown, matching uppercase and lowercase letters.",
-            ],
-          });
-        }
-
-
-        // Generic failure
+    if (!captchaValid) {
+      if (
+        typeof storedCaptcha === "string" &&
+        typeof captchaText === "string" &&
+        storedCaptcha.toLowerCase() === captchaText.toLowerCase()
+      ) {
         return res.status(400).json({
           success: false,
-          message: "Captcha verification failed.",
-          errors: ["Captcha verification failed. Please try again."],
-        });
-      }
-    }
-
-
-    // 🔐 Registration
-    if (type === "register") {
-      // Strip any token included by client (malicious attempt)
-      if (req.body.token || req.headers.authorization) {
-        delete req.body.token;
-        delete req.headers.authorization;
-
-        console.warn('Suspicious registration request: token included', {
-          ip: req.ip,
-          bodyKeys: Object.keys(req.body),
+          message: "Captcha verification failed due to case sensitivity.",
+          errors: [
+            "Captcha is case-sensitive. Please enter it exactly as shown.",
+          ],
         });
       }
 
-      // Whitelist allowed fields
-      const allowedFields = ["fullName", "email", "password", "captchaId", "captcha"];
-      Object.keys(req.body).forEach(key => {
-        if (!allowedFields.includes(key)) delete req.body[key];
-      });
-
-      // Create user
-      const newUser = await registerUser({
-        fullName: trimmedFullName,
-        email: trimmedEmail,
-        password: trimmedPassword,
-      });
-
-      // ✅ Do NOT generate token for registration
-      return res.json({
-        success: true,
-        message: "Registration successful. Please log in.",
-        user: {
-          user_id: newUser.user_id,
-          email: trimmedEmail,
-          fullName: newUser.fullName,
-        },
+      return res.status(400).json({
+        success: false,
+        message: "Captcha verification failed.",
+        errors: ["Captcha verification failed. Please try again."],
       });
     }
 
-
-  // 🔐 Login
-  if (type === "login") {
-    const loginEmail = trimmedEmail;
-    const loginPassword = trimmedPassword;
-
+    // 🔐 LOGIN FLOW
     const MAX_ATTEMPTS = 5;
     const LOCK_MINUTES = 30;
 
-    // 1️⃣ Fetch user by email
-    const user = await loginUser(loginEmail);
+    const user = await loginUser(trimmedEmail);
     if (!user) {
       return res.status(401).json({
         success: false,
@@ -224,7 +132,7 @@ router.post("/", async (req, res) => {
       });
     }
 
-    // 2️⃣ Check if account is already locked
+    // 🚫 Already locked
     if (user.lock_until && new Date(user.lock_until) > new Date()) {
       const lockUntil = new Date(user.lock_until);
       const remainingMs = lockUntil - new Date();
@@ -241,14 +149,13 @@ router.post("/", async (req, res) => {
       });
     }
 
-    // 3️⃣ Verify password
-    const passwordMatches = await comparePassword(user, loginPassword);
+    const passwordMatches = await comparePassword(user, trimmedPassword);
+
     if (!passwordMatches) {
       const newAttempts = (user.failed_attempts || 0) + 1;
       let lockUntil = null;
 
       if (newAttempts >= MAX_ATTEMPTS) {
-        // 🚫 Lock the account
         lockUntil = new Date(Date.now() + LOCK_MINUTES * 60 * 1000);
         await updateFailedAttempts(user.user_id, 0, lockUntil);
 
@@ -261,28 +168,26 @@ router.post("/", async (req, res) => {
             remaining_ms: LOCK_MINUTES * 60 * 1000
           }
         });
-      } else {
-        // ⚠️ Warn about attempts left
-        await updateFailedAttempts(user.user_id, newAttempts, null);
-        const attemptsLeft = MAX_ATTEMPTS - newAttempts;
-
-        return res.status(401).json({
-          success: false,
-          message: `Invalid credentials. Your account will be locked after ${attemptsLeft} more failed attempt(s).`,
-          errors: ["Invalid credentials."],
-          attempts_info: {
-            attempts_used: newAttempts,
-            attempts_left: attemptsLeft,
-            max_attempts: MAX_ATTEMPTS
-          }
-        });
       }
+
+      await updateFailedAttempts(user.user_id, newAttempts, null);
+      const attemptsLeft = MAX_ATTEMPTS - newAttempts;
+
+      return res.status(401).json({
+        success: false,
+        message: `Invalid credentials. ${attemptsLeft} attempt(s) remaining before lock.`,
+        errors: ["Invalid credentials."],
+        attempts_info: {
+          attempts_used: newAttempts,
+          attempts_left: attemptsLeft,
+          max_attempts: MAX_ATTEMPTS
+        }
+      });
     }
 
-    // 4️⃣ Reset attempts on success
+    // ✅ Success
     await updateFailedAttempts(user.user_id, 0, null);
 
-    // 5️⃣ Issue JWT
     const token = await res.generateToken({
       user_id: user.user_id,
       email: user.email,
@@ -299,38 +204,16 @@ router.post("/", async (req, res) => {
       },
       token,
     });
-  }
 
+  } catch (err) {
+    console.error("Auth error:", err);
 
-  // Invalid request type
-  return res.status(400).json({
-    success: false,
-    message: "Invalid request type.",
-        errors: ["Invalid request type."],
-      });
-    } catch (err) {
-    // ✅ Skip console.error for expected, known errors
-        if (err.code !== "USER_EXISTS") {
-          console.error("Auth error:", err); // Only logs unexpected issues
-        }
-
-        // 🎯 Handle known user conflict
-        if (err.code === "USER_EXISTS" || err.name === "UserExistsError") {
-          return res.status(409).json({
-            success: false,
-            message: err.message,
-            errors: [err.message],
-          });
-        }
-
-    // ❌ Default internal server error
     return res.status(500).json({
       success: false,
       message: "Server error. Please try again later.",
       errors: ["Server error. Please try again later."],
     });
   }
-
 });
 
 export default router;
