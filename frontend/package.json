@@ -1,7 +1,7 @@
 {
   "name": "amon-frontend",
   "version": "1.0.0",
-  "description": "Frontend made using React with Vite, connected to the amon backend",
+  "description": "Frontend for the Kaalix intelligence platform, built with React and Vite",
   "type": "module",
   "private": true,
   "scripts": {
@@ -14,7 +14,7 @@
     "system",
     "stats",
     "frontend",
-    "amon",
+    "kaalix",
     "react",
     "vite",
     "ui"

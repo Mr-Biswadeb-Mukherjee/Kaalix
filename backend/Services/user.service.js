@@ -1,6 +1,10 @@
 import bcrypt from "bcrypt";
 import { v4 as uuidv4 } from "uuid";
 import { getDatabase } from "../Connectors/DB.js";
+import {
+  isBusinessEmail,
+  isStrictBusinessEmailModeEnabled,
+} from "../Utils/emailPolicy.utils.js";
 
 export const USER_ROLES = Object.freeze({
   SA: "sa",
@@ -52,11 +56,21 @@ export class SuperAdminExistsError extends Error {
 
 export const normalizeOnboardingState = (state = {}) => {
   const mustChangePassword = Boolean(state.must_change_password);
-  const mustUpdateProfile = !state.profile_id;
+  const requiresBusinessEmail =
+    isStrictBusinessEmailModeEnabled() && !isBusinessEmail(state.email || "");
+  const mustUpdateProfile = !state.profile_id || requiresBusinessEmail;
+  const hasPreciseLocation =
+    state.location_lat !== null &&
+    typeof state.location_lat !== "undefined" &&
+    state.location_lng !== null &&
+    typeof state.location_lng !== "undefined";
+  const mustShareLocation = Number(state.location_consent) !== 1 || !hasPreciseLocation;
   return {
     mustChangePassword,
     mustUpdateProfile,
-    required: mustChangePassword || mustUpdateProfile,
+    mustShareLocation,
+    requiresBusinessEmail,
+    required: mustChangePassword || mustUpdateProfile || mustShareLocation,
   };
 };
 
@@ -86,8 +100,12 @@ export const getUserOnboardingState = async (userId) => {
   const [rows] = await db.execute(
     `SELECT
         u.user_id AS user_id,
+        u.email AS email,
         u.must_change_password AS must_change_password,
-        p.profile_id AS profile_id
+        p.profile_id AS profile_id,
+        p.location_consent AS location_consent,
+        p.location_lat AS location_lat,
+        p.location_lng AS location_lng
      FROM users u
      LEFT JOIN profiles p ON p.user_id = u.user_id
      WHERE u.user_id = ?
@@ -139,7 +157,7 @@ export const registerUser = async ({
       `SELECT user_id FROM users 
        WHERE user_id LIKE ? 
        ORDER BY user_id DESC LIMIT 1`,
-      [`AMON-%-${year}${month}%`]
+      [`KAALIX-%-${year}${month}%`]
     );
 
     let nextCounter = 1;
@@ -149,7 +167,7 @@ export const registerUser = async ({
     }
 
     const suffix = `${year}${month}${String(nextCounter).padStart(2, "0")}`;
-    const userId = `AMON-${hexUuid}-${suffix}`;
+    const userId = `KAALIX-${hexUuid}-${suffix}`;
 
     await conn.execute(
       "INSERT INTO users (user_id, email, password, role, must_change_password) VALUES (?, ?, ?, ?, ?)",
@@ -191,7 +209,10 @@ export const loginUser = async (email) => {
     `SELECT
         u.*,
         p.fullName AS fullName,
-        p.profile_id AS profile_id
+        p.profile_id AS profile_id,
+        p.location_consent AS location_consent,
+        p.location_lat AS location_lat,
+        p.location_lng AS location_lng
      FROM users u
      LEFT JOIN profiles p ON p.user_id = u.user_id
      WHERE u.email = ?

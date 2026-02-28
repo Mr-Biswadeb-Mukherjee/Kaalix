@@ -10,7 +10,7 @@ import ProtectedRoute from './Components/Features/ProtectedRoute';
 // === Route Wrapper to Dynamically Set Page Title ===
 function RouteWrapper({ title, children }) {
   useEffect(() => {
-    document.title = title || 'Amon';
+    document.title = title || 'Kaalix';
   }, [title]);
 
   return children;
@@ -18,15 +18,15 @@ function RouteWrapper({ title, children }) {
 
 // === Define Application Routes with Titles ===
 const routeConfig = [
-  { path: 'dashboard', element: <Pages.Dashboard />, title: 'Dashboard | Amon' },
-  { path: 'target-config', element: <Pages.TargetConfig />, title: 'Target Config | Amon' },
-  { path: 'attack-logic', element: <Pages.AttackLogic />, title: 'Attack Logic | Amon' },
-  { path: 'modules', element: <Pages.Modules />, title: 'Modules | Amon' },
-  { path: 'proxy', element: <Pages.Proxy />, title: 'Proxy | Amon' },
-  { path: 'about', element: <Pages.AboutUs />, title: 'About Us | Amon' },
-  { path: 'docs', element: <Pages.Documentation />, title: 'Documentation | Amon' },
-  { path: 'logs', element: <Pages.Logs />, title: 'Logs | Amon' },
-  { path: 'profile', element: <Pages.Profile />, title: 'Profile | Amon' },
+  { path: 'dashboard', element: <Pages.Dashboard />, title: 'Security Dashboard | Kaalix' },
+  { path: 'data-sources', element: <Pages.DataSources />, title: 'Data Sources | Kaalix' },
+  { path: 'detection-rules', element: <Pages.DetectionRules />, title: 'Detection Rules | Kaalix' },
+  { path: 'integrations', element: <Pages.Integrations />, title: 'Integrations | Kaalix' },
+  { path: 'log-forwarder', element: <Pages.LogForwarder />, title: 'Log Forwarder | Kaalix' },
+  { path: 'about', element: <Pages.AboutUs />, title: 'About Us | Kaalix' },
+  { path: 'docs', element: <Pages.Documentation />, title: 'Documentation | Kaalix' },
+  { path: 'logs', element: <Pages.Logs />, title: 'Logs | Kaalix' },
+  { path: 'profile', element: <Pages.Profile />, title: 'Profile | Kaalix' },
 ];
 
 // === Core Routing Logic with Protected Routes ===
@@ -45,7 +45,7 @@ function AppRoutes() {
       <Route
         path="/"
         element={
-          <RouteWrapper title="Authentication | Amon">
+          <RouteWrapper title="Authentication | Kaalix">
             <Auth onAuthSuccess={handleAuthSuccess} />
           </RouteWrapper>
         }

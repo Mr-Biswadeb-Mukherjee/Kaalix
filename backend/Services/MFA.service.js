@@ -66,7 +66,7 @@ export const MFAService = {
     const secret = speakeasy.generateSecret({
       length: 20,
       name: `${email}`, // account name shown on the right
-      issuer: "AMON", // issuer shown on the left
+      issuer: "KAALIX", // issuer shown on the left
     });
 
     // Store secret temporarily in memory (userId+method key)

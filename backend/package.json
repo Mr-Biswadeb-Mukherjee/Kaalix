@@ -1,7 +1,7 @@
 {
   "name": "amon-backend",
   "version": "1.0.0",
-  "description": "Backend made using NodeJS with python deployed as microservice",
+  "description": "Backend services for the Kaalix intelligence platform",
   "type": "module",
   "main": "app.js",
   "scripts": {
@@ -14,7 +14,7 @@
     "stats",
     "express",
     "backend",
-    "amon",
+    "kaalix",
     "api"
   ],
   "author": "Mr. Biswadeb Mukherjee",
@@ -23,4 +23,3 @@
     "@amon/shared": "workspace:^"
   }
 }
-

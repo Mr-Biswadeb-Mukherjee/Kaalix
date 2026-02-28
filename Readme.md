@@ -1,80 +1,13 @@
-## Amon
+## Kaalix
 
-> *"The god of knowledge and secrecy — now weaponized for password cracking operations."*
+Kaalix is an organization-centric web intelligence platform engineered to deliver continuous visibility across your digital surface. It combines real-time performance monitoring with security awareness to provide a unified operational view of your web infrastructure.
 
----
+Inspired by the concept of *Kaal* — the embodiment of time — Kaalix treats every millisecond as critical signal. It tracks uptime, latency shifts, service disruptions, and abnormal traffic behavior as they unfold.
 
-### 🔍 What is Amon?
+Beyond monitoring, Kaalix correlates telemetry into actionable insight. It identifies degradation patterns, maps attack origins, detects behavioral anomalies, and surfaces coordinated threat activity before impact escalates.
 
-**Amon** is a **fast**, **flexible**, and **hardware-accelerated** brute-force and password spraying engine built using **NodeJS** and **React (Vite)**.
+Built for operational teams, Kaalix eliminates blind spots between performance analytics and security intelligence. It replaces fragmented dashboards with a centralized command layer designed for clarity and rapid decision-making.
 
-Designed for **red teams**, **penetration testers**, and **security researchers**, Amon lets you simulate real-world credential attacks with surgical precision and real-time operational visibility — all from a powerful, modern web-based interface.
+Kaalix does not merely record events. It interprets them in context, revealing patterns across time, infrastructure, and threat vectors.
 
----
-
-### 💡 Why Amon?
-
-Tools like **Hydra**, **Medusa**, and others have stood the test of time in brute-force operations. But as offensive security evolves, limitations become clear:
-
-* ❌ Rigid control over attack flow and spraying logic
-* ❌ Minimal real-time feedback or monitoring
-* ❌ Outdated or non-existent web UI/API support
-* ❌ Little to no hardware acceleration support
-* ❌ Difficult to extend or customize for modern ops
-
-**Amon** isn’t trying to replace these tools — it’s designed to **complement and advance** them.
-
-With Amon, you get:
-
-* ✅ Custom attack logic (brute-force, spray, hybrid)
-* ✅ Optional CPU/GPU-aware cracking backend
-* ✅ Beautiful, responsive web UI (React + Vite)
-* ✅ Modular plugin architecture (HTTP, SSH, SMB, etc.)
-* ✅ Real-time logging, performance stats, and metrics
-* ✅ Clean and extensible Flask-based API
-
-> Think of **Amon** as a **next-gen simulation engine** — bridging legacy brute-force capabilities with modern offensive tooling.
-
----
-
-### 🎯 What Problem Does Amon Solve?
-
-> **Precision over chaos. Control over brute force.**
-
-Amon addresses the **next-gen requirements** of offensive teams:
-
-* ⚙️ Simulates intelligent spraying (rotation, jitter, cooldown logic)
-* 🌟 Enables targeted brute-force with advanced controls (threading, delays, dynamic logic)
-* 🧹 Extensible plugin support for **custom protocols**
-* 📈 Red team–oriented dashboard for real-time visibility, logging, and strategic feedback
-
----
-
-### 🔮 Future of Amon
-
-Amon is built with **scalability and innovation in mind**. Here’s a sneak peek at what's coming:
-
-* 🔌 **Distributed engine support** (multi-node coordination)
-* ⚡ **Native GPU acceleration** (hash cracking via CUDA/OpenCL)
-* 🌐 Expanded protocol modules (FTP, LDAP, RDP, OWA, etc.)
-* 📊 **Visual dashboards**: heatmaps, attack paths, success rates
-* 🧠 **AI-assisted guess generation** from real breach corpora
-* 🔁 **Attack replays** and campaign scheduling
-* 💾 **Headless CLI version** for stealthy ops
-
----
-
-### 👤 Author
-
-**Biswadeb Mukherjee**
-Ethical Hacker • Pentester • Malware Developer
-
-[GitHub](https://github.com/yourgithub) • [Twitter](https://twitter.com/yourhandle) • [Blog](#)
-
----
-
-### ⚠️ Legal Disclaimer
-
-Amon is intended strictly for **authorized security testing** and **research purposes**.
-**Unauthorized use is strictly prohibited.**
-You are solely responsible for compliance with applicable laws and ethical usage.
+With Kaalix, organizations gain persistent awareness over their web ecosystem — where time, visibility, and control converge into decisive intelligence.

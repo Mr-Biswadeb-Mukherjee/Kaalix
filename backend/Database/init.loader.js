@@ -1,14 +1,109 @@
 // backend/Database/init.loader.js
 import fs from "fs";
+import os from "os";
 import path from "path";
 import crypto from "crypto";
 import bcrypt from "bcrypt";
 import { v4 as uuidv4 } from "uuid";
 import { fileURLToPath } from "url";
 import { LoggerContainer } from "../Logger/Logger.js";
+import {
+  isPersonalEmail,
+  isStrictBusinessEmailModeEnabled,
+} from "../Utils/emailPolicy.utils.js";
+import {
+  writeBootstrapCredentialsFile,
+  getBootstrapCredentialsFilePath,
+  isBootstrapSealed,
+  isBootstrapReseedForced,
+  markBootstrapSealed,
+} from "../Utils/bootstrapCredentials.utils.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const logger = LoggerContainer.get("Schemas");
+const MACHINE_ID_PATHS = ["/etc/machine-id", "/var/lib/dbus/machine-id"];
+const SA_MACHINE_SECRET_NAMESPACE = "kaalix-sa-bootstrap-v1";
+
+const sha256 = (value) =>
+  crypto.createHash("sha256").update(value).digest("hex");
+
+const getMachineFingerprint = () => {
+  for (const machineIdPath of MACHINE_ID_PATHS) {
+    try {
+      const machineId = fs.readFileSync(machineIdPath, "utf8").trim();
+      if (machineId) return machineId;
+    } catch {
+      // ignore and try next machine id source
+    }
+  }
+
+  return [os.hostname(), os.platform(), os.arch()].join("|").toLowerCase();
+};
+
+const buildMachineBoundSaDefaults = () => {
+  const machineDigest = sha256(
+    `${SA_MACHINE_SECRET_NAMESPACE}:${getMachineFingerprint()}`
+  );
+
+  return {
+    email: `sa.${machineDigest.slice(0, 12)}@kaalix.local`,
+    password: `Kaalix!${machineDigest.slice(12, 18)}-${machineDigest.slice(18, 24)}#${machineDigest.slice(24, 30)}`,
+  };
+};
+
+const resolveDefaultSaCredentials = () => {
+  const machineDefaults = buildMachineBoundSaDefaults();
+  let resolvedEmail = String(process.env.DEFAULT_SA_EMAIL || "")
+    .trim()
+    .toLowerCase();
+  let resolvedPassword = String(process.env.DEFAULT_SA_PASSWORD || "");
+  let emailSource = process.env.DEFAULT_SA_EMAIL
+    ? "DEFAULT_SA_EMAIL"
+    : "machine-generated";
+  let passwordSource = process.env.DEFAULT_SA_PASSWORD
+    ? "DEFAULT_SA_PASSWORD"
+    : "machine-generated";
+
+  if (!resolvedEmail) {
+    resolvedEmail = machineDefaults.email;
+  }
+  if (!resolvedPassword) {
+    resolvedPassword = machineDefaults.password;
+  }
+
+  if (isStrictBusinessEmailModeEnabled() && isPersonalEmail(resolvedEmail)) {
+    logger.warn(
+      `⚠️ DEFAULT_SA_EMAIL '${resolvedEmail}' is blocked by strict business-email policy. Falling back to machine-generated SA email.`
+    );
+    resolvedEmail = machineDefaults.email;
+    emailSource = "machine-generated";
+  }
+
+  return {
+    email: resolvedEmail,
+    password: resolvedPassword,
+    emailSource,
+    passwordSource,
+  };
+};
+
+const resolveOnboardingState = (state = {}) => {
+  const mustChangePassword = Boolean(state.must_change_password);
+  const mustUpdateProfile = !state.profile_id;
+  const hasPreciseLocation =
+    state.location_lat !== null &&
+    typeof state.location_lat !== "undefined" &&
+    state.location_lng !== null &&
+    typeof state.location_lng !== "undefined";
+  const mustShareLocation =
+    Number(state.location_consent) !== 1 || !hasPreciseLocation;
+  return {
+    mustChangePassword,
+    mustUpdateProfile,
+    mustShareLocation,
+    required: mustChangePassword || mustUpdateProfile || mustShareLocation,
+  };
+};
 
 
 /**
@@ -90,18 +185,16 @@ export async function initializeDatabase(pool) {
  */
 export async function ensureDefaultSaAccount(pool) {
   const defaultUsername =
-    (process.env.DEFAULT_SA_USERNAME || "Amon Super Admin").trim();
-  const defaultEmail = String(
-    process.env.DEFAULT_SA_EMAIL || "amon.sa@gmail.com"
-  )
-    .trim()
-    .toLowerCase();
-  const defaultPassword = String(
-    process.env.DEFAULT_SA_PASSWORD || "ChangeMe@123"
-  );
+    (process.env.DEFAULT_SA_USERNAME || "Kaalix Super Admin").trim();
+  const {
+    email: defaultEmail,
+    password: defaultPassword,
+    emailSource,
+    passwordSource,
+  } = resolveDefaultSaCredentials();
 
   if (!defaultEmail || !defaultPassword) {
-    logger.warn("⚠️ Skipping SA seed: DEFAULT_SA_EMAIL/PASSWORD is empty.");
+    logger.warn("⚠️ Skipping SA seed: unable to resolve SA credentials.");
     return;
   }
 
@@ -131,18 +224,33 @@ export async function ensureDefaultSaAccount(pool) {
     return;
   }
 
+  const bootstrapSealed = isBootstrapSealed();
+  const forceBootstrapReseed = isBootstrapReseedForced();
+
+  if (bootstrapSealed && forceBootstrapReseed) {
+    logger.warn(
+      "⚠️ SA bootstrap seal bypassed because SA_BOOTSTRAP_FORCE_RESEED is enabled."
+    );
+  }
+
   const conn = await pool.getConnection();
   try {
     await conn.beginTransaction();
 
     const [saRows] = await conn.execute(
-      "SELECT user_id FROM users WHERE role = 'sa' LIMIT 1 FOR UPDATE"
+      "SELECT user_id, email, must_change_password FROM users WHERE role = 'sa' LIMIT 1 FOR UPDATE"
     );
 
     if (saRows.length > 0) {
-      const saUserId = saRows[0].user_id;
+      const saIdentity = saRows[0];
+      const saUserId = saIdentity.user_id;
+      let shouldSealBootstrap = false;
       const [profileRows] = await conn.execute(
-        "SELECT profile_id FROM profiles WHERE user_id = ? LIMIT 1",
+        `SELECT profile_id, location_consent, location_lat, location_lng
+         FROM profiles
+         WHERE user_id = ?
+         ORDER BY id DESC
+         LIMIT 1`,
         [saUserId]
       );
 
@@ -154,13 +262,59 @@ export async function ensureDefaultSaAccount(pool) {
         logger.warn(`⚠️ SA profile was missing and has been restored for ${saUserId}.`);
       }
 
+      const latestProfile = profileRows[0] || {
+        profile_id: null,
+        location_consent: null,
+        location_lat: null,
+        location_lng: null,
+      };
+      const onboarding = resolveOnboardingState({
+        must_change_password: saIdentity.must_change_password,
+        profile_id: latestProfile.profile_id,
+        location_consent: latestProfile.location_consent,
+        location_lat: latestProfile.location_lat,
+        location_lng: latestProfile.location_lng,
+      });
+
+      if (!onboarding.required) {
+        shouldSealBootstrap = true;
+      }
+
+      const bootstrapFilePath = getBootstrapCredentialsFilePath();
+      const bootstrapFileExists = fs.existsSync(bootstrapFilePath);
+      const canRecoverBootstrapCredentials =
+        onboarding.mustChangePassword && (!bootstrapSealed || forceBootstrapReseed);
+
+      if (canRecoverBootstrapCredentials && (!bootstrapFileExists || forceBootstrapReseed)) {
+        const bootstrapFilePathEmitted = writeBootstrapCredentialsFile({
+          userId: saUserId,
+          username: defaultUsername,
+          email: String(saIdentity.email || defaultEmail).trim().toLowerCase(),
+          password: defaultPassword,
+        });
+        if (bootstrapFilePathEmitted) {
+          logger.info(`📁 Bootstrap credential path emitted: ${bootstrapFilePathEmitted}`);
+        }
+      }
+
       await conn.commit();
-      logger.verbose("⚙️ Default SA seed skipped: existing SA found.");
+      if (shouldSealBootstrap) {
+        markBootstrapSealed({ reason: "existing-sa-onboarding-complete" });
+      }
+      logger.info("⚙️ Default SA seed skipped: existing SA found.");
+      return;
+    }
+
+    if (bootstrapSealed && !forceBootstrapReseed) {
+      await conn.commit();
+      logger.warn(
+        "🔒 Skipping SA seed: onboarding was already completed and bootstrap is sealed."
+      );
       return;
     }
 
     const hashedPassword = await bcrypt.hash(defaultPassword, 10);
-    const userId = `AMON-SA-${uuidv4().replace(/-/g, "").slice(0, 10)}`;
+    const userId = `KAALIX-SA-${uuidv4().replace(/-/g, "").slice(0, 10)}`;
 
     await conn.execute(
       "INSERT INTO users (user_id, email, password, role, must_change_password) VALUES (?, ?, ?, 'sa', 1)",
@@ -174,8 +328,17 @@ export async function ensureDefaultSaAccount(pool) {
 
     await conn.commit();
     logger.warn(
-      `🔐 Default SA user created (email: ${defaultEmail}, role: sa). Change DEFAULT_SA_PASSWORD immediately.`
+      `🔐 Default SA user created (email: ${defaultEmail}, role: sa, emailSource: ${emailSource}, passwordSource: ${passwordSource}). Rotate this password immediately.`
     );
+    const bootstrapFilePath = writeBootstrapCredentialsFile({
+      userId,
+      username: defaultUsername,
+      email: defaultEmail,
+      password: defaultPassword,
+    });
+    if (bootstrapFilePath) {
+      logger.info(`📁 Bootstrap credential path emitted: ${bootstrapFilePath}`);
+    }
   } catch (err) {
     await conn.rollback();
 

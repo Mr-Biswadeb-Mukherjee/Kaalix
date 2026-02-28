@@ -84,7 +84,7 @@
     margin-bottom: 12px;
 
     img {
-      width: clamp(62px, 16vw, 84px);
+      width: clamp(62px, 16vw, 100px);
       height: auto;
       filter: drop-shadow(0 10px 24px rgba(255, 0, 51, 0.45));
       animation: auth-pulse 3.2s ease-in-out infinite;

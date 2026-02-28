@@ -56,7 +56,7 @@
 }
 
 .sidebar-logo-fixed img {
-  height: 52px;
+  height: 70px;
   width: auto;
   transition:
     height 0.28s cubic-bezier(0.22, 1, 0.36, 1),
@@ -77,7 +77,8 @@
 }
 
 .sidebar-container.collapsed .sidebar-logo-fixed img {
-  height: 62px;
+  height: 100px;
+  margin-left: -20px;
   transform: translateX(2px);
 }
 

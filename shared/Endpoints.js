@@ -1,90 +1,100 @@
+const API_BASE = "/api/v3";
+
 const API = {
   system: {
     public: {
       login: {
         method: 'POST',
-        endpoint: '/api/v3/auth',
+        endpoint: `${API_BASE}/auth`,
       },
       logout: {
         method: 'POST',
-        endpoint: '/api/v3/logout',
+        endpoint: `${API_BASE}/logout`,
       },
       verify: {
         method: 'POST',
-        endpoint: '/api/v3/verify',
+        endpoint: `${API_BASE}/verify`,
       },
       captcha: {
         method: 'GET',
-        endpoint: '/api/v3/captcha',
+        endpoint: `${API_BASE}/captcha`,
       },
     },
 
     protected: {
       dashboard: {
         method: 'POST',
-        endpoint: '/api/v3/dashboard',
+        endpoint: `${API_BASE}/dashboard`,
       },
-      targetConfig: {
+      dataSources: {
         method: 'POST',
-        endpoint: '/api/v3/tar-config',
+        endpoint: `${API_BASE}/log-sources`,
       },
-      attackLogic: {
+      detectionRules: {
         method: 'POST',
-        endpoint: '/api/v3/attack-logic',
+        endpoint: `${API_BASE}/detection-rules`,
       },
-      modules: {
+      integrations: {
         method: 'POST',
-        endpoint: '/api/v3/modules',
+        endpoint: `${API_BASE}/integrations`,
       },
-      proxy: {
+      logForwarder: {
         method: 'POST',
-        endpoint: '/api/v3/proxy',
+        endpoint: `${API_BASE}/log-forwarder`,
       },
       aboutUs: {
         method: 'POST',
-        endpoint: '/api/v3/about-us',
+        endpoint: `${API_BASE}/about-us`,
       },
       documentation: {
         method: 'POST',
-        endpoint: '/api/v3/documentation',
+        endpoint: `${API_BASE}/documentation`,
       },
       settings: {
         method: 'POST',
-        endpoint: '/api/v3/settings',
+        endpoint: `${API_BASE}/settings`,
       },
       status: {
         method: 'POST',
-        endpoint: '/api/v3/status',
+        endpoint: `${API_BASE}/status`,
       },
       changepass: {
         method: 'POST',
-        endpoint: '/api/v3/changepass',
+        endpoint: `${API_BASE}/changepass`,
       },
       deleteacc: {
         method: 'POST',
-        endpoint: '/api/v3/deleteacc',
+        endpoint: `${API_BASE}/deleteacc`,
       },
 
       getprofile: {
         method: 'GET', 
-        endpoint: '/api/v3/getprofile',
+        endpoint: `${API_BASE}/getprofile`,
       },
 
       updateprofile: {
         method: 'POST',
-        endpoint: '/api/v3/updateprofile',
+        endpoint: `${API_BASE}/updateprofile`,
       },
       updateavatar: {
         method: 'POST',
-        endpoint: '/api/v3/updateavatar',
+        endpoint: `${API_BASE}/updateavatar`,
+      },
+      locationConsent: {
+        method: 'POST',
+        endpoint: `${API_BASE}/location-consent`,
+      },
+      locationUpdate: {
+        method: 'POST',
+        endpoint: `${API_BASE}/location-update`,
       },
       MFA: {
         method: 'POST',
-        endpoint: '/api/v3/MFA',
+        endpoint: `${API_BASE}/MFA`,
       },
       MFA_verify: {
         method: 'POST',
-        endpoint: '/api/v3/MFA/verify',
+        endpoint: `${API_BASE}/MFA/verify`,
       },
     },
   },

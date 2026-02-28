@@ -17,6 +17,7 @@ import API from '@amon/shared';
 import './Styles/TopBar.css';
 import { useToast } from '../UI/Toast';
 import { useAuth } from '../../Context/AuthContext';
+import { getBrowserLocationLabel } from '../../Utils/browserLocation';
 
 const TopBar = ({ collapsed }) => {
   const [time, setTime] = useState(new Date().toLocaleTimeString());
@@ -68,22 +69,64 @@ const TopBar = ({ collapsed }) => {
   useEffect(() => {
     if (!token) return;
     if (onboardingRequired) {
-      setLocation('Complete Profile Setup');
+      setLocation('Complete Required Setup');
       return;
     }
 
-    fetch(API.system.protected.status.endpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-    })
-      .then((res) => {
+    let isMounted = true;
+
+    const resolveLocationText = (data) => {
+      const locationText = typeof data?.stats?.location === 'string'
+        ? data.stats.location.trim()
+        : '';
+      if (locationText && locationText !== 'N/A') {
+        return locationText;
+      }
+
+      const lat = Number(data?.stats?.preciseLocation?.latitude);
+      const lng = Number(data?.stats?.preciseLocation?.longitude);
+      if (Number.isFinite(lat) && Number.isFinite(lng)) {
+        return `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+      }
+
+      return 'Unknown Location';
+    };
+
+    const fetchLocationFromAPI = async () => {
+      try {
+        const res = await fetch(API.system.protected.status.endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        });
+
         if (!res.ok) throw new Error('Failed to fetch location');
-        return res.json();
-      })
-      .then((data) => {
-        setLocation(data?.stats?.location || 'Unknown Location');
-      })
-      .catch(() => setLocation('Unknown Location'));
+        const data = await res.json();
+        if (!isMounted) return;
+        setLocation(resolveLocationText(data));
+      } catch {
+        if (!isMounted) return;
+        setLocation('Unknown Location');
+      }
+    };
+
+    const refreshLocation = async () => {
+      const browserLocation = await getBrowserLocationLabel();
+      if (browserLocation) {
+        if (!isMounted) return;
+        setLocation(browserLocation);
+        return;
+      }
+
+      await fetchLocationFromAPI();
+    };
+
+    refreshLocation();
+    const intervalId = setInterval(refreshLocation, 30000);
+
+    return () => {
+      isMounted = false;
+      clearInterval(intervalId);
+    };
   }, [token, onboardingRequired]);
 
   // Apply theme

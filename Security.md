@@ -1,12 +1,12 @@
-# AMON Security Notes
+# KAALIX Security Notes
 
-This document tracks vulnerabilities, fixes, and pending issues in the `AMON` project as reported by `Snyk`.  
+This document tracks vulnerabilities, fixes, and pending issues in the `KAALIX` project as reported by `Snyk`.  
 **Strictly restricted to Internal Development Team Use Only.**  
 All vulnerabilities are tracked with a unique **Vulnerability ID (V-)**.
 
 ---
 
-## Vulnerability ID: **AMON-V-2025-001**  
+## Vulnerability ID: **KAALIX-V-2025-001**  
 **Status:** ✅ Fixed  
 **Scope:** UI components, backend services, middleware, and dependency tree  
 **Description:** This ID covers several vulnerabilities identified across the project, which have been remediated successfully.

@@ -1,96 +1,48 @@
-// About Us.jsx
-
-import './Styles/Aboutus.css';
-import Logo from '../Components/UI/Logo'
-import Avatar from '../assets/Avatar.png'
+import "./Styles/Aboutus.css";
+import Logo from "../Components/UI/Logo";
 
 const AboutUs = () => {
   return (
     <div className="aboutus-container">
       <h1 className="title-with-logo">
         <Logo size={60} />
-        AMON
+        KAALIX
       </h1>
 
       <blockquote>
-        "The god of knowledge and secrecy — now weaponized for password cracking operations."
+        "A vigilant eye over your digital surface, where time, data, and defense converge."
       </blockquote>
 
       <section>
-        <h2>🔍 What is Amon?</h2>
+        <h2>What Is Kaalix?</h2>
         <p>
-          <strong>Amon</strong> is a <strong>fast</strong>, <strong>flexible</strong>, and <strong>hardware-accelerated</strong> password cracking engine built with <strong>NodeJS</strong> and <strong>React (Vite)</strong>. Designed for red teams, pentesters, and security researchers, Amon is capable of launching all types of password cracking attacks — all from a sleek, modern web UI.
+          <strong>Kaalix</strong> is an organization-focused intelligence platform built to
+          observe, analyze, and respond to the living pulse of web infrastructure.
+          Inspired by the concept of <em>Kaal</em> (time itself), it provides real-time
+          visibility into uptime, performance degradation, and hostile traffic patterns.
         </p>
       </section>
 
       <section>
-        <h2>💡 Why Amon?</h2>
+        <h2>Operational Value</h2>
         <p>
-          Traditional tools like Hydra and Medusa laid the foundation, but they fall short in modern offensive workflows. Amon advances the game with:
+          Kaalix transforms raw telemetry into structured awareness so teams can understand
+          when systems slow, fail, or face coordinated attacks.
         </p>
         <ul>
-          <li>✅ Custom attack logic (brute-force, spray, hybrid, dictionary-based, etc.)</li>
-          <li>✅ Optional CPU/GPU/TPU-aware backend</li>
-          <li>✅ Modular architecture (HTTP, SSH, SMB, etc.)</li>
-          <li>✅ Real-time feedback, metrics, and logging</li>
-          <li>✅ NodeJS API with full UI control</li>
+          <li>Real-time uptime and performance monitoring</li>
+          <li>Traffic anomaly detection and hostile pattern tracking</li>
+          <li>Threat-origin mapping for faster triage</li>
+          <li>Unified command visibility for operations and security teams</li>
         </ul>
       </section>
 
       <section>
-        <h2>🎯 What Problem Does Amon Solve?</h2>
+        <h2>Why It Matters</h2>
         <p>
-          <em>Precision over chaos. Control over password cracking.</em>  
-          Amon brings fine-tuned control and intelligent spraying, dictionary-based attacks, plugin-based extensibility, and red team–oriented dashboards that provide clear visibility over campaigns and outcomes.
-        </p>
-      </section>
-
-    <section className="developer-profile">
-      <h2 className="section-title">👨‍💻 Meet the Developer</h2>
-      <div className="developer-card">
-        <div className="developer-info">
-          <h3 className="developer-name">Mr. Biswadeb Mukherjee</h3>
-          <span className="developer-role">• Ethical Hacker • Pentester • Malware Developer</span>
-          <p className="developer-bio">
-            Myself Biswadeb Mukherjee, an offensive security specialist with over 5 years in the trenches, I brings together deep knowledge of exploit development, Python engineering, and real-world pentesting workflows to deliver tools that are both battle-ready and beautifully built.
-          </p>
-          <ul className="developer-highlights">
-            <li>🛡️ Network security, IDS/IPS, and OSINT automation</li>
-            <li>💻 Expert in Penetration Testing, Linux, and secure coding and much more.</li>
-            <li>🎯 Builder of modular, fast, and field-tested red team tools</li>
-          </ul>
-          <p className="developer-contact">
-            Learn more at: 
-            <a href="https://www.linkedin.com/in/biswadeb-mukherjee" target="_blank" rel="noopener noreferrer"> LinkedIn</a> &nbsp;|&nbsp;
-            <a href="https://github.com/official-biswadeb941" target="_blank" rel="noopener noreferrer"> GitHub</a> &nbsp;|&nbsp;
-            <a href="https://www.instagram.com/official_biswadeb941/" target="_blank" rel="noopener noreferrer"> Instagram</a>
-          </p>
-        </div>
-        {/* Optional Avatar */}
-        <div className="developer-avatar">
-          <img src={Avatar} alt="Biswadeb Mukherjee" />
-        </div>
-      </div>
-    </section>
-
-
-      <section>
-        <h2>🔮 Future of Amon</h2>
-        <ul>
-          <li>🔌 Distributed engine support</li>
-          <li>⚡ Native GPU acceleration (CUDA/OpenCL)</li>
-          <li>🌐 Expanded protocol support (FTP, RDP, LDAP, etc.)</li>
-          <li>📊 Visual dashboards with heatmaps & metrics</li>
-          <li>🧠 AI-assisted password generation from breach corpora</li>
-          <li>🔁 Attack replays & scheduled campaigns</li>
-          <li>💾 Headless CLI mode</li>
-        </ul>
-      </section>
-
-      <section className="disclaimer">
-        <h2 className="disclaimer">⚠️ Legal Disclaimer</h2>
-        <p>
-          Amon is intended strictly for <strong>authorized security testing</strong> and <strong>research purposes</strong>. Unauthorized use is strictly prohibited. You are solely responsible for complying with all applicable laws and regulations.
+          Designed for operational clarity, Kaalix bridges performance monitoring and
+          security intelligence in one platform. It does not just report incidents; it
+          reveals meaningful patterns before they escalate.
         </p>
       </section>
     </div>

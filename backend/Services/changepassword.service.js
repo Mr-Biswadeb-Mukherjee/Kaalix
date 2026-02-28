@@ -1,6 +1,7 @@
 import bcrypt from "bcrypt";
 import { getDatabase } from "../Connectors/DB.js";
 import { findUserById, getUserOnboardingState } from "./user.service.js";
+import { maybeDeleteBootstrapCredentialsFile } from "../Utils/bootstrapCredentials.utils.js";
 
 /**
  * Service: Update user password
@@ -61,6 +62,7 @@ export const ChangePassword = async (req, res) => {
     await updateUserPassword(userId, newPassword);
 
     const onboarding = await getUserOnboardingState(userId);
+    maybeDeleteBootstrapCredentialsFile({ role: user.role, onboarding });
 
     return res.json({
       message: "Password changed successfully",

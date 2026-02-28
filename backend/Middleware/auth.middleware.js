@@ -1,5 +1,6 @@
 import { verifyToken } from "../Utils/JWT.utils.js";
 import { getUserOnboardingState } from "../Services/user.service.js";
+import API from "@amon/shared";
 
 /**
  * Middleware factory to control token revocation
@@ -40,12 +41,14 @@ export default function authMiddleware(options = {}) {
           success: false,
           code: "ONBOARDING_REQUIRED",
           message:
-            "First-time setup is required. Update your profile and change password to continue.",
+            "Required setup is incomplete. Update profile, change password, and share exact device location to continue.",
           onboarding,
           allowedEndpoints: {
-            getProfile: "/api/v3/getprofile",
-            updateProfile: "/api/v3/updateprofile",
-            changePassword: "/api/v3/changepass",
+            getProfile: API.system.protected.getprofile.endpoint,
+            updateProfile: API.system.protected.updateprofile.endpoint,
+            changePassword: API.system.protected.changepass.endpoint,
+            locationConsent: API.system.protected.locationConsent.endpoint,
+            locationUpdate: API.system.protected.locationUpdate.endpoint,
           },
         });
       }

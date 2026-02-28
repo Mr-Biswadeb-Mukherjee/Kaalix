@@ -1,5 +1,5 @@
 // Profile.jsx
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useToast } from "../Components/UI/Toast";
 import CameraAltIcon from "@mui/icons-material/CameraAlt";
 import Security from "../Components/Features/Security";
@@ -10,6 +10,48 @@ import "react-phone-input-2/lib/style.css";
 import "./Styles/Profile.css";
 import ProfileAvatarModal from "./ProfileAvatarModal";
 import { useAuth } from "../Context/AuthContext";
+import { getBrowserLocationLabel } from "../Utils/browserLocation";
+
+const BUSINESS_EMAIL_REQUIRED_MESSAGE =
+  "Only business email addresses are allowed. Personal email providers are not permitted.";
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const PERSONAL_EMAIL_DOMAIN_SET = new Set([
+  "gmail.com",
+  "googlemail.com",
+  "yahoo.com",
+  "yahoo.co.in",
+  "yahoo.co.uk",
+  "outlook.com",
+  "hotmail.com",
+  "live.com",
+  "msn.com",
+  "icloud.com",
+  "me.com",
+  "mac.com",
+  "aol.com",
+  "protonmail.com",
+  "proton.me",
+  "pm.me",
+  "gmx.com",
+  "gmx.de",
+  "mail.com",
+  "yandex.com",
+  "yandex.ru",
+  "zoho.com",
+  "rediffmail.com",
+  "qq.com",
+  "163.com",
+  "126.com",
+]);
+
+const getEmailDomain = (email) => {
+  const normalized = String(email || "").trim().toLowerCase();
+  const atIndex = normalized.lastIndexOf("@");
+  if (atIndex <= 0 || atIndex === normalized.length - 1) return "";
+  return normalized.slice(atIndex + 1);
+};
+
+const isPersonalEmail = (email) => PERSONAL_EMAIL_DOMAIN_SET.has(getEmailDomain(email));
 
 const Profile = () => {
   const { addToast } = useToast();
@@ -38,8 +80,60 @@ const Profile = () => {
   const [originalUserInfo, setOriginalUserInfo] = useState({ ...userInfo });
   const [defaultCountry, setDefaultCountry] = useState("us");
   const [location, setLocation] = useState("Unknown Location");
+  const [locationSharingEnabled, setLocationSharingEnabled] = useState(false);
+  const [locationConsentRequired, setLocationConsentRequired] = useState(false);
+  const [preciseLocationAvailable, setPreciseLocationAvailable] = useState(false);
+  const [isLocationConsentSaving, setIsLocationConsentSaving] = useState(false);
 
   const token = localStorage.getItem("token");
+
+  const fetchLocationStats = useCallback(async () => {
+    if (!token) return;
+    if (onboarding?.required) {
+      if (onboarding?.mustShareLocation) {
+        setLocation("Location permission required");
+        setLocationConsentRequired(true);
+      } else {
+        setLocation("Complete Profile Setup");
+        setLocationConsentRequired(false);
+      }
+      setLocationSharingEnabled(false);
+      setPreciseLocationAvailable(false);
+      return;
+    }
+
+    const countryISOMap = { "United States": "us", India: "in", "United Kingdom": "gb", Australia: "au" };
+
+    try {
+      const res = await fetch(API.system.protected.status.endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }
+      });
+      if (!res.ok) throw new Error("Failed to fetch location");
+      const data = await res.json();
+      const browserLocation = await getBrowserLocationLabel();
+      const loc = browserLocation || data?.stats?.location || "Unknown Location";
+      const isLocationAllowed = data?.stats?.locationSharingEnabled === true;
+      const isConsentNeeded = data?.stats?.locationConsentRequired === true;
+      const hasPreciseLocation = data?.stats?.preciseLocationAvailable === true;
+
+      setLocation(loc);
+      setLocationSharingEnabled(isLocationAllowed);
+      setLocationConsentRequired(isConsentNeeded);
+      setPreciseLocationAvailable(hasPreciseLocation);
+
+      const countryName = loc.includes(",") ? loc.split(",").pop().trim() : loc.trim();
+      if (countryISOMap[countryName] && !phoneEdited) {
+        setDefaultCountry(countryISOMap[countryName]);
+      }
+    } catch {
+      const browserLocation = await getBrowserLocationLabel();
+      setLocation(browserLocation || "Unknown Location");
+      setLocationSharingEnabled(false);
+      setLocationConsentRequired(false);
+      setPreciseLocationAvailable(false);
+    }
+  }, [token, onboarding?.required, onboarding?.mustShareLocation, phoneEdited]);
 
   // Fetch profile on mount
   useEffect(() => {
@@ -81,34 +175,8 @@ const Profile = () => {
 
   // Fetch location once
   useEffect(() => {
-    if (!token) return;
-    if (onboarding?.required) {
-      setLocation("Complete Profile Setup");
-      return;
-    }
-
-    const countryISOMap = { "United States": "us", India: "in", "United Kingdom": "gb", Australia: "au" };
-
-    const fetchLocation = async () => {
-      try {
-        const res = await fetch(API.system.protected.status.endpoint, {
-          method: "POST",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }
-        });
-        if (!res.ok) throw new Error("Failed to fetch location");
-        const data = await res.json();
-        const loc = data?.stats?.location || "Unknown Location";
-        setLocation(loc);
-        if (countryISOMap[loc] && !phoneEdited) {
-          setDefaultCountry(countryISOMap[loc]);
-        }
-      } catch {
-        setLocation("Unknown Location");
-      }
-    };
-
-    fetchLocation();
-  }, [token, phoneEdited, onboarding?.required]);
+    fetchLocationStats();
+  }, [fetchLocationStats]);
 
   const hasPersonalChanges = useMemo(
     () =>
@@ -122,6 +190,12 @@ const Profile = () => {
     () => originalUserInfo.org !== userInfo.org,
     [originalUserInfo, userInfo]
   );
+  const businessEmailError = useMemo(() => {
+    if (!isPersonalEditing) return "";
+    const email = String(userInfo.email || "").trim().toLowerCase();
+    if (!email || !EMAIL_PATTERN.test(email)) return "";
+    return isPersonalEmail(email) ? BUSINESS_EMAIL_REQUIRED_MESSAGE : "";
+  }, [isPersonalEditing, userInfo.email]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -155,6 +229,10 @@ const Profile = () => {
 
   const handleSavePersonal = async () => {
     if (!hasPersonalChanges) return;
+    if (businessEmailError) {
+      addToast(businessEmailError, "error");
+      return;
+    }
     try {
       const res = await fetch(API.system.protected.updateprofile.endpoint, {
         method: "POST",
@@ -260,6 +338,104 @@ const Profile = () => {
     }
   };
 
+  const updatePreciseLocationFromDevice = async () => {
+    if (typeof navigator === "undefined" || !navigator.geolocation) {
+      addToast("Geolocation is not supported by this environment.", "error");
+      return false;
+    }
+
+    try {
+      const position = await new Promise((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(
+          resolve,
+          reject,
+          {
+            enableHighAccuracy: true,
+            timeout: 20000,
+            maximumAge: 60000,
+          }
+        );
+      });
+
+      const res = await fetch(API.system.protected.locationUpdate.endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+          accuracyMeters: position.coords.accuracy,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        addToast(data.message || "Failed to update exact device location.", "error");
+        return false;
+      }
+
+      if (data?.onboarding) {
+        updateOnboarding(data.onboarding);
+      }
+      return true;
+    } catch (err) {
+      if (typeof err?.code === "number") {
+        if (err.code === 1) {
+          addToast("Browser denied location access. Allow it to continue.", "error");
+          return false;
+        }
+        if (err.code === 2) {
+          addToast("Unable to determine current device location.", "error");
+          return false;
+        }
+        if (err.code === 3) {
+          addToast("Location request timed out. Try again.", "error");
+          return false;
+        }
+      }
+
+      addToast(err.message || "Failed to capture exact location.", "error");
+      return false;
+    }
+  };
+
+  const handleLocationConsentUpdate = async () => {
+    if (!token) return;
+    if (!window.confirm("Location sharing and exact device location are required. Continue?")) {
+      return;
+    }
+
+    setIsLocationConsentSaving(true);
+    try {
+      const res = await fetch(API.system.protected.locationConsent.endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ allow: true })
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        addToast(data.message || "Failed to update location sharing", "error");
+        return;
+      }
+
+      if (data?.onboarding) {
+        updateOnboarding(data.onboarding);
+      }
+
+      const preciseLocationSaved = await updatePreciseLocationFromDevice();
+      if (!preciseLocationSaved) {
+        return;
+      }
+
+      addToast("Exact device location updated.", "success");
+      await fetchLocationStats();
+    } catch (err) {
+      addToast(err.message || "Failed to update location sharing", "error");
+    } finally {
+      setIsLocationConsentSaving(false);
+    }
+  };
+
   const getInitials = (name) => {
     if (!name) return "NA";
     return name
@@ -282,7 +458,7 @@ const Profile = () => {
       <div className="profile-left">
         {onboarding?.required && (
           <div className="profile-onboarding-banner">
-            Complete first-time setup: update profile details and change your password.
+            Complete required setup: use a business email address, update profile details, change password, and share exact device location.
           </div>
         )}
         <div className="profile-header-with-avatar">
@@ -335,6 +511,7 @@ const Profile = () => {
           handleOrgEditToggle={handleOrgEditToggle}
           handleSavePersonal={handleSavePersonal}
           handleSaveOrg={handleSaveOrg}
+          businessEmailError={businessEmailError}
         />
 
         <Security
@@ -353,6 +530,27 @@ const Profile = () => {
               Logged in from <strong>{location}</strong>
             </li>
           </ul>
+          {(onboarding?.mustShareLocation ||
+            (!onboarding?.required && (
+              locationConsentRequired || !locationSharingEnabled || !preciseLocationAvailable
+            ))) && (
+            <div className="location-consent-actions">
+              <button
+                type="button"
+                className="save-btn"
+                onClick={handleLocationConsentUpdate}
+                disabled={isLocationConsentSaving || (locationSharingEnabled && preciseLocationAvailable)}
+              >
+                {isLocationConsentSaving
+                  ? "Updating Location..."
+                  : (locationSharingEnabled && preciseLocationAvailable)
+                    ? "Exact Location Shared"
+                    : !locationSharingEnabled
+                      ? "Enable Location Sharing (Required)"
+                      : "Share Exact Device Location (Required)"}
+              </button>
+            </div>
+          )}
         </div>
         <div className="widget-card">
           <h3>Account Status</h3>

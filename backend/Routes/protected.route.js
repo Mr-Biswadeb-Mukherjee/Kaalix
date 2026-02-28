@@ -3,13 +3,35 @@ import API from "@amon/shared";
 import authMiddleware from "../Middleware/auth.middleware.js";
 import getSystemStats from "../Services/status.service.js";
 import { ChangePassword } from "../Services/changepassword.service.js";
-import { FetchProfile, UpdateProfile, UpdateAvatar } from "../Controller/Profile.controller.js";
+import {
+  FetchProfile,
+  UpdateProfile,
+  UpdateAvatar,
+  UpdateLocationConsent,
+  UpdatePreciseLocation,
+} from "../Controller/Profile.controller.js";
+import { getLocationSharingState } from "../Services/profile.service.js";
 import { upload, processAvatar, handleUploadErrors } from "../Middleware/upload.middleware.js";
 import { MFAService } from "../Services/MFA.service.js";
 
 const router = express.Router();
 const asyncHandler = (fn) => (req, res, next) =>
   Promise.resolve(fn(req, res, next)).catch(next);
+
+const FALLBACK_LOCATION_TEXT = "Unknown Location";
+
+const formatCoordinates = (preciseLocation) => {
+  const latitude = Number(preciseLocation?.latitude);
+  const longitude = Number(preciseLocation?.longitude);
+  if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return null;
+  return `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`;
+};
+
+const normalizeLocationText = (value) => {
+  const text = typeof value === "string" ? value.trim() : "";
+  if (!text || text === "N/A") return null;
+  return text;
+};
 
 // ===================== Routes =====================
 
@@ -18,7 +40,31 @@ router.post(
   API.system.protected.status.endpoint,
   authMiddleware({ revoke: false }),
   asyncHandler(async (req, res) => {
-    const stats = getSystemStats();
+    const baseStats = getSystemStats();
+    const { locationConsent, preciseLocation } = await getLocationSharingState(req.user.user_id);
+    const locationSharingEnabled = locationConsent === true;
+    const preciseLocationAvailable = Boolean(locationSharingEnabled && preciseLocation);
+    const ipLocationText = normalizeLocationText(baseStats.location);
+    const preciseLocationText = normalizeLocationText(preciseLocation?.locationLabel) || formatCoordinates(preciseLocation);
+
+    const resolvedLocation = locationSharingEnabled
+      ? (preciseLocationAvailable
+          ? (preciseLocationText || ipLocationText || FALLBACK_LOCATION_TEXT)
+          : (ipLocationText || FALLBACK_LOCATION_TEXT))
+      : (locationConsent === null ? "Location permission required" : "Location sharing disabled");
+
+    const stats = {
+      ...baseStats,
+      location: resolvedLocation,
+      locationSharingEnabled,
+      locationConsentRequired: locationConsent === null,
+      preciseLocationAvailable,
+      locationSource: locationSharingEnabled
+        ? (preciseLocationAvailable ? "device-geolocation" : "ip-geolocation")
+        : "blocked",
+      preciseLocation,
+    };
+
     return res.status(200).json({ success: true, stats });
   })
 );
@@ -58,6 +104,20 @@ router.post(
     req.avatarUrl = req.processedAvatarPath;
     await UpdateAvatar(req, res);
   })
+);
+
+// Update location-sharing consent
+router.post(
+  API.system.protected.locationConsent.endpoint,
+  authMiddleware({ revoke: false, allowDuringOnboarding: true }),
+  UpdateLocationConsent
+);
+
+// Update precise location from browser geolocation API
+router.post(
+  API.system.protected.locationUpdate.endpoint,
+  authMiddleware({ revoke: false, allowDuringOnboarding: true }),
+  UpdatePreciseLocation
 );
 
 // ===================== MFA Routes =====================

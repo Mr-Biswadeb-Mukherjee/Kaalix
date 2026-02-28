@@ -1,12 +1,22 @@
 import { 
   fetchProfile as getUserProfile, 
   updateProfile as modifyUserProfile, 
-  updateProfileAvatar } from "../Services/profile.service.js";
+  updateProfileAvatar,
+  updateLocationSharingConsent,
+  updatePreciseLocation,
+  getLocationSharingConsent,
+} from "../Services/profile.service.js";
 import { getUserOnboardingState } from "../Services/user.service.js";
+import { maybeDeleteBootstrapCredentialsFile } from "../Utils/bootstrapCredentials.utils.js";
 
 import validator from "validator";
 import sanitizeHtml from "sanitize-html";
 import { parsePhoneNumberFromString } from "libphonenumber-js";
+import {
+  BUSINESS_EMAIL_REQUIRED_MESSAGE,
+  isPersonalEmail,
+  isStrictBusinessEmailModeEnabled,
+} from "../Utils/emailPolicy.utils.js";
 
 // Utility to format date
 const formatDateTime = (date) => {
@@ -20,6 +30,11 @@ const formatDateTime = (date) => {
 const getFullAvatarUrl = (req, profileUrl) => {
   if (!profileUrl) return null;
   return `${req.protocol}://${req.get("host")}${profileUrl}`;
+};
+
+const normalizeLocationConsent = (value) => {
+  if (value === null || typeof value === "undefined") return null;
+  return Number(value) === 1 || value === true;
 };
 
 /**
@@ -45,6 +60,7 @@ export const FetchProfile = async (req, res) => {
       orgId: profile.orgId,
       phone: profile.phone,
       bio: profile.bio,
+      locationConsent: normalizeLocationConsent(profile.locationConsent),
       avatarUrl: getFullAvatarUrl(req, profile.profile_url), // ✅ fixed
       onboarding: req.onboarding || null,
     });
@@ -106,6 +122,9 @@ export const UpdateProfile = async (req, res) => {
     if (hasEmailField && (!email || !validator.isEmail(email))) {
       return res.status(400).json({ message: "Invalid email address." });
     }
+    if (hasEmailField && isStrictBusinessEmailModeEnabled() && isPersonalEmail(email)) {
+      return res.status(400).json({ message: BUSINESS_EMAIL_REQUIRED_MESSAGE });
+    }
 
     let normalizedPhone = undefined;
     if (hasPhoneField && phone) {
@@ -160,6 +179,7 @@ export const UpdateProfile = async (req, res) => {
       org,
     });
     const onboarding = await getUserOnboardingState(userId);
+    maybeDeleteBootstrapCredentialsFile({ role: updatedProfile.role, onboarding });
 
     res.json({
       updatedAt: formatDateTime(updatedProfile.updatedAt),
@@ -171,6 +191,7 @@ export const UpdateProfile = async (req, res) => {
       orgId: updatedProfile.orgId,
       phone: updatedProfile.phone,
       bio: updatedProfile.bio,
+      locationConsent: normalizeLocationConsent(updatedProfile.locationConsent),
       avatarUrl: getFullAvatarUrl(req, updatedProfile.profile_url), // ✅ fixed
       onboarding,
     });
@@ -179,10 +200,80 @@ export const UpdateProfile = async (req, res) => {
     if (err.code === "USER_EXISTS" || err.code === "EMAIL_EXISTS") {
       return res.status(409).json({ message: "Email already in use" });
     }
+    if (err.code === "BUSINESS_EMAIL_REQUIRED") {
+      return res.status(400).json({ message: err.message || BUSINESS_EMAIL_REQUIRED_MESSAGE });
+    }
     if (err.code === "PHONE_EXISTS") {
       return res.status(409).json({ message: "Phone number already in use" });
     }
     res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+/**
+ * POST update location sharing consent
+ */
+export const UpdateLocationConsent = async (req, res) => {
+  try {
+    const userId = req.user.user_id;
+    const hasAllowField = Object.prototype.hasOwnProperty.call(req.body, "allow");
+
+    if (!hasAllowField || typeof req.body.allow !== "boolean") {
+      return res.status(400).json({ message: "Invalid request. 'allow' must be a boolean." });
+    }
+    if (req.body.allow !== true) {
+      return res.status(400).json({ message: "Location sharing is required and cannot be disabled." });
+    }
+
+    const locationConsent = await updateLocationSharingConsent(userId, req.body.allow);
+    const onboarding = await getUserOnboardingState(userId);
+    maybeDeleteBootstrapCredentialsFile({ role: req.user?.role, onboarding });
+    return res.status(200).json({ success: true, locationConsent, onboarding });
+  } catch (err) {
+    console.error("Error in UpdateLocationConsent:", err);
+    return res.status(500).json({ message: "Failed to update location consent" });
+  }
+};
+
+/**
+ * POST update precise device location (lat/lng/accuracy)
+ */
+export const UpdatePreciseLocation = async (req, res) => {
+  try {
+    const userId = req.user.user_id;
+    const consent = await getLocationSharingConsent(userId);
+    if (consent !== true) {
+      return res.status(403).json({ message: "Location consent must be enabled first." });
+    }
+
+    const { latitude, longitude, accuracyMeters } = req.body || {};
+    const lat = Number(latitude);
+    const lng = Number(longitude);
+    const hasAccuracy = !(accuracyMeters === null || typeof accuracyMeters === "undefined");
+    const accuracy = hasAccuracy ? Number(accuracyMeters) : null;
+
+    if (!Number.isFinite(lat) || lat < -90 || lat > 90) {
+      return res.status(400).json({ message: "Invalid latitude." });
+    }
+    if (!Number.isFinite(lng) || lng < -180 || lng > 180) {
+      return res.status(400).json({ message: "Invalid longitude." });
+    }
+    if (hasAccuracy && (!Number.isFinite(accuracy) || accuracy < 0 || accuracy > 100000)) {
+      return res.status(400).json({ message: "Invalid accuracy meters." });
+    }
+
+    const preciseLocation = await updatePreciseLocation(userId, {
+      latitude: lat,
+      longitude: lng,
+      accuracyMeters: accuracy,
+    });
+
+    const onboarding = await getUserOnboardingState(userId);
+    maybeDeleteBootstrapCredentialsFile({ role: req.user?.role, onboarding });
+    return res.status(200).json({ success: true, preciseLocation, onboarding });
+  } catch (err) {
+    console.error("Error in UpdatePreciseLocation:", err);
+    return res.status(500).json({ message: "Failed to update precise location" });
   }
 };
 

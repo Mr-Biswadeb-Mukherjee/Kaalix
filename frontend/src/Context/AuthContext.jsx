@@ -5,20 +5,23 @@ const AuthContext = createContext();
 const defaultOnboardingState = Object.freeze({
   mustChangePassword: false,
   mustUpdateProfile: false,
+  mustShareLocation: false,
   required: false,
 });
 
 const normalizeOnboarding = (onboarding) => {
   const mustChangePassword = Boolean(onboarding?.mustChangePassword);
   const mustUpdateProfile = Boolean(onboarding?.mustUpdateProfile);
+  const mustShareLocation = Boolean(onboarding?.mustShareLocation);
   const required =
     typeof onboarding?.required === "boolean"
       ? onboarding.required
-      : (mustChangePassword || mustUpdateProfile);
+      : (mustChangePassword || mustUpdateProfile || mustShareLocation);
 
   return {
     mustChangePassword,
     mustUpdateProfile,
+    mustShareLocation,
     required,
   };
 };
@@ -26,6 +29,7 @@ const normalizeOnboarding = (onboarding) => {
 const isSameOnboarding = (a, b) =>
   Boolean(a?.mustChangePassword) === Boolean(b?.mustChangePassword) &&
   Boolean(a?.mustUpdateProfile) === Boolean(b?.mustUpdateProfile) &&
+  Boolean(a?.mustShareLocation) === Boolean(b?.mustShareLocation) &&
   Boolean(a?.required) === Boolean(b?.required);
 
 export const AuthProvider = ({ children }) => {
@@ -107,7 +111,7 @@ export const AuthProvider = ({ children }) => {
           return {
             success: false,
             blocked: true,
-            message: errorData.message || "Complete first-time setup before logging out.",
+            message: errorData.message || "Complete required setup before logging out.",
           };
         }
         return {

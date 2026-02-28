@@ -4,13 +4,13 @@ import React, { useState } from 'react';
 // Importing React Router DOM hooks for navigation
 import { Link, useLocation } from 'react-router-dom';
 import DashboardIcon from '@mui/icons-material/Dashboard';
-import TerminalIcon from '@mui/icons-material/Terminal';
-import LayersIcon from '@mui/icons-material/Layers';
 import StorageIcon from '@mui/icons-material/Storage';
 import ListAltIcon from '@mui/icons-material/ListAlt';
 import InfoIcon from '@mui/icons-material/Info';
 import MenuBookIcon from '@mui/icons-material/MenuBook';
-import LanIcon from '@mui/icons-material/Lan';
+import RuleIcon from '@mui/icons-material/Rule';
+import HubIcon from '@mui/icons-material/Hub';
+import SyncAltIcon from '@mui/icons-material/SyncAlt';
 import './Styles/sidebar.css';
 import Logo from '../UI/Logo'
 import { useAuth } from '../../Context/AuthContext';
@@ -31,10 +31,10 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
   const { onboardingRequired } = useAuth();
   const menuItems = [
     { name: 'Dashboard', icon: <DashboardIcon />, route: '/dashboard' },
-    { name: 'Target Config', icon: <StorageIcon />, route: '/target-config' },
-    { name: 'Attack Logic', icon: <TerminalIcon />, route: '/attack-logic' },
-    { name: 'Modules', icon: <LayersIcon />, route: '/modules' },
-    { name: 'Proxy', icon: <LanIcon />, route: '/proxy' },
+    { name: 'Data Sources', icon: <StorageIcon />, route: '/data-sources' },
+    { name: 'Detection Rules', icon: <RuleIcon />, route: '/detection-rules' },
+    { name: 'Integrations', icon: <HubIcon />, route: '/integrations' },
+    { name: 'Log Forwarder', icon: <SyncAltIcon />, route: '/log-forwarder' },
     { name: 'About Us', icon: <InfoIcon />, route: '/about' },
     { name: 'Documentation', icon: <MenuBookIcon />, route: '/docs' },
   ];
@@ -47,7 +47,7 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
     <div className={`sidebar-container ${collapsed ? 'collapsed' : ''}`}>
       <div className="sidebar-logo-fixed">
         <Logo />
-        {!collapsed && <span className="sidebar-logo-text">AMON</span>}
+        {!collapsed && <span className="sidebar-logo-text">KAALIX</span>}
       </div>
 
       {/* Sidebar Toggle Button (Burger Icon) */}

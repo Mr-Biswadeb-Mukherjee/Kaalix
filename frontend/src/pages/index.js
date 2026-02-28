@@ -1,8 +1,8 @@
 export { default as Dashboard } from './Dashboard';
-export { default as TargetConfig } from './TargetConfig';
-export { default as AttackLogic } from './AttackLogic';
-export { default as Modules } from './Modules';
-export { default as Proxy } from './Proxy';
+export { default as DataSources } from './DataSources';
+export { default as DetectionRules } from './DetectionRules';
+export { default as Integrations } from './Integrations';
+export { default as LogForwarder } from './LogForwarder';
 export { default as AboutUs } from './Aboutus';
 export { default as Documentation } from './Docs';
 export { default as Logs } from './Logs';

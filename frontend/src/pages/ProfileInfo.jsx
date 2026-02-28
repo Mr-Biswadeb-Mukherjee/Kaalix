@@ -19,13 +19,14 @@ const ProfileInfo = ({
   handleOrgEditToggle,
   handleSavePersonal,
   handleSaveOrg,
+  businessEmailError,
 }) => {
   return (
     <>
       <div className="profile-section">
         <h3>Personal Information</h3>
         {onboardingRequired && (
-          <p className="profile-setup-note">Profile details update is required before accessing other pages.</p>
+          <p className="profile-setup-note">Complete all required setup steps on this page to continue.</p>
         )}
 
         <div className="profile-item">
@@ -46,13 +47,18 @@ const ProfileInfo = ({
         <div className="profile-item">
           <span>Email</span>
           {isPersonalEditing ? (
-            <input
-              className="profile-input"
-              type="email"
-              name="email"
-              value={userInfo.email}
-              onChange={handleChange}
-            />
+            <div>
+              <input
+                className="profile-input"
+                type="email"
+                name="email"
+                value={userInfo.email}
+                onChange={handleChange}
+              />
+              {businessEmailError && (
+                <p className="input-error-message">{businessEmailError}</p>
+              )}
+            </div>
           ) : (
             <p>{userInfo.email || "Not set"}</p>
           )}
@@ -114,7 +120,7 @@ const ProfileInfo = ({
               <button
                 className="save-btn"
                 onClick={handleSavePersonal}
-                disabled={!hasPersonalChanges}
+                disabled={!hasPersonalChanges || Boolean(businessEmailError)}
               >
                 Save Personal
               </button>

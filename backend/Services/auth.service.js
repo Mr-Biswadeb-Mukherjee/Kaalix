@@ -6,22 +6,21 @@ import {
 } from "./user.service.js";
 
 import { verifyCaptcha, getStoredCaptcha } from "./captcha.service.js";
+import {
+  BUSINESS_EMAIL_REQUIRED_MESSAGE,
+  isPersonalEmail,
+  isStrictBusinessEmailModeEnabled,
+} from "../Utils/emailPolicy.utils.js";
+import { maybeDeleteBootstrapCredentialsFile } from "../Utils/bootstrapCredentials.utils.js";
 
 const router = express.Router();
-
-// ✅ Allowed email domains
-const allowedEmailDomains = [
-  "gmail.com", "yahoo.com", "outlook.com", "hotmail.com",
-  "protonmail.com", "icloud.com", "zoho.com",
-];
 
 // 📧 Basic email format regex
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-// 📧 Validate email domain + format
+// 📧 Validate only email format so business domains can authenticate
 function isValidEmail(email) {
-  const domain = email.split("@")[1]?.toLowerCase();
-  return emailRegex.test(email) && allowedEmailDomains.includes(domain);
+  return emailRegex.test(email);
 }
 
 // 🚪 POST /auth  → LOGIN ONLY
@@ -61,6 +60,8 @@ router.post("/", async (req, res) => {
     errors.push("Email is required.");
   } else if (!isValidEmail(trimmedEmail)) {
     errors.push("Invalid email address.");
+  } else if (isStrictBusinessEmailModeEnabled() && isPersonalEmail(trimmedEmail)) {
+    errors.push(BUSINESS_EMAIL_REQUIRED_MESSAGE);
   }
 
   if (!trimmedPassword) {
@@ -191,8 +192,22 @@ router.post("/", async (req, res) => {
     const onboarding = user.onboarding || {
       mustChangePassword: Boolean(user.must_change_password),
       mustUpdateProfile: !user.profile_id,
-      required: Boolean(user.must_change_password) || !user.profile_id,
+      mustShareLocation:
+        Number(user.location_consent) !== 1 ||
+        user.location_lat === null ||
+        typeof user.location_lat === "undefined" ||
+        user.location_lng === null ||
+        typeof user.location_lng === "undefined",
+      required:
+        Boolean(user.must_change_password) ||
+        !user.profile_id ||
+        Number(user.location_consent) !== 1 ||
+        user.location_lat === null ||
+        typeof user.location_lat === "undefined" ||
+        user.location_lng === null ||
+        typeof user.location_lng === "undefined",
     };
+    maybeDeleteBootstrapCredentialsFile({ role, onboarding });
 
     const token = await res.generateToken({
       user_id: user.user_id,

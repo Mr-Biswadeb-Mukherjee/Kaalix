@@ -9,6 +9,12 @@ CREATE TABLE IF NOT EXISTS profiles (
     phone VARCHAR(20),
     bio TEXT,
     profile_url VARCHAR(255),
+    location_consent TINYINT(1) NULL DEFAULT NULL,
+    location_lat DECIMAL(10,7) NULL,
+    location_lng DECIMAL(10,7) NULL,
+    location_accuracy_m DECIMAL(10,2) NULL,
+    location_captured_at TIMESTAMP NULL DEFAULT NULL,
+    location_label VARCHAR(255) NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
     UNIQUE KEY ux_profiles_org_id (org_id)
@@ -71,6 +77,120 @@ SET @profiles_add_org_id_sql := IF(
 PREPARE profiles_add_org_id_stmt FROM @profiles_add_org_id_sql;
 EXECUTE profiles_add_org_id_stmt;
 DEALLOCATE PREPARE profiles_add_org_id_stmt;
+
+-- Ensure location_consent exists for already-created profiles table
+SET @profiles_location_consent_column_exists := (
+    SELECT COUNT(*)
+    FROM INFORMATION_SCHEMA.COLUMNS
+    WHERE TABLE_SCHEMA = DATABASE()
+      AND TABLE_NAME = 'profiles'
+      AND COLUMN_NAME = 'location_consent'
+);
+
+SET @profiles_add_location_consent_sql := IF(
+    @profiles_location_consent_column_exists = 0,
+    "ALTER TABLE profiles ADD COLUMN location_consent TINYINT(1) NULL DEFAULT NULL AFTER profile_url",
+    "SELECT 1"
+);
+
+PREPARE profiles_add_location_consent_stmt FROM @profiles_add_location_consent_sql;
+EXECUTE profiles_add_location_consent_stmt;
+DEALLOCATE PREPARE profiles_add_location_consent_stmt;
+
+-- Ensure location_lat exists for already-created profiles table
+SET @profiles_location_lat_column_exists := (
+    SELECT COUNT(*)
+    FROM INFORMATION_SCHEMA.COLUMNS
+    WHERE TABLE_SCHEMA = DATABASE()
+      AND TABLE_NAME = 'profiles'
+      AND COLUMN_NAME = 'location_lat'
+);
+
+SET @profiles_add_location_lat_sql := IF(
+    @profiles_location_lat_column_exists = 0,
+    "ALTER TABLE profiles ADD COLUMN location_lat DECIMAL(10,7) NULL AFTER location_consent",
+    "SELECT 1"
+);
+
+PREPARE profiles_add_location_lat_stmt FROM @profiles_add_location_lat_sql;
+EXECUTE profiles_add_location_lat_stmt;
+DEALLOCATE PREPARE profiles_add_location_lat_stmt;
+
+-- Ensure location_lng exists for already-created profiles table
+SET @profiles_location_lng_column_exists := (
+    SELECT COUNT(*)
+    FROM INFORMATION_SCHEMA.COLUMNS
+    WHERE TABLE_SCHEMA = DATABASE()
+      AND TABLE_NAME = 'profiles'
+      AND COLUMN_NAME = 'location_lng'
+);
+
+SET @profiles_add_location_lng_sql := IF(
+    @profiles_location_lng_column_exists = 0,
+    "ALTER TABLE profiles ADD COLUMN location_lng DECIMAL(10,7) NULL AFTER location_lat",
+    "SELECT 1"
+);
+
+PREPARE profiles_add_location_lng_stmt FROM @profiles_add_location_lng_sql;
+EXECUTE profiles_add_location_lng_stmt;
+DEALLOCATE PREPARE profiles_add_location_lng_stmt;
+
+-- Ensure location_accuracy_m exists for already-created profiles table
+SET @profiles_location_accuracy_column_exists := (
+    SELECT COUNT(*)
+    FROM INFORMATION_SCHEMA.COLUMNS
+    WHERE TABLE_SCHEMA = DATABASE()
+      AND TABLE_NAME = 'profiles'
+      AND COLUMN_NAME = 'location_accuracy_m'
+);
+
+SET @profiles_add_location_accuracy_sql := IF(
+    @profiles_location_accuracy_column_exists = 0,
+    "ALTER TABLE profiles ADD COLUMN location_accuracy_m DECIMAL(10,2) NULL AFTER location_lng",
+    "SELECT 1"
+);
+
+PREPARE profiles_add_location_accuracy_stmt FROM @profiles_add_location_accuracy_sql;
+EXECUTE profiles_add_location_accuracy_stmt;
+DEALLOCATE PREPARE profiles_add_location_accuracy_stmt;
+
+-- Ensure location_captured_at exists for already-created profiles table
+SET @profiles_location_captured_at_column_exists := (
+    SELECT COUNT(*)
+    FROM INFORMATION_SCHEMA.COLUMNS
+    WHERE TABLE_SCHEMA = DATABASE()
+      AND TABLE_NAME = 'profiles'
+      AND COLUMN_NAME = 'location_captured_at'
+);
+
+SET @profiles_add_location_captured_at_sql := IF(
+    @profiles_location_captured_at_column_exists = 0,
+    "ALTER TABLE profiles ADD COLUMN location_captured_at TIMESTAMP NULL DEFAULT NULL AFTER location_accuracy_m",
+    "SELECT 1"
+);
+
+PREPARE profiles_add_location_captured_at_stmt FROM @profiles_add_location_captured_at_sql;
+EXECUTE profiles_add_location_captured_at_stmt;
+DEALLOCATE PREPARE profiles_add_location_captured_at_stmt;
+
+-- Ensure location_label exists for already-created profiles table
+SET @profiles_location_label_column_exists := (
+    SELECT COUNT(*)
+    FROM INFORMATION_SCHEMA.COLUMNS
+    WHERE TABLE_SCHEMA = DATABASE()
+      AND TABLE_NAME = 'profiles'
+      AND COLUMN_NAME = 'location_label'
+);
+
+SET @profiles_add_location_label_sql := IF(
+    @profiles_location_label_column_exists = 0,
+    "ALTER TABLE profiles ADD COLUMN location_label VARCHAR(255) NULL AFTER location_captured_at",
+    "SELECT 1"
+);
+
+PREPARE profiles_add_location_label_stmt FROM @profiles_add_location_label_sql;
+EXECUTE profiles_add_location_label_stmt;
+DEALLOCATE PREPARE profiles_add_location_label_stmt;
 
 -- Ensure org_id unique index exists
 SET @profiles_org_id_index_exists := (
