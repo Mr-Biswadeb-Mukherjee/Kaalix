@@ -1,4 +1,17 @@
 packages:
-  - 'frontend'
-  - 'backend'
-  - 'shared'
+  - frontend
+  - backend
+  - shared
+
+ignoredBuiltDependencies:
+  - core-js-pure
+  - skia-canvas
+  - unrs-resolver
+
+onlyBuiltDependencies:
+  - bcrypt
+  - canvas
+  - electron
+  - electron-winstaller
+  - esbuild
+  - sharp

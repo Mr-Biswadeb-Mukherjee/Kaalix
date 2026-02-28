@@ -1,0 +1,285 @@
+/* =========================================================
+   AUTH MODULE - SCSS + BEM STRUCTURE
+   ========================================================= */
+
+.auth {
+  position: relative;
+  width: 100%;
+  height: 100vh;
+  overflow: hidden;
+  background: var(--dark-black);
+  font-family: 'Orbitron';
+
+  /* ================================
+     Background Layer
+     ================================ */
+  &__canvas {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 0;
+    width: 100%;
+    height: 100%;
+    background: var(--dark-black);
+  }
+
+  &__container {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+  }
+
+  /* ================================
+     Card
+     ================================ */
+  &__card {
+    width: 360px;
+    padding: 40px 35px;
+    border-radius: 20px;
+    background: rgba(30, 0, 0, 0.55);
+    border: 1px solid rgba(255, 0, 0, 0.12);
+    backdrop-filter: blur(20px);
+    box-shadow: 0 0 25px rgba(163, 0, 0, 0.3);
+    color: var(--text-light);
+    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+
+    &:hover {
+      transform: scale(1.015);
+      box-shadow: 0 0 45px var(--vampire-glow);
+    }
+  }
+
+  /* ================================
+     Tabs
+     ================================ */
+  &__tabs {
+    display: flex;
+    justify-content: space-between;
+    background-color: rgba(30, 0, 0, 0.5);
+    border-radius: 12px 12px 0 0;
+    margin-bottom: 18px;
+    overflow: hidden;
+  }
+
+  &__tab {
+    flex: 1;
+    padding: 10px 0;
+    text-align: center;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: #ff003c;
+    transition: background 0.3s ease-in-out;
+
+    &--active {
+      background: rgba(163, 0, 0, 0.35);
+      border-bottom: 2px solid #ff003c;
+    }
+  }
+
+  /* ================================
+     Typography
+     ================================ */
+  &__title {
+    font-size: 1.4rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-align: center;
+    color: #ff003c;
+  }
+
+  &__subtitle {
+    font-size: 0.95rem;
+    letter-spacing: 1px;
+    text-align: center;
+    color: #ffc3c3;
+  }
+
+  /* ================================
+     Form Layout
+     ================================ */
+  &__form {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+  }
+
+  /* ================================
+     Lock State
+     ================================ */
+  &__lock-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 0;
+    margin: 10px 0;
+    background-color: #1a0a0f;
+    border: 1px solid #330014;
+    border-radius: 8px;
+    font-weight: 500;
+    font-size: 17px;
+    color: #ff6b81;
+  }
+
+  &__lock-message {
+    margin-bottom: 5px;
+    color: #ff6b81;
+  }
+
+  &__lock-timer {
+    font-weight: bold;
+    font-size: 1.5rem;
+    min-width: 100px;
+    text-align: center;
+    padding: 6px 20px;
+    border-radius: 10px;
+    border: 1px solid #ff3b5c;
+    background-color: #330014;
+    color: #ff3b5c;
+    box-shadow: 0 0 6px #ff3b5c66;
+  }
+
+  /* ================================
+     Input Component
+     ================================ */
+  &__input-wrapper {
+    position: relative;
+  }
+
+  &__input {
+    display: flex;
+    align-items: center;
+    padding: 10px 12px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: white;
+  }
+
+  &__input-field {
+    flex: 1;
+    padding-left: 10px;
+    font-size: 0.95rem;
+    border: none;
+    outline: none;
+    background: transparent;
+    color: var(--text-light);
+    font-family: 'Orbitron';
+  }
+
+  &__input-icon {
+    font-size: 1.1rem;
+    color: #ff003c;
+  }
+
+  &__toggle-password {
+    margin-left: 10px;
+    cursor: pointer;
+    color: #ff003c;
+  }
+
+  /* ================================
+     Button
+     ================================ */
+  &__button {
+    margin-top: 20px;
+    padding: 12px 20px;
+    border-radius: 10px;
+    border: none;
+    cursor: pointer;
+    font-size: 1rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: #fff !important;
+    background: linear-gradient(to right, #ff003c, #7e0000);
+    box-shadow: 0 0 16px rgba(255, 0, 0, 0.5);
+    transition: all 0.2s ease-in-out;
+
+    &:hover {
+      transform: translateY(-2px);
+      background: linear-gradient(to right, #7e0000, #ff003c);
+      box-shadow: 0 0 24px rgba(255, 0, 0, 0.7);
+    }
+
+    &--disabled {
+      background: linear-gradient(to right, #4d0000, #2a0000);
+      color: #999 !important;
+      cursor: not-allowed;
+      box-shadow: none;
+      opacity: 0.6;
+      transform: none;
+    }
+  }
+
+  /* ================================
+     Logo
+     ================================ */
+  &__logo {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 20px;
+
+    img {
+      max-width: 80px;
+      filter: drop-shadow(0 0 8px rgba(255, 0, 0, 0.6));
+    }
+  }
+
+  /* ================================
+     Captcha
+     ================================ */
+  &__captcha {
+    display: flex;
+    align-items: center;
+    margin-left: 80px;
+  }
+
+  &__captcha-refresh {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    margin-left: 20px;
+    border-radius: 50%;
+    border: none;
+    cursor: pointer;
+    color: white;
+    background: rgba(30, 0, 0, 0.55);
+    box-shadow:
+      0 0 5px rgba(251, 255, 7, 0.822),
+      0 0 15px rgba(251, 255, 0, 0.829);
+    transition: all 0.3s ease;
+
+    &:hover {
+      transform: scale(1.1);
+      box-shadow:
+        0 0 8px rgb(238, 255, 0),
+        0 0 20px rgb(255, 208, 0);
+
+      svg {
+        animation: auth-spin 0.5s linear;
+      }
+    }
+
+    &:active {
+      transform: scale(0.95);
+    }
+  }
+}
+
+/* ================================
+   Animation Namespace
+   ================================ */
+
+@keyframes auth-spin {
+  100% {
+    transform: rotate(180deg);
+  }
+}

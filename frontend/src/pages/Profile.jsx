@@ -154,7 +154,12 @@ const Profile = () => {
 
   const getInitials = (name) => {
     if (!name) return "NA";
-    return name.split(" ").filter(Boolean).map((n) => n[0]).join("").toUpperCase();
+    return name
+      .split(" ")
+      .filter(Boolean)
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase();
   };
 
   return (
@@ -186,9 +191,9 @@ const Profile = () => {
           </div>
 
           <div className="profile-info">
-            <h2>{userInfo.fullName}</h2>
-            <p>{userInfo.email}</p>
-            <p>Profile ID: {userInfo.profileId}</p>
+            <h2>{userInfo.fullName || "Unknown User"}</h2>
+            <p className="profile-email">{userInfo.email || "No email address"}</p>
+            <p className="profile-id-badge">Profile ID: {userInfo.profileId || "N/A"}</p>
           </div>
         </div>
 
@@ -197,7 +202,6 @@ const Profile = () => {
           isEditing={isEditing}
           hasChanges={hasChanges}
           defaultCountry={defaultCountry}
-          phoneEdited={phoneEdited}
           setUserInfo={setUserInfo}
           setPhoneEdited={setPhoneEdited}
           handleChange={handleChange}
@@ -206,22 +210,34 @@ const Profile = () => {
         />
 
         <Security useremail={userInfo.email} />
-        
       </div>
 
       {/* Right Column */}
       <div className="profile-right">
         <div className="widget-card">
           <h3>Recent Activity</h3>
-          <ul>
-            <li>Logged in from {location}</li>
+          <ul className="activity-list">
+            <li>
+              Logged in from <strong>{location}</strong>
+            </li>
           </ul>
         </div>
         <div className="widget-card">
           <h3>Account Status</h3>
-          <h4>Created-At: {userInfo.createdAt}</h4>
-          <h4>Updated-At: {userInfo.updatedAt}</h4>
-          <h4>Last login: Today</h4>
+          <div className="status-list">
+            <div className="status-row">
+              <span>Created</span>
+              <strong>{userInfo.createdAt || "N/A"}</strong>
+            </div>
+            <div className="status-row">
+              <span>Updated</span>
+              <strong>{userInfo.updatedAt || "N/A"}</strong>
+            </div>
+            <div className="status-row">
+              <span>Last Login</span>
+              <strong>Today</strong>
+            </div>
+          </div>
         </div>
       </div>
 

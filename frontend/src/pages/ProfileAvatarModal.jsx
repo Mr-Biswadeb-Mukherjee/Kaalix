@@ -1,5 +1,5 @@
 // ProfileAvatarModal.jsx
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Button, TextField } from "@mui/material";
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import LinkIcon from "@mui/icons-material/Link";
@@ -16,7 +16,7 @@ const ProfileAvatarModal = ({
 }) => {
   const { addToast } = useToast();
 
-  const [modalStep, setModalStep] = useState("choice"); // choice | device | url | preview
+  const [modalStep, setModalStep] = useState("choice");
   const [urlInput, setUrlInput] = useState("");
   const [selectedImage, setSelectedImage] = useState(null);
 
@@ -25,11 +25,24 @@ const ProfileAvatarModal = ({
   const [zoom, setZoom] = useState(1);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
 
-  // --- helper to crop ---
+  useEffect(() => {
+    if (!isModalOpen) {
+      setModalStep("choice");
+      setUrlInput("");
+      setSelectedImage(null);
+      setCrop({ x: 0, y: 0 });
+      setZoom(1);
+      setCroppedAreaPixels(null);
+    }
+  }, [isModalOpen]);
+
+  // helper to crop
   const getCroppedImg = async (imageSrc, cropPixels) => {
     const image = new Image();
     image.src = imageSrc;
-    await new Promise((resolve) => { image.onload = resolve; });
+    await new Promise((resolve) => {
+      image.onload = resolve;
+    });
 
     const canvas = document.createElement("canvas");
     canvas.width = cropPixels.width;
@@ -56,6 +69,13 @@ const ProfileAvatarModal = ({
     });
   };
 
+  const handleChoiceKeyDown = (event, nextStep) => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      setModalStep(nextStep);
+    }
+  };
+
   if (!isModalOpen) return null;
 
   return (
@@ -64,27 +84,29 @@ const ProfileAvatarModal = ({
         <h2 className="modal-title">Update Profile Picture</h2>
 
         {modalStep === "choice" && (
-          <div
-            className="upload-choice-icons"
-            style={{ display: "flex", justifyContent: "space-around", marginTop: "20px" }}
-          >
+          <div className="upload-choice-icons">
             {/* Upload from Device */}
             <div
               className="icon-option"
+              role="button"
+              tabIndex={0}
               onClick={() => setModalStep("device")}
-              style={{ cursor: "pointer", textAlign: "center" }}
+              onKeyDown={(event) => handleChoiceKeyDown(event, "device")}
             >
-              <CloudUploadIcon style={{ fontSize: "50px", color: "#007bff" }} />
-              <p style={{ marginTop: "8px", fontWeight: 500 }}>Upload from Device</p>
+              <CloudUploadIcon className="upload-icon upload-icon-device" />
+              <p>Upload from Device</p>
             </div>
+
             {/* Upload from URL */}
             <div
               className="icon-option"
+              role="button"
+              tabIndex={0}
               onClick={() => setModalStep("url")}
-              style={{ cursor: "pointer", textAlign: "center" }}
+              onKeyDown={(event) => handleChoiceKeyDown(event, "url")}
             >
-              <LinkIcon style={{ fontSize: "50px", color: "#28a745" }} />
-              <p style={{ marginTop: "8px", fontWeight: 500 }}>Upload from URL</p>
+              <LinkIcon className="upload-icon upload-icon-link" />
+              <p>Upload from URL</p>
             </div>
           </div>
         )}
@@ -117,7 +139,7 @@ const ProfileAvatarModal = ({
               </Button>
             </label>
             <Button variant="text" onClick={() => setModalStep("choice")}>
-              ← Back
+              Back
             </Button>
           </div>
         )}
@@ -131,7 +153,7 @@ const ProfileAvatarModal = ({
               value={urlInput}
               onChange={(e) => setUrlInput(e.target.value)}
             />
-            <div style={{ marginTop: "15px" }}>
+            <div className="upload-url-actions">
               <Button
                 variant="contained"
                 onClick={() => {
@@ -150,30 +172,15 @@ const ProfileAvatarModal = ({
                 Upload
               </Button>
               <Button variant="text" onClick={() => setModalStep("choice")}>
-                ← Back
+                Back
               </Button>
             </div>
           </div>
         )}
 
         {modalStep === "preview" && (
-          <div className="preview-wrapper" style={{ position: "relative" }}>
-            {/* Zoom Overlay */}
-            <div
-              style={{
-                position: "absolute",
-                top: "10px",
-                right: "10px",
-                background: "rgba(0,0,0,0.6)",
-                color: "#fff",
-                padding: "5px 10px",
-                borderRadius: "5px",
-                fontWeight: "bold",
-                zIndex: 10
-              }}
-            >
-              {zoom.toFixed(1)}x
-            </div>
+          <div className="preview-wrapper">
+            <div className="zoom-badge">{zoom.toFixed(1)}x</div>
 
             <div className="preview-container">
               <Cropper
@@ -183,8 +190,8 @@ const ProfileAvatarModal = ({
                 aspect={1}
                 onCropChange={setCrop}
                 onZoomChange={(val) => setZoom(Number(val))}
-                onCropComplete={(croppedArea, croppedAreaPixels) => {
-                  setCroppedAreaPixels(croppedAreaPixels);
+                onCropComplete={(croppedArea, croppedAreaPixelsValue) => {
+                  setCroppedAreaPixels(croppedAreaPixelsValue);
                 }}
               />
             </div>
@@ -233,6 +240,7 @@ const ProfileAvatarModal = ({
                       addToast(err.message || "Failed to upload avatar", "error");
                     }
 
+                    URL.revokeObjectURL(fileUrl);
                     setIsModalOpen(false);
                   }}
                 >
@@ -240,7 +248,7 @@ const ProfileAvatarModal = ({
                 </button>
 
                 <button className="cancel-btn" onClick={() => setModalStep("choice")}>
-                  ← Back
+                  Back
                 </button>
               </div>
             </div>

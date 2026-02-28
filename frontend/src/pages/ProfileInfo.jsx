@@ -8,7 +8,6 @@ const ProfileInfo = ({
   isEditing,
   hasChanges,
   defaultCountry,
-  phoneEdited,
   setUserInfo,
   setPhoneEdited,
   handleChange,
@@ -21,37 +20,39 @@ const ProfileInfo = ({
 
       {/* name */}
       <div className="profile-item">
-        <span>Name:</span>
+        <span>Name</span>
         {isEditing ? (
           <input
+            className="profile-input"
             type="text"
             name="fullName"
             value={userInfo.fullName}
             onChange={handleChange}
           />
         ) : (
-          <p>{userInfo.fullName}</p>
+          <p>{userInfo.fullName || "Not set"}</p>
         )}
       </div>
 
       {/* email */}
       <div className="profile-item">
-        <span>Email:</span>
+        <span>Email</span>
         {isEditing ? (
           <input
+            className="profile-input"
             type="email"
             name="email"
             value={userInfo.email}
             onChange={handleChange}
           />
         ) : (
-          <p>{userInfo.email}</p>
+          <p>{userInfo.email || "Not set"}</p>
         )}
       </div>
 
       {/* phone */}
       <div className="profile-item">
-        <span>Phone:</span>
+        <span>Phone</span>
         {isEditing ? (
           <PhoneInput
             country={defaultCountry}
@@ -70,21 +71,21 @@ const ProfileInfo = ({
             buttonClass="phone-input-flag"
           />
         ) : (
-          <p>{userInfo.phone}</p>
+          <p>{userInfo.phone || "Not set"}</p>
         )}
       </div>
 
       {/* bio */}
       <div className="profile-item">
-        <span>Bio:</span>
+        <span>Bio</span>
         {isEditing ? (
           <textarea
+            className="profile-textarea"
             name="bio"
             value={userInfo.bio}
             onChange={handleChange}
             placeholder="Tell us something about yourself..."
             rows={4}
-            style={{ width: "100%" }}
           />
         ) : (
           <div className="bio-display">
@@ -97,16 +98,16 @@ const ProfileInfo = ({
       <div className="profile-actions">
         {!isEditing && (
           <button className="edit-btn" onClick={handleEditToggle}>
-            Edit
+            Edit Profile
           </button>
         )}
         {isEditing && (
           <>
-            <button className="edit-btn cancel-btn" onClick={handleEditToggle}>
+            <button className="cancel-btn" onClick={handleEditToggle}>
               Cancel
             </button>
             <button
-              className="edit-btn save-btn"
+              className="save-btn"
               onClick={handleSave}
               disabled={!hasChanges}
             >

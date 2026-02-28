@@ -1,98 +1,287 @@
 .vampire-modal-overlay {
+  --timeout-overlay-bg: rgba(8, 4, 8, 0.72);
+  --timeout-overlay-glow: rgba(255, 80, 80, 0.18);
+  --timeout-card-highlight: rgba(255, 255, 255, 0.07);
+  --timeout-card-start: #18070b;
+  --timeout-card-mid: #28090f;
+  --timeout-card-end: #1d070d;
+  --timeout-border: rgba(255, 80, 80, 0.35);
+  --timeout-text: #fff6f6;
+  --timeout-header-text: #ffffff;
+  --timeout-body-text: var(--inactivity-modal, #ffe6a1);
+  --timeout-accent: #ff5f66;
+  --timeout-accent-strong: #e11d48;
+  --timeout-chip-bg: rgba(255, 61, 61, 0.16);
+  --timeout-chip-border: rgba(255, 77, 77, 0.45);
+  --timeout-chip-text: #ffd5d9;
+  --timeout-drip-end: #9f1239;
+  --timeout-drip-shadow: rgba(239, 68, 68, 0.45);
+  --timeout-button-a: #7f0d1d;
+  --timeout-button-b: #ab1225;
+  --timeout-button-border: rgba(255, 93, 93, 0.6);
+  --timeout-button-shadow: rgba(196, 19, 39, 0.38);
+  --timeout-button-shadow-hover: rgba(196, 19, 39, 0.45);
+  --timeout-button-ring: #ff7f7f;
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(10, 0, 0, 0.85);
-  backdrop-filter: blur(3px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background:
+    radial-gradient(circle at 20% 20%, var(--timeout-overlay-glow), transparent 45%),
+    var(--timeout-overlay-bg);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
   z-index: 9999;
+  animation: fadeInOverlay 0.24s ease;
+}
+
+[data-theme='light'] .vampire-modal-overlay {
+  --timeout-overlay-bg: rgba(31, 19, 10, 0.46);
+  --timeout-overlay-glow: rgba(224, 92, 44, 0.2);
+  --timeout-card-highlight: rgba(255, 255, 255, 0.7);
+  --timeout-card-start: #fffaf2;
+  --timeout-card-mid: #fff1e2;
+  --timeout-card-end: #ffe7d7;
+  --timeout-border: rgba(179, 95, 54, 0.35);
+  --timeout-text: #352014;
+  --timeout-header-text: #2f1a10;
+  --timeout-body-text: #704631;
+  --timeout-accent: #d65a2f;
+  --timeout-accent-strong: #b63f1a;
+  --timeout-chip-bg: rgba(214, 90, 47, 0.12);
+  --timeout-chip-border: rgba(182, 63, 26, 0.4);
+  --timeout-chip-text: #a23814;
+  --timeout-drip-end: #8d2f12;
+  --timeout-button-a: #d65a2f;
+  --timeout-button-b: #b63f1a;
+  --timeout-button-border: rgba(182, 63, 26, 0.52);
+  --timeout-button-shadow: rgba(182, 63, 26, 0.32);
+  --timeout-button-shadow-hover: rgba(182, 63, 26, 0.42);
+  --timeout-drip-shadow: rgba(182, 63, 26, 0.38);
+  --timeout-button-ring: #e36e44;
+}
+
+[data-theme='dark'] .vampire-modal-overlay {
+  --timeout-overlay-bg: rgba(8, 8, 14, 0.74);
+  --timeout-overlay-glow: rgba(104, 128, 255, 0.16);
+  --timeout-card-highlight: rgba(255, 255, 255, 0.06);
+  --timeout-card-start: #171922;
+  --timeout-card-mid: #1f2330;
+  --timeout-card-end: #151823;
+  --timeout-border: rgba(120, 148, 255, 0.33);
+  --timeout-text: #edf2ff;
+  --timeout-header-text: #f7f9ff;
+  --timeout-body-text: #c8d5ff;
+  --timeout-accent: #89a2ff;
+  --timeout-accent-strong: #5e7dff;
+  --timeout-chip-bg: rgba(120, 148, 255, 0.14);
+  --timeout-chip-border: rgba(120, 148, 255, 0.45);
+  --timeout-chip-text: #dce5ff;
+  --timeout-drip-end: #4f64c2;
+  --timeout-button-a: #4f64c2;
+  --timeout-button-b: #4355a8;
+  --timeout-button-border: rgba(120, 148, 255, 0.52);
+  --timeout-button-shadow: rgba(79, 100, 194, 0.34);
+  --timeout-button-shadow-hover: rgba(79, 100, 194, 0.45);
+  --timeout-drip-shadow: rgba(120, 148, 255, 0.36);
+  --timeout-button-ring: #8ea2ff;
+}
+
+[data-theme='forest'] .vampire-modal-overlay {
+  --timeout-overlay-bg: rgba(5, 24, 14, 0.72);
+  --timeout-overlay-glow: rgba(74, 222, 128, 0.16);
+  --timeout-card-highlight: rgba(255, 255, 255, 0.06);
+  --timeout-card-start: #0d2f24;
+  --timeout-card-mid: #124032;
+  --timeout-card-end: #0b2a20;
+  --timeout-border: rgba(91, 199, 133, 0.35);
+  --timeout-text: #ebfff2;
+  --timeout-header-text: #f1fff6;
+  --timeout-body-text: #c5efd1;
+  --timeout-accent: #72d99f;
+  --timeout-accent-strong: #39b07b;
+  --timeout-chip-bg: rgba(91, 199, 133, 0.14);
+  --timeout-chip-border: rgba(91, 199, 133, 0.44);
+  --timeout-chip-text: #defbe8;
+  --timeout-drip-end: #2d8960;
+  --timeout-button-a: #2f8f61;
+  --timeout-button-b: #246f4c;
+  --timeout-button-border: rgba(91, 199, 133, 0.52);
+  --timeout-button-shadow: rgba(47, 143, 97, 0.34);
+  --timeout-button-shadow-hover: rgba(47, 143, 97, 0.44);
+  --timeout-drip-shadow: rgba(91, 199, 133, 0.36);
+  --timeout-button-ring: #7ae2ac;
+}
+
+[data-theme='vampire'] .vampire-modal-overlay {
+  --timeout-overlay-bg: rgba(14, 4, 8, 0.76);
+  --timeout-overlay-glow: rgba(255, 65, 96, 0.2);
 }
 
 .vampire-modal {
-  background: linear-gradient(145deg, #1a0000, #2b0000);
-  color: var(--text-color);
-  padding: 2rem 2.5rem;
-  border: 2px solid #7a0000;
-  border-radius: 12px;
-  box-shadow: 0 0 20px rgba(255, 0, 0, 0.4), 0 0 5px #300;
-  max-width: 420px;
   position: relative;
+  width: min(100%, 460px);
+  padding: 28px 24px 26px;
+  border-radius: 16px;
+  border: 1px solid var(--timeout-border);
+  background:
+    linear-gradient(170deg, var(--timeout-card-highlight), transparent 55%),
+    linear-gradient(140deg, var(--timeout-card-start), var(--timeout-card-mid) 55%, var(--timeout-card-end));
+  color: var(--timeout-text);
+  box-shadow:
+    0 18px 44px rgba(0, 0, 0, 0.45),
+    0 0 0 1px var(--timeout-border) inset;
   text-align: center;
-  animation: fadeInModal 0.5s ease-in-out;
-  font-family: "Fira Code";
+  font-family: var(--font-family, "Fira Code"), monospace;
+  animation: fadeInModal 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.vampire-modal::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.12), transparent 38%);
 }
 
 .vampire-header {
-  font-size: 1.5rem;
-  color: #ffffff;
-  margin-bottom: 1rem;
-  text-shadow: 0 0 10px red;
+  margin-bottom: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: clamp(1.2rem, 2.4vw, 1.45rem);
+  line-height: 1.3;
+  font-weight: 800;
+  letter-spacing: 0.2px;
+  color: var(--timeout-header-text);
+  text-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+}
+
+.vampire-header svg {
+  font-size: 1.3rem;
+  color: var(--timeout-accent);
+  filter: drop-shadow(0 0 8px rgba(0, 0, 0, 0.2));
 }
 
 .vampire-body {
-  font-size: 1.2rem;
-  color: var(--inactivity-modal);
-  line-height: 1.6;
+  display: grid;
+  gap: 10px;
+  font-size: 1rem;
+  line-height: 1.55;
+  color: var(--timeout-body-text);
+}
+
+.vampire-body h4 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 650;
+}
+
+.vampire-body svg {
+  color: var(--timeout-accent);
 }
 
 .countdown {
-  font-weight: bold;
-  font-size: 1.5rem;
-  color: #ff3344;
-  text-shadow: 0 0 5px crimson;
+  display: inline-block;
+  margin: 0 2px;
+  padding: 0 8px;
+  border-radius: 999px;
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: var(--timeout-chip-text);
+  background: var(--timeout-chip-bg);
+  border: 1px solid var(--timeout-chip-border);
+  text-shadow: 0 0 10px rgba(0, 0, 0, 0.18);
+  animation: chipPulse 1.2s ease-in-out infinite;
 }
 
 .vampire-actions {
-  margin-top: 1.8rem;
+  margin-top: 18px;
 }
 
 .blood-button {
-  background: linear-gradient(to right, #ff0000, #990000);
-  border: none;
-  padding: 0.7rem 1.5rem;
-  color: #fff0f0;
-  font-size: 1rem;
-  font-weight: bold;
-  border-radius: 6px;
+  border: 1px solid var(--timeout-button-border);
+  padding: 10px 20px;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  color: var(--timeout-text);
   cursor: pointer;
-  box-shadow: 0 0 10px #ff0000;
-  transition: all 0.2s ease-in-out;
+  background: linear-gradient(120deg, var(--timeout-button-a), var(--timeout-button-b));
+  box-shadow: 0 8px 20px var(--timeout-button-shadow);
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    filter 0.2s ease;
 }
 
 .blood-button:hover {
-  background: #cc0000;
-  box-shadow: 0 0 15px #ff6666;
-  transform: scale(1.05);
+  transform: translateY(-1px);
+  filter: brightness(1.05);
+  box-shadow: 0 12px 24px var(--timeout-button-shadow-hover);
+}
+
+.blood-button:focus-visible {
+  outline: 2px solid var(--timeout-button-ring);
+  outline-offset: 2px;
 }
 
 .blood-drip {
   position: absolute;
-  bottom: -10px;
   left: 50%;
-  width: 8px;
-  height: 20px;
-  background: crimson;
-  border-radius: 50%;
+  bottom: -8px;
+  width: 10px;
+  height: 16px;
+  border-radius: 999px;
   transform: translateX(-50%);
-  box-shadow: 0 0 5px crimson;
-  animation: bloodDrip 1.5s infinite ease-in-out;
+  background: linear-gradient(180deg, var(--timeout-accent-strong), var(--timeout-drip-end));
+  box-shadow: 0 0 10px var(--timeout-drip-shadow);
+  animation: bloodDrip 1.5s ease-in-out infinite;
+}
+
+.stay-hint {
+  margin-top: 8px;
+  font-size: 0.92rem;
+  color: var(--timeout-body-text);
+  opacity: 0.9;
+}
+
+@keyframes chipPulse {
+  0% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-1px);
+  }
+  100% {
+    transform: translateY(0);
+  }
 }
 
 @keyframes bloodDrip {
   0% {
-    height: 20px;
-    opacity: 1;
+    height: 16px;
+    opacity: 0.92;
   }
   50% {
-    height: 30px;
-    opacity: 0.6;
+    height: 24px;
+    opacity: 0.7;
   }
   100% {
-    height: 20px;
+    height: 16px;
+    opacity: 0.92;
+  }
+}
+
+@keyframes fadeInOverlay {
+  from {
+    opacity: 0;
+  }
+  to {
     opacity: 1;
   }
 }
@@ -100,18 +289,40 @@
 @keyframes fadeInModal {
   from {
     opacity: 0;
-    transform: scale(0.92);
+    transform: translateY(10px) scale(0.96);
   }
   to {
     opacity: 1;
-    transform: scale(1);
+    transform: translateY(0) scale(1);
   }
 }
 
-.stay-hint {
-  margin-top: 1.5rem;
-  font-size: 0.95rem;
-  font-style: bold;
-  color: var(--inactivity-modal);
-  opacity: 0.85;
+@media (max-width: 560px) {
+  .vampire-modal {
+    padding: 22px 16px 20px;
+    border-radius: 14px;
+  }
+
+  .vampire-header {
+    font-size: 1.1rem;
+  }
+
+  .vampire-body h4 {
+    font-size: 0.95rem;
+  }
+
+  .countdown {
+    font-size: 1.2rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vampire-modal-overlay,
+  .vampire-modal,
+  .blood-drip,
+  .blood-button,
+  .countdown {
+    animation: none;
+    transition: none;
+  }
 }
