@@ -1,7 +1,7 @@
 // Modules/captcha.js
 import { createCanvas } from "canvas";
 import { v4 as uuidv4 } from "uuid";
-import { getRedisClient } from "../Connectors/Redis.js";
+import { getOrInitRedisClient } from "../Connectors/Redis.js";
 
 // Use Redis for captcha storage
 const REDIS_CAPTCHA_PREFIX = 'captcha:';
@@ -10,9 +10,9 @@ const REDIS_CAPTCHA_PREFIX = 'captcha:';
  * Generate a captcha with adjustable difficulty (0 = easy, 10 = hard)
  * @param {number} difficulty Difficulty level (0-10)
  */
-export const generateCaptcha = (difficulty = 5) => {
+export const generateCaptcha = async (difficulty = 5) => {
   const width = 160;
-  const redis = getRedisClient();
+  const redis = await getOrInitRedisClient();
   const height = 60;
   const canvas = createCanvas(width, height);
   const ctx = canvas.getContext("2d");
@@ -90,7 +90,7 @@ export const generateCaptcha = (difficulty = 5) => {
 
   // Store captcha in Redis with a 5-minute expiry
   const captchaKey = `${REDIS_CAPTCHA_PREFIX}${id}`;
-  redis.setEx(captchaKey, 5 * 60, text); // 5 minutes expiry
+  await redis.setEx(captchaKey, 5 * 60, text); // 5 minutes expiry
 
   const image = canvas.toDataURL(); // Base64 image
 
@@ -104,7 +104,7 @@ export const generateCaptcha = (difficulty = 5) => {
  * @returns {Promise<boolean>} True if valid, false otherwise
  */
 export async function verifyCaptcha(id, userInput) {
-  const redis = getRedisClient();
+  const redis = await getOrInitRedisClient();
   const captchaKey = `${REDIS_CAPTCHA_PREFIX}${id}`;
   const stored = await redis.get(captchaKey);
   if (!stored) return false;
@@ -116,8 +116,8 @@ export async function verifyCaptcha(id, userInput) {
 /**
  * Get stored captcha text (for debug/logging)
  */
-export function getStoredCaptcha(id) {
-  const redis = getRedisClient();
+export async function getStoredCaptcha(id) {
+  const redis = await getOrInitRedisClient();
   const captchaKey = `${REDIS_CAPTCHA_PREFIX}${id}`;
   return redis.get(captchaKey);
 }
@@ -133,4 +133,3 @@ function randomColor(alpha = 1) {
 }
 
 export default { generateCaptcha, verifyCaptcha, getStoredCaptcha };
-

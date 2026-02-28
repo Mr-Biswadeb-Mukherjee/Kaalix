@@ -1,10 +1,9 @@
-import { initDatabase } from "../Connectors/DB.js";
+import { getDatabase } from "../Connectors/DB.js";
 import { normalizeEmail } from "./user.service.js"; // reuse email helper
-
-const db = await initDatabase();
 
 // 📂 Public: Fetch profile
 export const fetchProfile = async (userId) => {
+  const db = await getDatabase();
   const [rows] = await db.execute(
     `SELECT 
         u.created_at AS createdAt,
@@ -26,6 +25,7 @@ export const fetchProfile = async (userId) => {
 
 // 📝 Public: Update profile
 export const updateProfile = async (userId, { fullName, email, phone, bio }) => {
+  const db = await getDatabase();
   const conn = await db.getConnection();
   try {
     await conn.beginTransaction();
@@ -86,6 +86,7 @@ export const updateProfile = async (userId, { fullName, email, phone, bio }) => 
 
 // 📸 Public: Update profile avatar
 export const updateProfileAvatar = async (userId, avatarUrl) => {
+  const db = await getDatabase();
   const conn = await db.getConnection();
   try {
     await conn.beginTransaction();

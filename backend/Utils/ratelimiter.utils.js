@@ -1,5 +1,5 @@
 // filename: AdaptiveRateLimiter.js
-import { initRedis } from "../Connectors/Redis.js";
+import { getOrInitRedisClient } from "../Connectors/Redis.js";
 import { LoggerContainer } from "../Logger/Logger.js";
 
 const REDIS_PREFIX = "ratelimit:";
@@ -33,9 +33,7 @@ let memoryGcHandle = null;
 async function lazyInit() {
   if (initialized) return;
   try {
-    await initRedis();
-    // your getRedisClient() should return an already connected redis v4 client
-    redisClient = (await import("../Connectors/Redis.js")).getRedisClient();
+    redisClient = await getOrInitRedisClient();
     initialized = true; // Set initialized to true only if Redis connection is successful
   } catch (err) {
     console.warn("Redis initialization failed, using in-memory fallback:", err.message);

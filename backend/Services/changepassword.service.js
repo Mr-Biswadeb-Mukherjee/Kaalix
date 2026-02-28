@@ -1,13 +1,12 @@
 import bcrypt from "bcrypt";
-import { initDatabase } from "../Connectors/DB.js";
+import { getDatabase } from "../Connectors/DB.js";
 import { findUserById } from "./user.service.js";
-
-const db = await initDatabase();
 
 /**
  * Service: Update user password
  */
 const updateUserPassword = async (userId, newPassword) => {
+  const db = await getDatabase();
   const hashedPassword = await bcrypt.hash(newPassword, 10);
   await db.execute(
     "UPDATE users SET password = ?, updated_at = NOW() WHERE user_id = ?",

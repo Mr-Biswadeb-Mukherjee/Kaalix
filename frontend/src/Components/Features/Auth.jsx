@@ -12,6 +12,7 @@ import { initBloodFlow } from "../Animation/BloodRain";
 import { useToast } from "../UI/Toast";
 import API from "@amon/shared";
 import SafeImage from "../UI/safeImage";
+import logo from "../../assets/LOGO.png";
 import "./Styles/auth.scss";
 
 const Auth = ({ onAuthSuccess }) => {
@@ -35,6 +36,7 @@ const Auth = ({ onAuthSuccess }) => {
       icon: Email,
       type: "email",
       placeholder: "Email",
+      autoComplete: "email",
       required: true
     },
     {
@@ -42,6 +44,7 @@ const Auth = ({ onAuthSuccess }) => {
       icon: Lock,
       type: showPassword ? "text" : "password",
       placeholder: "Password",
+      autoComplete: "current-password",
       toggle: true,
       required: true
     },
@@ -49,10 +52,14 @@ const Auth = ({ onAuthSuccess }) => {
       name: "captcha",
       icon: Security,
       type: "text",
-      placeholder: "Enter Captcha",
+      placeholder: "Captcha Code",
+      autoComplete: "off",
       required: true
     }
   ];
+
+  const isFormDisabled =
+    loading || !formValid || !formData.captcha?.trim() || remainingTime > 0;
 
   const fetchCaptcha = async () => {
     try {
@@ -196,28 +203,37 @@ const Auth = ({ onAuthSuccess }) => {
     icon: Icon,
     type,
     placeholder,
+    autoComplete,
     toggle
   }) => (
-    <div key={name} className="auth__input-wrapper">
+    <div className="auth__input-wrapper">
+      <label className="auth__label" htmlFor={`auth-${name}`}>
+        {placeholder}
+      </label>
       <div className="auth__input">
         <Icon className="auth__input-icon" />
         <input
+          id={`auth-${name}`}
           className="auth__input-field"
           name={name}
           type={type}
-          placeholder={placeholder}
+          placeholder={`Enter ${placeholder.toLowerCase()}`}
           value={formData[name] || ""}
           onChange={handleChange}
           onBlur={() => validateForm(name)}
+          autoComplete={autoComplete}
           disabled={loading || remainingTime > 0}
         />
         {toggle && (
-          <span
+          <button
+            type="button"
             className="auth__toggle-password"
             onClick={() => setShowPassword(s => !s)}
+            disabled={loading || remainingTime > 0}
+            aria-label={showPassword ? "Hide password" : "Show password"}
           >
             {showPassword ? <VisibilityOff /> : <Visibility />}
-          </span>
+          </button>
         )}
       </div>
     </div>
@@ -226,20 +242,24 @@ const Auth = ({ onAuthSuccess }) => {
   const renderCaptcha = () => (
     <>
       <div className="auth__captcha">
-        {captchaImage && (
+        {captchaImage ? (
           <SafeImage
             src={captchaImage}
             alt="Captcha"
             className="auth__captcha-image"
             onClick={fetchCaptcha}
-            fallback={<div>Loading...</div>}
+            fallback={<div className="auth__captcha-fallback">Loading...</div>}
           />
+        ) : (
+          <div className="auth__captcha-fallback">Loading...</div>
         )}
 
         <button
           type="button"
           className="auth__captcha-refresh"
           onClick={fetchCaptcha}
+          aria-label="Refresh captcha"
+          disabled={loading || remainingTime > 0}
         >
           <Refresh />
         </button>
@@ -254,57 +274,53 @@ const Auth = ({ onAuthSuccess }) => {
       <canvas ref={canvasRef} className="auth__canvas" />
 
       <div className="auth__container">
-        <div className="auth__card">
+        <motion.div
+          className="auth__card"
+          initial={{ opacity: 0, y: 16, scale: 0.98 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ duration: 0.45, ease: "easeOut" }}
+        >
+          <div className="auth__logo" aria-hidden="true">
+            <img src={logo} alt="Amon" />
+          </div>
+
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4 }}
+            transition={{ duration: 0.35, delay: 0.08 }}
           >
-            <h2 className="auth__title">Access Granted</h2>
+            <h2 className="auth__title">Secure Login</h2>
             <h4 className="auth__subtitle">
-              Jack in. Let the matrix validate you.
+              Authenticate to access Amon control center.
             </h4>
           </motion.div>
 
           <form onSubmit={handleSubmit} className="auth__form">
-            {fieldConfig.map(field =>
-              field.name === "captcha"
-                ? renderCaptcha()
-                : renderField(field)
-            )}
+            {fieldConfig.map(field => (
+              <React.Fragment key={field.name}>
+                {field.name === "captcha" ? renderCaptcha() : renderField(field)}
+              </React.Fragment>
+            ))}
 
             {lockInfo && remainingTime > 0 && (
-              <div className="auth__lock-container">
+              <div className="auth__lock-container" role="status" aria-live="polite">
                 <span className="auth__lock-message">
-                  Your account is locked. Try again in
+                  Account is temporarily locked. Try again in
                 </span>
-                <span className="auth__lock-timer">
-                  {formatTime(remainingTime)}
-                </span>
+                <span className="auth__lock-timer">{formatTime(remainingTime)}</span>
               </div>
             )}
 
-            <button
+            <motion.button
+              whileTap={{ scale: isFormDisabled ? 1 : 0.98 }}
               type="submit"
-              className={`auth__button ${
-                loading ||
-                !formValid ||
-                !formData.captcha?.trim() ||
-                remainingTime > 0
-                  ? "auth__button--disabled"
-                  : ""
-              }`}
-              disabled={
-                loading ||
-                !formValid ||
-                !formData.captcha?.trim() ||
-                remainingTime > 0
-              }
+              className={`auth__button ${isFormDisabled ? "auth__button--disabled" : ""}`}
+              disabled={isFormDisabled}
             >
               {loading ? "Validating..." : "Login to Amon"}
-            </button>
+            </motion.button>
           </form>
-        </div>
+        </motion.div>
       </div>
     </div>
   );

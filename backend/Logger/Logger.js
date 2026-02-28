@@ -10,6 +10,20 @@ const CHANNEL_NAME = "System Integrity Channel";
 const retentionDays = 7;
 const HMAC_KEY = Logger_key.HMAC_KEY;
 
+function formatLogTimestamp(input = new Date()) {
+  const date = input instanceof Date ? input : new Date(input);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  const hours24 = date.getHours();
+  const hours12 = String(hours24 % 12 || 12).padStart(2, "0");
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+  const seconds = String(date.getSeconds()).padStart(2, "0");
+  const meridiem = hours24 >= 12 ? "PM" : "AM";
+
+  return `${year}-${month}-${day} ${hours12}:${minutes}:${seconds} ${meridiem}`;
+}
+
 // ==================================================================
 // [1] Locate absolute project root and ensure Logs/ exists there
 // ==================================================================
@@ -275,7 +289,7 @@ async log(info, callback) {
       channel: CHANNEL_NAME,
       severity: info.level.toUpperCase(),
       message: info.message,
-      timestamp: info.timestamp || new Date().toISOString(),
+      timestamp: info.timestamp || formatLogTimestamp(),
       module: this.moduleName,
     };
 
@@ -322,7 +336,7 @@ function getModuleLogger(moduleName, options = {}, _internalCall = false) {
       new winston.transports.Console({
         format: winston.format.combine(
           winston.format.colorize({ all: true }),
-          winston.format.timestamp(),
+          winston.format.timestamp({ format: () => formatLogTimestamp() }),
           consoleFormat
         ),
       })
@@ -333,7 +347,7 @@ function getModuleLogger(moduleName, options = {}, _internalCall = false) {
     levels: customLevels.levels,
     level: options.level || "info",
     format: winston.format.combine(
-      winston.format.timestamp(),
+      winston.format.timestamp({ format: () => formatLogTimestamp() }),
       winston.format.json()
     ),
     transports,
@@ -401,7 +415,7 @@ setInterval(async () => {
             channel: CHANNEL_NAME,
             severity: level.toUpperCase(),
             message: `⚠️ Suppressed ${info.count - 1} duplicate entries: "${message}"`,
-            timestamp: new Date().toISOString(),
+            timestamp: formatLogTimestamp(),
             module: moduleName,
           };
 
@@ -484,4 +498,3 @@ export const LoggerContainer = (() => {
 
   return container;
 })();
-

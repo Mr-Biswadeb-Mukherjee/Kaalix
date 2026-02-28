@@ -1,8 +1,6 @@
 import bcrypt from "bcrypt";
 import { v4 as uuidv4 } from "uuid";
-import { initDatabase } from "../Connectors/DB.js";
-
-const db = await initDatabase();
+import { getDatabase } from "../Connectors/DB.js";
 
 // 🧼 Normalize email for consistent matching
 export const normalizeEmail = (email) => {
@@ -22,6 +20,7 @@ export class UserExistsError extends Error {
 
 // 🔍 Internal helper: Fetch user by email
 export const findUserByEmail = async (email) => {
+  const db = await getDatabase();
   const normalizedEmail = normalizeEmail(email);
   const [rows] = await db.execute(
     "SELECT * FROM users WHERE email = ? LIMIT 1",
@@ -32,6 +31,7 @@ export const findUserByEmail = async (email) => {
 
 // 🔑 Public: Fetch user by ID
 export const findUserById = async (userId) => {
+  const db = await getDatabase();
   const [rows] = await db.execute(
     "SELECT * FROM users WHERE user_id = ? LIMIT 1",
     [userId]
@@ -41,6 +41,7 @@ export const findUserById = async (userId) => {
 
 // 🛠️ Public: Register user
 export const registerUser = async ({ fullName, email, password }) => {
+  const db = await getDatabase();
   const existing = await findUserByEmail(email);
   if (existing) throw new UserExistsError();
   const hashedPassword = await bcrypt.hash(password, 10);
@@ -108,6 +109,7 @@ export const comparePassword = async (user, plainPassword) => {
 
 // 🔄 Update failed attempts + lock_until
 export const updateFailedAttempts = async (userId, failedAttempts, lockUntil) => {
+  const db = await getDatabase();
   await db.execute(
     "UPDATE users SET failed_attempts = ?, lock_until = ? WHERE user_id = ?",
     [failedAttempts, lockUntil, userId]

@@ -7,11 +7,15 @@ const RLogger = LoggerContainer.get("Redis");
 const {
   host: REDIS_HOST,
   port: REDIS_PORT,
+  username: REDIS_USERNAME,
   password: REDIS_PASSWORD,
+  db: REDIS_DB = 0,
   poolMax: REDIS_MAX_SESSIONS = 1000, // reusing poolMax as maxSessions
 } = redisConfig;
 
 let redisClient;
+let redisInitPromise = null;
+let evictionSchedulerStarted = false;
 
 const LRU_ZSET_KEY = 'meta:lru';
 const LIFO_STACK_KEY = 'meta:lifo';
@@ -20,39 +24,61 @@ const LIFO_STACK_KEY = 'meta:lifo';
  * Initialize Redis connection
  */
 export async function initRedis() {
-  try {
-    redisClient = createClient({
-      url: `redis://${REDIS_HOST}:${REDIS_PORT}`,
-      password: REDIS_PASSWORD,
-      socket: {
-        connectTimeout: 10000,
-      },
-    });
+  if (redisClient?.isOpen) return redisClient;
+  if (redisInitPromise) return redisInitPromise;
 
-    redisClient.on('error', (err) => {
-      RLogger.error('❌ Redis Client Error', err);
-    });
+  redisInitPromise = (async () => {
+    try {
+      if (!redisClient) {
+        redisClient = createClient({
+          username: REDIS_USERNAME || undefined,
+          socket: {
+            host: REDIS_HOST,
+            port: REDIS_PORT,
+            connectTimeout: 10000,
+          },
+          password: REDIS_PASSWORD || undefined,
+          database: REDIS_DB,
+        });
 
-    await redisClient.connect();
-    RLogger.info('🔗 Redis connected');
+        redisClient.on('error', (err) => {
+          RLogger.error(`❌ Redis Client Error: ${err.message}`);
+        });
+      }
 
-    // ✅ Start eviction loop only after Redis is ready
-    startEvictionScheduler();
-  } catch (error) {
-    RLogger.error('❌ Redis Initialization Error:', err);
-    await flushLogger();
-    process.exit(1);
-  }
+      if (!redisClient.isOpen) {
+        await redisClient.connect();
+        RLogger.info('🔗 Redis connected');
+      }
+
+      // Start eviction loop only after Redis is ready
+      startEvictionScheduler();
+      return redisClient;
+    } catch (err) {
+      RLogger.error(`❌ Redis Initialization Error: ${err.message}`);
+      await flushLogger();
+      throw err;
+    } finally {
+      redisInitPromise = null;
+    }
+  })();
+
+  return redisInitPromise;
 }
 
 /**
  * Accessor for Redis client (enforces prior init)
  */
 export function getRedisClient() {
-  if (!redisClient) {
+  if (!redisClient || !redisClient.isOpen) {
     throw new Error('Redis client not initialized. Call initRedis() first.');
   }
   return redisClient;
+}
+
+export async function getOrInitRedisClient() {
+  await initRedis();
+  return getRedisClient();
 }
 
 // ─────────────────────────────────────────────
@@ -63,7 +89,7 @@ export function getRedisClient() {
  * Store session and update LRU + LIFO + active sets
  */
 export async function userLogin(userId, sessionData) {
-  const redis = getRedisClient();
+  const redis = await getOrInitRedisClient();
   const key = `session:${userId}`;
   const now = Date.now();
 
@@ -79,7 +105,7 @@ export async function userLogin(userId, sessionData) {
  * Touch session on access (LRU refresh)
  */
 export async function userAccess(userId) {
-  const redis = getRedisClient();
+  const redis = await getOrInitRedisClient();
   const key = `session:${userId}`;
   const now = Date.now();
 
@@ -94,7 +120,7 @@ export async function userAccess(userId) {
  * Destroy session and clean up metadata
  */
 export async function userLogout(userId) {
-  const redis = getRedisClient();
+  const redis = await getOrInitRedisClient();
   const key = `session:${userId}`;
 
   await redis.del(key);
@@ -107,7 +133,7 @@ export async function userLogout(userId) {
  * Hybrid LRU + LIFO eviction strategy
  */
 async function enforceHybridEviction() {
-  const redis = getRedisClient();
+  const redis = await getOrInitRedisClient();
   const currentSessions = await redis.zCard(LRU_ZSET_KEY);
   const maxSessions = parseInt(REDIS_MAX_SESSIONS, 10);
   if (currentSessions <= maxSessions) return;
@@ -126,6 +152,8 @@ async function enforceHybridEviction() {
  * Starts periodic eviction scheduler
  */
 function startEvictionScheduler() {
+  if (evictionSchedulerStarted) return;
+  evictionSchedulerStarted = true;
   setInterval(() => {
     enforceHybridEviction().catch(RLogger.error);
   }, 60_000); // every 60 seconds

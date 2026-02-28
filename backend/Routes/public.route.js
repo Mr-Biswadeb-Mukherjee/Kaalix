@@ -8,9 +8,13 @@ import { generateCaptcha } from "../Services/captcha.service.js";
 const publicRouter = express.Router();
 
 // Captcha
-publicRouter.get(API.system.public.captcha.endpoint, (req, res) => {
-  const { id, image } = generateCaptcha();
-  res.status(200).json({ id, image });
+publicRouter.get(API.system.public.captcha.endpoint, async (req, res, next) => {
+  try {
+    const { id, image } = await generateCaptcha();
+    res.status(200).json({ id, image });
+  } catch (err) {
+    next(err);
+  }
 });
 
 // Auth

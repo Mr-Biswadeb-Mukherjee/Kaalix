@@ -14,6 +14,7 @@ if (!database) {
 }
 
 let pool;
+let initPromise = null;
 
 // =============================================================
 // Internal State Tracker (prevents duplicate spam)
@@ -79,75 +80,93 @@ async function reconnectWithBackoff(maxRetries = 10) {
 // =============================================================
 export async function initDatabase(isReconnecting = false) {
   if (pool && !isReconnecting) return pool; // Singleton unless forced
+  if (initPromise && !isReconnecting) return initPromise;
 
-  try {
-    // STEP 1: Bootstrap connection (only if not reconnecting)
-    if (!isReconnecting) {
-      const bootstrap = await mysql.createConnection({
+  const initialize = async () => {
+    try {
+      // STEP 1: Bootstrap connection (only if not reconnecting)
+      if (!isReconnecting) {
+        const bootstrap = await mysql.createConnection({
+          host,
+          user,
+          password,
+          port,
+          multipleStatements: true,
+        });
+
+        await bootstrap.query(`CREATE DATABASE IF NOT EXISTS \`${database}\`;`);
+        logOnce("verified", `🏗️  Database '${database}' verified/created`);
+        await bootstrap.end();
+      }
+
+      // STEP 2: Create pool
+      pool = mysql.createPool({
         host,
         user,
         password,
+        database,
         port,
+        waitForConnections: true,
+        connectionLimit: maxPoolSize,
+        queueLimit: 0,
         multipleStatements: true,
       });
 
-      await bootstrap.query(`CREATE DATABASE IF NOT EXISTS \`${database}\`;`);
-      logOnce("verified", `🏗️  Database '${database}' verified/created`);
-      await bootstrap.end();
-    }
+      // Test connection
+      await pool.getConnection().then(conn => conn.release());
+      logOnce("connected", "💾 Database connection established");
 
-    // STEP 2: Create pool
-    pool = mysql.createPool({
-      host,
-      user,
-      password,
-      database,
-      port,
-      waitForConnections: true,
-      connectionLimit: maxPoolSize,
-      queueLimit: 0,
-      multipleStatements: true,
-    });
-
-    // Test connection
-    await pool.getConnection().then(conn => conn.release());
-    logOnce("connected", "💾 Database connection established");
-
-    // STEP 3: Initialize tables (only in dev)
-    if (process.env.NODE_ENV !== "production") {
-      await initializeDatabase(pool);
-    }
-
-    logOnce("ready", "✅ Database and tables are ready");
-
-    // =========================================================
-    // Pool Error Handling
-    // =========================================================
-    pool.on("error", async (err) => {
-      if (dbState.reconnecting) return; // avoid duplicate attempts
-      dbState.reconnecting = true;
-
-      logger.error(`❌ MySQL Pool Error: ${err.message}`);
-      resetDbState();
-
-      try {
-        await reconnectWithBackoff();
-      } catch (fatalErr) {
-        logger.critical(`💀 Fatal error during reconnection: ${fatalErr.message}`);
-        await flushLogger();
-        process.exit(1);
-      } finally {
-        dbState.reconnecting = false;
+      // STEP 3: Initialize tables (only in dev)
+      if (process.env.NODE_ENV !== "production") {
+        await initializeDatabase(pool);
       }
-    });
 
-    return pool;
+      logOnce("ready", "✅ Database and tables are ready");
 
-  } catch (err) {
-    logger.error(`❌ MySQL Initialization Error: ${err.message}`);
-    await flushLogger();
-    setTimeout(() => process.exit(1), 100);
+      // =========================================================
+      // Pool Error Handling
+      // =========================================================
+      pool.on("error", async (err) => {
+        if (dbState.reconnecting) return; // avoid duplicate attempts
+        dbState.reconnecting = true;
+
+        logger.error(`❌ MySQL Pool Error: ${err.message}`);
+        resetDbState();
+
+        try {
+          await reconnectWithBackoff();
+        } catch (fatalErr) {
+          logger.critical(`💀 Fatal error during reconnection: ${fatalErr.message}`);
+          await flushLogger();
+          process.exit(1);
+        } finally {
+          dbState.reconnecting = false;
+        }
+      });
+
+      return pool;
+    } catch (err) {
+      pool = undefined;
+      logger.error(`❌ MySQL Initialization Error: ${err.message}`);
+      await flushLogger();
+      throw err;
+    }
+  };
+
+  if (isReconnecting) {
+    return initialize();
   }
+
+  initPromise = initialize();
+  try {
+    return await initPromise;
+  } finally {
+    initPromise = null;
+  }
+}
+
+export async function getDatabase() {
+  return initDatabase();
 }
 
 export { pool };

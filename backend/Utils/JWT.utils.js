@@ -1,6 +1,6 @@
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
-import { initRedis, getRedisClient } from '../Connectors/Redis.js';
+import { getOrInitRedisClient } from '../Connectors/Redis.js';
 
 const JWT_SECRET_PREFIX = 'jwt:secret:';
 const CURRENT_KID_KEY = 'jwt:current_kid';
@@ -15,7 +15,7 @@ let initialized = false;
 
 async function lazyInit() {
   if (initialized) return;
-  await initRedis();
+  await getOrInitRedisClient();
   startRotationScheduler();
   initialized = true;
 }
@@ -29,7 +29,7 @@ function generateJTI() {
 }
 
 async function rotateSecret() {
-  const redis = getRedisClient();
+  const redis = await getOrInitRedisClient();
   const newKid = Date.now().toString();
   const newSecret = generateSecret();
 
@@ -63,7 +63,7 @@ async function generateToken(payload) {
     throw new Error("Payload must include user_id");
   }
 
-  const redis = getRedisClient();
+  const redis = await getOrInitRedisClient();
   const kid = await redis.get(CURRENT_KID_KEY);
   if (!kid) throw new Error('Current KID not found');
 
@@ -94,7 +94,7 @@ async function verifyToken(token, options = { revoke: true }) {
   }
 
   const { kid } = decoded.header;
-  const redis = getRedisClient();
+  const redis = await getOrInitRedisClient();
 
   const secret = await redis.get(`${JWT_SECRET_PREFIX}${kid}`);
   if (!secret) throw new Error(`Secret not found for kid=${kid}`);
@@ -154,7 +154,7 @@ async function revokeToken(token) {
     throw new Error('Cannot revoke: missing JTI');
   }
 
-  const redis = getRedisClient();
+  const redis = await getOrInitRedisClient();
   await redis.set(`${REVOCATION_SET_PREFIX}${decoded.jti}`, 'revoked', {
     EX: TOKEN_TTL_SECONDS,
   });
@@ -167,7 +167,7 @@ async function revokeToken(token) {
  */
 async function revokeUserTokens(userId) {
   await lazyInit();
-  const redis = getRedisClient();
+  const redis = await getOrInitRedisClient();
   const lockKey = `lock:revoke:${userId}`;
 
   // acquire lock (set if not exists, expire after 5 sec)

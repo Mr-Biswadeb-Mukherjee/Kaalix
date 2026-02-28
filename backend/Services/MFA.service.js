@@ -1,11 +1,16 @@
 // Services/MFA.service.js
-import { pool } from "../Connectors/DB.js";
+import { getDatabase } from "../Connectors/DB.js";
 import { generateQRCodeDataUrl } from "./MFA/QRCode.MFA.js";
 import speakeasy from "speakeasy";
 import crypto from "crypto";
 
 // Temporary in-memory store (use Redis in production)
 const tempSecrets = new Map();
+
+async function query(sql, params = []) {
+  const db = await getDatabase();
+  return db.query(sql, params);
+}
 
 export const MFAService = {
   /**
@@ -14,7 +19,7 @@ export const MFAService = {
    * @returns {Object} { methodName: status }
    */
   async getStatus(userId) {
-    const [rows] = await pool.query(
+    const [rows] = await query(
       "SELECT method, status FROM user_mfa WHERE user_id = ?",
       [userId]
     );
@@ -27,17 +32,15 @@ export const MFAService = {
     return statusMap;
   },
 
-
-
   /**
-   * Begin MFA setup → generate secret + QR (not stored in DB yet)
+   * Begin MFA setup -> generate secret + QR (not stored in DB yet)
    * @param {string} userId - user_id string from users table
    * @param {string} method
    * @returns {Object} { qrBlob, otpauthUrl, email }
    */
   async toggle(userId, method) {
     // Fetch user email from DB using user_id column
-    const [userRows] = await pool.query(
+    const [userRows] = await query(
       "SELECT email FROM users WHERE user_id = ?",
       [userId]
     );
@@ -49,7 +52,7 @@ export const MFAService = {
     const email = userRows[0].email;
 
     // Check if MFA is already enabled
-    const [existing] = await pool.query(
+    const [existing] = await query(
       "SELECT * FROM user_mfa WHERE user_id = ? AND method = ? AND status='enabled'",
       [userId, method]
     );
@@ -62,8 +65,8 @@ export const MFAService = {
     const mfa_id = crypto.randomBytes(12).toString("hex"); // 24 chars
     const secret = speakeasy.generateSecret({
       length: 20,
-      name: `${email}`,   // account name shown on the right
-      issuer: 'AMON'      // issuer shown on the left
+      name: `${email}`, // account name shown on the right
+      issuer: "AMON", // issuer shown on the left
     });
 
     // Store secret temporarily in memory (userId+method key)
@@ -76,15 +79,14 @@ export const MFAService = {
     const qrBlob = Buffer.from(qrCodeDataUrl.split(",")[1], "base64");
 
     return {
-      qrBlob,          // Blob for displaying QR code
+      qrBlob, // Blob for displaying QR code
       otpauthUrl: secret.otpauth_url, // full otpauth URL
-      email            // user's email
+      email, // user's email
     };
   },
 
-
   /**
-   * Verify MFA OTP → only now insert into DB as enabled
+   * Verify MFA OTP -> only now insert into DB as enabled
    * @param {string} userId
    * @param {string} method
    * @param {string} token
@@ -108,7 +110,7 @@ export const MFAService = {
     if (!verified) throw new Error("Invalid OTP code.");
 
     // Insert into DB as enabled
-    await pool.query(
+    await query(
       `INSERT INTO user_mfa (user_id, mfa_id, method, status)
        VALUES (?, ?, ?, 'enabled')
        ON DUPLICATE KEY UPDATE status='enabled', updated_at=CURRENT_TIMESTAMP`,
@@ -116,7 +118,7 @@ export const MFAService = {
     );
 
     // Store the secret securely in user_mfa_data
-    await pool.query(
+    await query(
       `INSERT INTO user_mfa_data (mfa_id, \`key\`, \`value\`)
        VALUES (?, 'secret', ?)
        ON DUPLICATE KEY UPDATE \`value\`=VALUES(\`value\`)`,
@@ -130,39 +132,12 @@ export const MFAService = {
   },
 
   /**
-   * Disable MFA for a method
+   * Disable MFA for a method -> completely remove MFA data for that user+method
    * @param {string} userId
    * @param {string} method
    */
   async disable(userId, method) {
-    const [rows] = await pool.query(
-      "SELECT status FROM user_mfa WHERE user_id=? AND method=?",
-      [userId, method]
-    );
-
-    if (rows.length === 0) {
-      throw new Error("MFA method not found.");
-    }
-
-    if (rows[0].status === "disabled") {
-      throw new Error("MFA already disabled.");
-    }
-
-    await pool.query(
-      "UPDATE user_mfa SET status='disabled', updated_at=CURRENT_TIMESTAMP WHERE user_id=? AND method=?",
-      [userId, method]
-    );
-
-    return { success: true };
-  },
-
-    /**
-   * Disable MFA for a method → completely remove MFA data for that user+method
-   * @param {string} userId
-   * @param {string} method
-   */
-  async disable(userId, method) {
-    const [rows] = await pool.query(
+    const [rows] = await query(
       "SELECT mfa_id, status FROM user_mfa WHERE user_id=? AND method=?",
       [userId, method]
     );
@@ -178,14 +153,12 @@ export const MFAService = {
     }
 
     // Delete all MFA-related data for this method
-    await pool.query("DELETE FROM user_mfa_data WHERE mfa_id=?", [mfa_id]);
-    await pool.query("DELETE FROM user_mfa WHERE user_id=? AND method=?", [
+    await query("DELETE FROM user_mfa_data WHERE mfa_id=?", [mfa_id]);
+    await query("DELETE FROM user_mfa WHERE user_id=? AND method=?", [
       userId,
       method,
     ]);
 
     return { success: true };
   },
-
-
 };

@@ -1,12 +1,11 @@
 import { findUserByEmail } from "./user.service.js";
-import { initDatabase } from "../Connectors/DB.js";
+import { getDatabase } from "../Connectors/DB.js";
 import bcrypt from "bcrypt";
 import path from "path";
 import { promises as fs } from "fs";
 
-const db = await initDatabase();
-
 const deleteacc = async (email, password) => {
+  const db = await getDatabase();
   const conn = await db.getConnection();
   try {
     await conn.beginTransaction();
