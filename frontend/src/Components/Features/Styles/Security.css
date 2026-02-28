@@ -33,6 +33,12 @@
   margin-bottom: 16px;
 }
 
+.security-required-note {
+  margin: 8px 0 0;
+  font-size: 0.9rem;
+  color: #e53935;
+}
+
 /* ==============================
    Danger Zone Section
 ============================== */

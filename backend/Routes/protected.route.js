@@ -3,10 +3,8 @@ import API from "@amon/shared";
 import authMiddleware from "../Middleware/auth.middleware.js";
 import getSystemStats from "../Services/status.service.js";
 import { ChangePassword } from "../Services/changepassword.service.js";
-import { DeleteAccount } from "../Services/deleteaccount.service.js";
 import { FetchProfile, UpdateProfile, UpdateAvatar } from "../Controller/Profile.controller.js";
 import { upload, processAvatar, handleUploadErrors } from "../Middleware/upload.middleware.js";
-import { revokeUserTokens } from "../Utils/JWT.utils.js";
 import { MFAService } from "../Services/MFA.service.js";
 
 const router = express.Router();
@@ -28,40 +26,21 @@ router.post(
 // Change password
 router.post(
   API.system.protected.changepass.endpoint,
-  authMiddleware({ revoke: true }),
+  authMiddleware({ revoke: false, allowDuringOnboarding: true }),
   ChangePassword
-);
-
-// Delete account
-router.post(
-  API.system.protected.deleteacc.endpoint,
-  authMiddleware({ revoke: false }),
-  asyncHandler(async (req, res) => {
-    await DeleteAccount(req, res);
-
-    const deletedUserId = res.locals.deletedUserId;
-    if (deletedUserId) {
-      try {
-        await revokeUserTokens(deletedUserId);
-        console.log(`⛔ Revoked all tokens for deleted user ${deletedUserId}`);
-      } catch (err) {
-        console.error(`⚠️ Failed to revoke tokens for user ${deletedUserId}: ${err.message}`);
-      }
-    }
-  })
 );
 
 // Get profile
 router.get(
   API.system.protected.getprofile.endpoint,
-  authMiddleware({ revoke: false }),
+  authMiddleware({ revoke: false, allowDuringOnboarding: true }),
   FetchProfile
 );
 
 // Update profile
 router.post(
   API.system.protected.updateprofile.endpoint,
-  authMiddleware({ revoke: false }),
+  authMiddleware({ revoke: false, allowDuringOnboarding: true }),
   UpdateProfile
 );
 

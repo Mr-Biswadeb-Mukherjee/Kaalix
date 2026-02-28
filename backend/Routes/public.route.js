@@ -19,11 +19,19 @@ publicRouter.get(API.system.public.captcha.endpoint, async (req, res, next) => {
 
 // Auth
 publicRouter.use(API.system.public.login.endpoint, authRouter);
-publicRouter.post(API.system.public.logout.endpoint, authMiddleware({ revoke: true }), logoutHandler);
+publicRouter.post(API.system.public.logout.endpoint, authMiddleware({ revoke: false }), logoutHandler);
 
 // Verify Token
-publicRouter.post(API.system.public.verify.endpoint, authMiddleware({ revoke: false }), (req, res) => {
-  res.status(200).json({ message: "Token is valid", user: req.user });
-});
+publicRouter.post(
+  API.system.public.verify.endpoint,
+  authMiddleware({ revoke: false, allowDuringOnboarding: true }),
+  (req, res) => {
+    res.status(200).json({
+      message: "Token is valid",
+      user: req.user,
+      onboarding: req.onboarding || null,
+    });
+  }
+);
 
 export default publicRouter;

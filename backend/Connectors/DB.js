@@ -1,6 +1,6 @@
 import mysql from "mysql2/promise";
 import { mysql as mysqlConfig } from "../Confs/config.js";
-import { initializeDatabase } from "../Database/init.loader.js";
+import { initializeDatabase, ensureDefaultSaAccount } from "../Database/init.loader.js";
 import { LoggerContainer, flushLogger } from "../Logger/Logger.js";
 
 const logger = LoggerContainer.get("Database");
@@ -120,6 +120,9 @@ export async function initDatabase(isReconnecting = false) {
       if (process.env.NODE_ENV !== "production") {
         await initializeDatabase(pool);
       }
+
+      // STEP 4: Ensure one default SA exists on first startup
+      await ensureDefaultSaAccount(pool);
 
       logOnce("ready", "✅ Database and tables are ready");
 

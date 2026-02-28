@@ -187,11 +187,19 @@ router.post("/", async (req, res) => {
 
     // ✅ Success
     await updateFailedAttempts(user.user_id, 0, null);
+    const role = user.role || "admin";
+    const onboarding = user.onboarding || {
+      mustChangePassword: Boolean(user.must_change_password),
+      mustUpdateProfile: !user.profile_id,
+      required: Boolean(user.must_change_password) || !user.profile_id,
+    };
 
     const token = await res.generateToken({
       user_id: user.user_id,
       email: user.email,
       fullName: user.fullName,
+      role,
+      onboarding_required: onboarding.required,
     });
 
     return res.json({
@@ -201,7 +209,10 @@ router.post("/", async (req, res) => {
         user_id: user.user_id,
         email: user.email,
         fullName: user.fullName,
+        role,
+        onboarding,
       },
+      onboarding,
       token,
     });
 

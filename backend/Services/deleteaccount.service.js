@@ -12,6 +12,7 @@ const deleteacc = async (email, password) => {
 
     const user = await findUserByEmail(email);
     if (!user) throw new Error("Email does not match any account.");
+    if (user.role === "sa") throw new Error("SA account cannot be deleted.");
 
     const validPassword = await bcrypt.compare(password, user.password);
     if (!validPassword) throw new Error("Invalid password.");
@@ -107,6 +108,13 @@ export const DeleteAccount = async (req, res, next) => {
       return res.status(401).json({
         success: false,
         message: "Incorrect password. Account deletion cancelled."
+      });
+    }
+
+    if (err.message.includes("SA account cannot be deleted")) {
+      return res.status(403).json({
+        success: false,
+        message: "SA account cannot be deleted."
       });
     }
 

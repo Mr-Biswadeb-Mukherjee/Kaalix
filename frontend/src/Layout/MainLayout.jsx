@@ -12,7 +12,7 @@ import InactivityModal from '../Components/Layout/inactivityModal';
 const topbarHeight = 48;
 
 const MainLayout = () => {
-  const { logout } = useAuth();
+  const { logout, onboardingRequired } = useAuth();
 
   const [collapsed, setCollapsed] = useState(() => {
     const stored = localStorage.getItem('sidebar-collapsed');
@@ -34,6 +34,10 @@ const MainLayout = () => {
 
     setModalOpen(false);
     setCountdown(15);
+
+    if (onboardingRequired) {
+      return;
+    }
 
     // 60s warning -> open modal
     warningTimerRef.current = setTimeout(() => {
@@ -59,6 +63,15 @@ const MainLayout = () => {
 
   // Attach user activity listeners
   useEffect(() => {
+    if (onboardingRequired) {
+      clearTimeout(warningTimerRef.current);
+      clearTimeout(logoutTimerRef.current);
+      clearInterval(countdownIntervalRef.current);
+      setModalOpen(false);
+      setCountdown(15);
+      return;
+    }
+
     const events = ['mousemove', 'keydown', 'click', 'scroll'];
     events.forEach((event) => window.addEventListener(event, resetTimers));
 
@@ -70,7 +83,7 @@ const MainLayout = () => {
       clearTimeout(logoutTimerRef.current);
       clearInterval(countdownIntervalRef.current);
     };
-  }, []);
+  }, [onboardingRequired]);
 
   useEffect(() => {
     localStorage.setItem('sidebar-collapsed', collapsed.toString());

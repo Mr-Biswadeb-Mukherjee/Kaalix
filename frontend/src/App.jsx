@@ -35,7 +35,7 @@ function AppRoutes() {
   const { login } = useAuth();
 
   const handleAuthSuccess = (data) => {
-    login(data.token);
+    login(data.token, data.user || data);
     navigate("/profile");
   };
 

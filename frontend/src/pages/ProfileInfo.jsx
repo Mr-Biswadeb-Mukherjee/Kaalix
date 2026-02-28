@@ -5,118 +5,178 @@ import "./Styles/Profile.css";
 
 const ProfileInfo = ({
   userInfo,
-  isEditing,
-  hasChanges,
+  isSa,
+  onboardingRequired,
+  isPersonalEditing,
+  isOrgEditing,
+  hasPersonalChanges,
+  hasOrgChanges,
   defaultCountry,
   setUserInfo,
   setPhoneEdited,
   handleChange,
-  handleEditToggle,
-  handleSave,
+  handlePersonalEditToggle,
+  handleOrgEditToggle,
+  handleSavePersonal,
+  handleSaveOrg,
 }) => {
   return (
-    <div className="profile-section">
-      <h3>Personal Information</h3>
-
-      {/* name */}
-      <div className="profile-item">
-        <span>Name</span>
-        {isEditing ? (
-          <input
-            className="profile-input"
-            type="text"
-            name="fullName"
-            value={userInfo.fullName}
-            onChange={handleChange}
-          />
-        ) : (
-          <p>{userInfo.fullName || "Not set"}</p>
+    <>
+      <div className="profile-section">
+        <h3>Personal Information</h3>
+        {onboardingRequired && (
+          <p className="profile-setup-note">Profile details update is required before accessing other pages.</p>
         )}
+
+        <div className="profile-item">
+          <span>Name</span>
+          {isPersonalEditing ? (
+            <input
+              className="profile-input"
+              type="text"
+              name="fullName"
+              value={userInfo.fullName}
+              onChange={handleChange}
+            />
+          ) : (
+            <p>{userInfo.fullName || "Not set"}</p>
+          )}
+        </div>
+
+        <div className="profile-item">
+          <span>Email</span>
+          {isPersonalEditing ? (
+            <input
+              className="profile-input"
+              type="email"
+              name="email"
+              value={userInfo.email}
+              onChange={handleChange}
+            />
+          ) : (
+            <p>{userInfo.email || "Not set"}</p>
+          )}
+        </div>
+
+        <div className="profile-item">
+          <span>Phone</span>
+          {isPersonalEditing ? (
+            <PhoneInput
+              country={defaultCountry}
+              value={userInfo.phone}
+              onChange={(value) => {
+                setUserInfo((prev) => ({
+                  ...prev,
+                  phone: value.startsWith("+") ? value : `+${value}`,
+                }));
+                setPhoneEdited(true);
+              }}
+              enableSearch
+              placeholder="Enter phone number"
+              containerClass="phone-input-container"
+              inputClass="phone-input-field"
+              buttonClass="phone-input-flag"
+            />
+          ) : (
+            <p>{userInfo.phone || "Not set"}</p>
+          )}
+        </div>
+
+        <div className="profile-item">
+          <span>Bio</span>
+          {isPersonalEditing ? (
+            <textarea
+              className="profile-textarea"
+              name="bio"
+              value={userInfo.bio}
+              onChange={handleChange}
+              placeholder="Tell us something about yourself..."
+              rows={4}
+            />
+          ) : (
+            <div className="bio-display">
+              <p>{userInfo.bio || "No bio available"}</p>
+            </div>
+          )}
+        </div>
+
+        <div className="profile-actions">
+          {!isPersonalEditing && (
+            <button className="edit-btn" onClick={handlePersonalEditToggle}>
+              Edit Personal
+            </button>
+          )}
+          {isPersonalEditing && (
+            <>
+              <button className="cancel-btn" onClick={handlePersonalEditToggle}>
+                Cancel
+              </button>
+              <button
+                className="save-btn"
+                onClick={handleSavePersonal}
+                disabled={!hasPersonalChanges}
+              >
+                Save Personal
+              </button>
+            </>
+          )}
+        </div>
       </div>
 
-      {/* email */}
-      <div className="profile-item">
-        <span>Email</span>
-        {isEditing ? (
-          <input
-            className="profile-input"
-            type="email"
-            name="email"
-            value={userInfo.email}
-            onChange={handleChange}
-          />
-        ) : (
-          <p>{userInfo.email || "Not set"}</p>
-        )}
-      </div>
+      <div className="profile-section">
+        <h3>Organization Information</h3>
 
-      {/* phone */}
-      <div className="profile-item">
-        <span>Phone</span>
-        {isEditing ? (
-          <PhoneInput
-            country={defaultCountry}
-            value={userInfo.phone}
-            onChange={(value) => {
-              setUserInfo((prev) => ({
-                ...prev,
-                phone: value.startsWith("+") ? value : `+${value}`,
-              }));
-              setPhoneEdited(true);
-            }}
-            enableSearch
-            placeholder="Enter phone number"
-            containerClass="phone-input-container"
-            inputClass="phone-input-field"
-            buttonClass="phone-input-flag"
-          />
-        ) : (
-          <p>{userInfo.phone || "Not set"}</p>
-        )}
-      </div>
+        <div className="profile-item">
+          <span>Organization</span>
+          {isOrgEditing && isSa ? (
+            <input
+              className="profile-input"
+              type="text"
+              name="org"
+              value={userInfo.org || ""}
+              onChange={handleChange}
+              placeholder="Enter organization name"
+            />
+          ) : (
+            <p>{userInfo.org || "Not set"}</p>
+          )}
+        </div>
 
-      {/* bio */}
-      <div className="profile-item">
-        <span>Bio</span>
-        {isEditing ? (
-          <textarea
-            className="profile-textarea"
-            name="bio"
-            value={userInfo.bio}
-            onChange={handleChange}
-            placeholder="Tell us something about yourself..."
-            rows={4}
-          />
-        ) : (
-          <div className="bio-display">
-            <p>{userInfo.bio || "No bio available"}</p>
+        <div className="profile-item">
+          <span>Organization ID</span>
+          <p>
+            {userInfo.orgId ||
+              (isSa
+                ? "Will be generated after SA saves organization"
+                : "Not assigned")}
+          </p>
+        </div>
+
+        {isSa && (
+          <div className="profile-actions">
+            {!isOrgEditing && (
+              <button className="edit-btn" onClick={handleOrgEditToggle}>
+                Edit Organization
+              </button>
+            )}
+            {isOrgEditing && (
+              <>
+                <button className="cancel-btn" onClick={handleOrgEditToggle}>
+                  Cancel
+                </button>
+                <button
+                  className="save-btn"
+                  onClick={handleSaveOrg}
+                  disabled={!hasOrgChanges}
+                >
+                  Save Organization
+                </button>
+              </>
+            )}
           </div>
         )}
       </div>
-
-      {/* actions */}
-      <div className="profile-actions">
-        {!isEditing && (
-          <button className="edit-btn" onClick={handleEditToggle}>
-            Edit Profile
-          </button>
-        )}
-        {isEditing && (
-          <>
-            <button className="cancel-btn" onClick={handleEditToggle}>
-              Cancel
-            </button>
-            <button
-              className="save-btn"
-              onClick={handleSave}
-              disabled={!hasChanges}
-            >
-              Save Changes
-            </button>
-          </>
-        )}
-      </div>
-    </div>
+    </>
   );
 };
 

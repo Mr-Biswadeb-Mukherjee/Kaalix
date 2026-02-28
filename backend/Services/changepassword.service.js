@@ -1,6 +1,6 @@
 import bcrypt from "bcrypt";
 import { getDatabase } from "../Connectors/DB.js";
-import { findUserById } from "./user.service.js";
+import { findUserById, getUserOnboardingState } from "./user.service.js";
 
 /**
  * Service: Update user password
@@ -9,7 +9,7 @@ const updateUserPassword = async (userId, newPassword) => {
   const db = await getDatabase();
   const hashedPassword = await bcrypt.hash(newPassword, 10);
   await db.execute(
-    "UPDATE users SET password = ?, updated_at = NOW() WHERE user_id = ?",
+    "UPDATE users SET password = ?, must_change_password = 0, updated_at = NOW() WHERE user_id = ?",
     [hashedPassword, userId]
   );
   return true;
@@ -60,7 +60,12 @@ export const ChangePassword = async (req, res) => {
     // ✅ Update password
     await updateUserPassword(userId, newPassword);
 
-    return res.json({ message: "Password changed successfully" });
+    const onboarding = await getUserOnboardingState(userId);
+
+    return res.json({
+      message: "Password changed successfully",
+      onboarding,
+    });
   } catch (err) {
     console.error("❌ Change password error:", err.message);
     return res

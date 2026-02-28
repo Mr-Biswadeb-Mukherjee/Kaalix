@@ -16,6 +16,7 @@ import SafeImage from '../UI/safeImage';
 import API from '@amon/shared';
 import './Styles/TopBar.css';
 import { useToast } from '../UI/Toast';
+import { useAuth } from '../../Context/AuthContext';
 
 const TopBar = ({ collapsed }) => {
   const [time, setTime] = useState(new Date().toLocaleTimeString());
@@ -25,6 +26,7 @@ const TopBar = ({ collapsed }) => {
   const [user, setUser] = useState({ username: 'Loading...', avatar: null });
 
   const { addToast } = useToast();
+  const { logout, onboardingRequired } = useAuth();
   const token = localStorage.getItem('token');
 
   // Update time every second
@@ -65,6 +67,10 @@ const TopBar = ({ collapsed }) => {
   // Fetch location
   useEffect(() => {
     if (!token) return;
+    if (onboardingRequired) {
+      setLocation('Complete Profile Setup');
+      return;
+    }
 
     fetch(API.system.protected.status.endpoint, {
       method: 'POST',
@@ -78,7 +84,7 @@ const TopBar = ({ collapsed }) => {
         setLocation(data?.stats?.location || 'Unknown Location');
       })
       .catch(() => setLocation('Unknown Location'));
-  }, [token]);
+  }, [token, onboardingRequired]);
 
   // Apply theme
   useEffect(() => {
@@ -105,20 +111,20 @@ const TopBar = ({ collapsed }) => {
       return;
     }
 
-    try {
-      const response = await fetch(API.system.public.logout.endpoint, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-      });
+    if (onboardingRequired) {
+      addToast('Complete profile update and password change before logout.', 'warning');
+      return;
+    }
 
-      if (response.ok) {
+    try {
+      const result = await logout();
+      if (result?.success) {
         addToast('Successfully logged out.', 'success');
-        localStorage.removeItem('token');
         setTimeout(() => (window.location.href = '/'), 1500);
-      } else {
-        const err = await response.json();
-        addToast(`Logout failed: ${err.message || 'Unknown error'}`, 'error');
+        return;
       }
+
+      addToast(result?.message || 'Logout failed.', result?.blocked ? 'warning' : 'error');
     } catch (err) {
       console.error('🚨 Logout error:', err);
       addToast('Network error during logout. Please try again.', 'error');
@@ -186,7 +192,11 @@ const TopBar = ({ collapsed }) => {
               <PersonIcon className="dropdown-icon" />
               <span>Account Settings</span>
             </div>
-            <div className="dropdown-item" onClick={handleLogout}>
+            <div
+              className="dropdown-item"
+              onClick={handleLogout}
+              style={onboardingRequired ? { opacity: 0.5, cursor: 'not-allowed' } : undefined}
+            >
               <LogoutIcon className="dropdown-icon" />
               <span>Logout</span>
             </div>

@@ -2,6 +2,8 @@
 import fs from "fs";
 import path from "path";
 import crypto from "crypto";
+import bcrypt from "bcrypt";
+import { v4 as uuidv4 } from "uuid";
 import { fileURLToPath } from "url";
 import { LoggerContainer } from "../Logger/Logger.js";
 
@@ -80,6 +82,115 @@ export async function initializeDatabase(pool) {
   }
 
   logger.info("✅ Database initialization complete.");
+}
+
+/**
+ * Seed a default SA user on first app startup.
+ * If an SA user already exists, this is a no-op.
+ */
+export async function ensureDefaultSaAccount(pool) {
+  const defaultUsername =
+    (process.env.DEFAULT_SA_USERNAME || "Amon Super Admin").trim();
+  const defaultEmail = String(
+    process.env.DEFAULT_SA_EMAIL || "amon.sa@gmail.com"
+  )
+    .trim()
+    .toLowerCase();
+  const defaultPassword = String(
+    process.env.DEFAULT_SA_PASSWORD || "ChangeMe@123"
+  );
+
+  if (!defaultEmail || !defaultPassword) {
+    logger.warn("⚠️ Skipping SA seed: DEFAULT_SA_EMAIL/PASSWORD is empty.");
+    return;
+  }
+
+  const [requiredTables] = await pool.query(
+    `SELECT table_name
+     FROM INFORMATION_SCHEMA.TABLES
+     WHERE TABLE_SCHEMA = DATABASE()
+       AND table_name IN ('users', 'profiles')`
+  );
+
+  if (!requiredTables || requiredTables.length < 2) {
+    logger.warn("⚠️ Skipping SA seed: users/profiles tables are not ready.");
+    return;
+  }
+
+  const [roleColumn] = await pool.query(
+    `SELECT column_name
+     FROM INFORMATION_SCHEMA.COLUMNS
+     WHERE TABLE_SCHEMA = DATABASE()
+       AND table_name = 'users'
+       AND column_name = 'role'
+     LIMIT 1`
+  );
+
+  if (!roleColumn || roleColumn.length === 0) {
+    logger.warn("⚠️ Skipping SA seed: users.role column not found.");
+    return;
+  }
+
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+
+    const [saRows] = await conn.execute(
+      "SELECT user_id FROM users WHERE role = 'sa' LIMIT 1 FOR UPDATE"
+    );
+
+    if (saRows.length > 0) {
+      const saUserId = saRows[0].user_id;
+      const [profileRows] = await conn.execute(
+        "SELECT profile_id FROM profiles WHERE user_id = ? LIMIT 1",
+        [saUserId]
+      );
+
+      if (profileRows.length === 0) {
+        await conn.execute(
+          "INSERT INTO profiles (user_id, profile_id, fullName) VALUES (?, ?, ?)",
+          [saUserId, null, defaultUsername]
+        );
+        logger.warn(`⚠️ SA profile was missing and has been restored for ${saUserId}.`);
+      }
+
+      await conn.commit();
+      logger.verbose("⚙️ Default SA seed skipped: existing SA found.");
+      return;
+    }
+
+    const hashedPassword = await bcrypt.hash(defaultPassword, 10);
+    const userId = `AMON-SA-${uuidv4().replace(/-/g, "").slice(0, 10)}`;
+
+    await conn.execute(
+      "INSERT INTO users (user_id, email, password, role, must_change_password) VALUES (?, ?, ?, 'sa', 1)",
+      [userId, defaultEmail, hashedPassword]
+    );
+
+    await conn.execute(
+      "INSERT INTO profiles (user_id, profile_id, fullName) VALUES (?, ?, ?)",
+      [userId, null, defaultUsername]
+    );
+
+    await conn.commit();
+    logger.warn(
+      `🔐 Default SA user created (email: ${defaultEmail}, role: sa). Change DEFAULT_SA_PASSWORD immediately.`
+    );
+  } catch (err) {
+    await conn.rollback();
+
+    if (
+      err?.message?.includes("Only one sa is allowed") ||
+      err?.message?.includes("ux_single_super_admin")
+    ) {
+      logger.warn("⚠️ SA seed skipped: an SA user already exists.");
+      return;
+    }
+
+    throw err;
+  } finally {
+    conn.release();
+  }
 }
 
 /**

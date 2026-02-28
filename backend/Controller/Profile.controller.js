@@ -2,6 +2,7 @@ import {
   fetchProfile as getUserProfile, 
   updateProfile as modifyUserProfile, 
   updateProfileAvatar } from "../Services/profile.service.js";
+import { getUserOnboardingState } from "../Services/user.service.js";
 
 import validator from "validator";
 import sanitizeHtml from "sanitize-html";
@@ -36,12 +37,16 @@ export const FetchProfile = async (req, res) => {
     res.json({
       createdAt: formatDateTime(profile.createdAt),
       updatedAt: formatDateTime(profile.updatedAt),
+      role: profile.role,
       profileId: profile.profileId,
       fullName: profile.fullName,
       email: profile.email,
+      org: profile.org,
+      orgId: profile.orgId,
       phone: profile.phone,
       bio: profile.bio,
       avatarUrl: getFullAvatarUrl(req, profile.profile_url), // ✅ fixed
+      onboarding: req.onboarding || null,
     });
   } catch (err) {
     console.error("Error in FetchProfile:", err);
@@ -55,26 +60,55 @@ export const FetchProfile = async (req, res) => {
 export const UpdateProfile = async (req, res) => {
   try {
     const userId = req.user.user_id;
-    let { fullName, email, phone, bio } = req.body;
+    let { fullName, email, phone, bio, org } = req.body;
+    const hasFullNameField = Object.prototype.hasOwnProperty.call(req.body, "fullName");
+    const hasEmailField = Object.prototype.hasOwnProperty.call(req.body, "email");
+    const hasPhoneField = Object.prototype.hasOwnProperty.call(req.body, "phone");
+    const hasBioField = Object.prototype.hasOwnProperty.call(req.body, "bio");
+    const hasOrgField = Object.prototype.hasOwnProperty.call(req.body, "org");
+    const hasAnyUpdatableField =
+      hasFullNameField || hasEmailField || hasPhoneField || hasBioField || hasOrgField;
 
-    fullName = typeof fullName === "string" ? fullName.trim() : "";
-    email = typeof email === "string" ? email.trim().toLowerCase() : "";
-    phone = typeof phone === "string" ? phone.trim() : "";
-    bio = typeof bio === "string" ? bio.trim() : "";
+    if (!hasAnyUpdatableField) {
+      return res.status(400).json({ message: "No profile fields provided for update." });
+    }
+
+    if (hasFullNameField && typeof fullName !== "string") {
+      return res.status(400).json({ message: "Invalid full name." });
+    }
+    if (hasEmailField && typeof email !== "string") {
+      return res.status(400).json({ message: "Invalid email address." });
+    }
+    if (hasPhoneField && typeof phone !== "string") {
+      return res.status(400).json({ message: "Invalid phone number format." });
+    }
+    if (hasBioField && typeof bio !== "string") {
+      return res.status(400).json({ message: "Invalid bio." });
+    }
+    if (hasOrgField && typeof org !== "string") {
+      return res.status(400).json({ message: "Invalid organization." });
+    }
+
+    fullName = hasFullNameField && typeof fullName === "string" ? fullName.trim() : undefined;
+    email = hasEmailField && typeof email === "string" ? email.trim().toLowerCase() : undefined;
+    phone = hasPhoneField && typeof phone === "string" ? phone.trim() : undefined;
+    bio = hasBioField && typeof bio === "string" ? bio.trim() : undefined;
+    org = hasOrgField && typeof org === "string" ? org.trim() : undefined;
 
     const namePattern = /^[a-zA-Z\s.'-]{1,50}$/;
     const bioPattern = /^[a-zA-Z0-9\s.,'"\-!?()]*$/;
+    const orgPattern = /^[a-zA-Z0-9\s&.,'()\-]{1,120}$/;
 
-    if (!fullName || !namePattern.test(fullName)) {
+    if (hasFullNameField && (!fullName || !namePattern.test(fullName))) {
       return res.status(400).json({ message: "Full name contains invalid characters or exceeds 50 characters." });
     }
 
-    if (!email || !validator.isEmail(email)) {
+    if (hasEmailField && (!email || !validator.isEmail(email))) {
       return res.status(400).json({ message: "Invalid email address." });
     }
 
-    let normalizedPhone = null;
-    if (phone) {
+    let normalizedPhone = undefined;
+    if (hasPhoneField && phone) {
       try {
         let parsed = parsePhoneNumberFromString(phone);
 
@@ -91,17 +125,28 @@ export const UpdateProfile = async (req, res) => {
       } catch (e) {
         return res.status(400).json({ message: "Invalid phone number format." });
       }
+    } else if (hasPhoneField) {
+      normalizedPhone = "";
     }
 
-    if (bio && bio.length > 2000) {
+    if (hasBioField && bio && bio.length > 2000) {
       return res.status(400).json({ message: "Bio cannot exceed 2000 characters." });
     }
-    if (bio && !bioPattern.test(bio)) {
+    if (hasBioField && bio && !bioPattern.test(bio)) {
       return res.status(400).json({ message: "Bio contains invalid characters." });
     }
+    if (hasOrgField && org && !orgPattern.test(org)) {
+      return res.status(400).json({ message: "Organization contains invalid characters or exceeds 120 characters." });
+    }
 
-    if (bio) {
+    if (hasBioField && bio) {
       bio = sanitizeHtml(bio, {
+        allowedTags: [],
+        allowedAttributes: {},
+      });
+    }
+    if (hasOrgField && org) {
+      org = sanitizeHtml(org, {
         allowedTags: [],
         allowedAttributes: {},
       });
@@ -112,15 +157,22 @@ export const UpdateProfile = async (req, res) => {
       email,
       phone: normalizedPhone,
       bio,
+      org,
     });
+    const onboarding = await getUserOnboardingState(userId);
 
     res.json({
       updatedAt: formatDateTime(updatedProfile.updatedAt),
+      role: updatedProfile.role,
+      profileId: updatedProfile.profileId,
       fullName: updatedProfile.fullName,
       email: updatedProfile.email,
+      org: updatedProfile.org,
+      orgId: updatedProfile.orgId,
       phone: updatedProfile.phone,
       bio: updatedProfile.bio,
       avatarUrl: getFullAvatarUrl(req, updatedProfile.profile_url), // ✅ fixed
+      onboarding,
     });
   } catch (err) {
     console.error("Error in UpdateProfile:", err);
@@ -151,6 +203,7 @@ export const UpdateAvatar = async (req, res) => {
     return res.json({
       message: "Avatar updated successfully",
       avatarUrl: getFullAvatarUrl(req, updatedUser.profile_url),
+      onboarding: req.onboarding || null,
     });
   } catch (err) {
     console.error("Error in UpdateAvatar:", err);

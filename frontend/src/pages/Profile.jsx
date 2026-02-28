@@ -9,11 +9,14 @@ import API from "@amon/shared";
 import "react-phone-input-2/lib/style.css";
 import "./Styles/Profile.css";
 import ProfileAvatarModal from "./ProfileAvatarModal";
+import { useAuth } from "../Context/AuthContext";
 
 const Profile = () => {
   const { addToast } = useToast();
+  const { onboarding, updateOnboarding } = useAuth();
 
-  const [isEditing, setIsEditing] = useState(false);
+  const [isPersonalEditing, setIsPersonalEditing] = useState(false);
+  const [isOrgEditing, setIsOrgEditing] = useState(false);
   const [phoneEdited, setPhoneEdited] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [avatarPreview, setAvatarPreview] = useState(null);
@@ -21,7 +24,10 @@ const Profile = () => {
   const [userInfo, setUserInfo] = useState({
     fullName: "",
     email: "",
+    role: "",
     phone: "",
+    org: "",
+    orgId: "",
     profileId: "",
     bio: "",
     createdAt: "",
@@ -54,7 +60,10 @@ const Profile = () => {
         const profile = {
           fullName: data.fullName || "",
           email: data.email || "",
+          role: data.role || "",
           phone: data.phone || "",
+          org: data.org || "",
+          orgId: data.orgId || "",
           profileId: data.profileId || "",
           bio: data.bio || "",
           createdAt: data.createdAt || "",
@@ -63,13 +72,20 @@ const Profile = () => {
         };
         setUserInfo(profile);
         setOriginalUserInfo(profile);
+        if (data?.onboarding) {
+          updateOnboarding(data.onboarding);
+        }
       })
       .catch(() => addToast("Failed to load profile info", "error"));
-  }, [token, addToast]);
+  }, [token, addToast, updateOnboarding]);
 
   // Fetch location once
   useEffect(() => {
     if (!token) return;
+    if (onboarding?.required) {
+      setLocation("Complete Profile Setup");
+      return;
+    }
 
     const countryISOMap = { "United States": "us", India: "in", "United Kingdom": "gb", Australia: "au" };
 
@@ -92,10 +108,18 @@ const Profile = () => {
     };
 
     fetchLocation();
-  }, [token, phoneEdited]);
+  }, [token, phoneEdited, onboarding?.required]);
 
-  const hasChanges = useMemo(
-    () => Object.keys(originalUserInfo).some((key) => originalUserInfo[key] !== userInfo[key]),
+  const hasPersonalChanges = useMemo(
+    () =>
+      ["fullName", "email", "phone", "bio"].some(
+        (key) => originalUserInfo[key] !== userInfo[key]
+      ),
+    [originalUserInfo, userInfo]
+  );
+
+  const hasOrgChanges = useMemo(
+    () => originalUserInfo.org !== userInfo.org,
     [originalUserInfo, userInfo]
   );
 
@@ -104,16 +128,33 @@ const Profile = () => {
     setUserInfo((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleEditToggle = () => {
-    if (isEditing) {
-      setUserInfo({ ...originalUserInfo });
+  const handlePersonalEditToggle = () => {
+    if (isPersonalEditing) {
+      setUserInfo((prev) => ({
+        ...prev,
+        fullName: originalUserInfo.fullName,
+        email: originalUserInfo.email,
+        phone: originalUserInfo.phone,
+        bio: originalUserInfo.bio
+      }));
       setPhoneEdited(false);
     }
-    setIsEditing(!isEditing);
+    setIsPersonalEditing((prev) => !prev);
   };
 
-  const handleSave = async () => {
-    if (!hasChanges) return;
+  const handleOrgEditToggle = () => {
+    if (isOrgEditing) {
+      setUserInfo((prev) => ({
+        ...prev,
+        org: originalUserInfo.org,
+        orgId: originalUserInfo.orgId
+      }));
+    }
+    setIsOrgEditing((prev) => !prev);
+  };
+
+  const handleSavePersonal = async () => {
+    if (!hasPersonalChanges) return;
     try {
       const res = await fetch(API.system.protected.updateprofile.endpoint, {
         method: "POST",
@@ -134,21 +175,88 @@ const Profile = () => {
 
       addToast("Profile information updated successfully!", "success");
 
-      const updatedUserInfo = {
-        ...userInfo,
-        updatedAt: data.updatedAt || userInfo.updatedAt,
-        fullName: data.fullName || userInfo.fullName,
-        email: data.email || userInfo.email,
-        phone: data.phone || userInfo.phone,
-        bio: data.bio || userInfo.bio
-      };
+      const nextUpdatedAt = data.updatedAt || userInfo.updatedAt;
+      const nextFullName = data.fullName || userInfo.fullName;
+      const nextEmail = data.email || userInfo.email;
+      const nextPhone = data.phone || userInfo.phone;
+      const nextBio = data.bio || userInfo.bio;
+      const nextProfileId = data.profileId || userInfo.profileId;
 
-      setUserInfo(updatedUserInfo);
-      setOriginalUserInfo(updatedUserInfo);
-      setIsEditing(false);
+      setUserInfo((prev) => ({
+        ...prev,
+        updatedAt: nextUpdatedAt,
+        fullName: nextFullName,
+        email: nextEmail,
+        phone: nextPhone,
+        bio: nextBio,
+        profileId: nextProfileId
+      }));
+      setOriginalUserInfo((prev) => ({
+        ...prev,
+        updatedAt: nextUpdatedAt,
+        fullName: nextFullName,
+        email: nextEmail,
+        phone: nextPhone,
+        bio: nextBio,
+        profileId: nextProfileId
+      }));
+      if (data?.onboarding) {
+        updateOnboarding(data.onboarding);
+      }
+      setIsPersonalEditing(false);
       setPhoneEdited(false);
     } catch (err) {
       addToast(err.message || "Failed to save changes", "error");
+    }
+  };
+
+  const handleSaveOrg = async () => {
+    if (!hasOrgChanges) return;
+    try {
+      const res = await fetch(API.system.protected.updateprofile.endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          updatedAt: userInfo.updatedAt,
+          org: userInfo.org
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        addToast(data.message || "Something went wrong", "error");
+        return;
+      }
+
+      addToast("Organization updated successfully!", "success");
+
+      const nextUpdatedAt = data.updatedAt || userInfo.updatedAt;
+      const nextRole = data.role || userInfo.role;
+      const nextOrg = data.org || "";
+      const nextOrgId = data.orgId || "";
+      const nextProfileId = data.profileId || userInfo.profileId;
+
+      setUserInfo((prev) => ({
+        ...prev,
+        updatedAt: nextUpdatedAt,
+        role: nextRole,
+        org: nextOrg,
+        orgId: nextOrgId,
+        profileId: nextProfileId
+      }));
+      setOriginalUserInfo((prev) => ({
+        ...prev,
+        updatedAt: nextUpdatedAt,
+        role: nextRole,
+        org: nextOrg,
+        orgId: nextOrgId,
+        profileId: nextProfileId
+      }));
+      if (data?.onboarding) {
+        updateOnboarding(data.onboarding);
+      }
+      setIsOrgEditing(false);
+    } catch (err) {
+      addToast(err.message || "Failed to save organization", "error");
     }
   };
 
@@ -162,10 +270,21 @@ const Profile = () => {
       .toUpperCase();
   };
 
+  const getRoleLabel = (role) => {
+    if (!role) return "N/A";
+    if (role === "sa") return "SA";
+    return role.toUpperCase();
+  };
+
   return (
     <div className="profile-container two-column-layout">
       {/* Left Column */}
       <div className="profile-left">
+        {onboarding?.required && (
+          <div className="profile-onboarding-banner">
+            Complete first-time setup: update profile details and change your password.
+          </div>
+        )}
         <div className="profile-header-with-avatar">
           <div className="profile-avatar-wrapper">
             <div className="profile-avatar-ring">
@@ -180,36 +299,49 @@ const Profile = () => {
                 <span className="avatar-initials">{getInitials(userInfo.fullName)}</span>
               )}
             </div>
-            <div
-              className="camera-icon"
-              onClick={() => {
-                setIsModalOpen(true);
-              }}
-            >
-              <CameraAltIcon fontSize="small" />
-            </div>
+            {!onboarding?.required && (
+              <div
+                className="camera-icon"
+                onClick={() => {
+                  setIsModalOpen(true);
+                }}
+              >
+                <CameraAltIcon fontSize="small" />
+              </div>
+            )}
           </div>
 
           <div className="profile-info">
             <h2>{userInfo.fullName || "Unknown User"}</h2>
             <p className="profile-email">{userInfo.email || "No email address"}</p>
+            <p className="profile-role-badge">Role: {getRoleLabel(userInfo.role)}</p>
             <p className="profile-id-badge">Profile ID: {userInfo.profileId || "N/A"}</p>
           </div>
         </div>
 
         <ProfileInfo
           userInfo={userInfo}
-          isEditing={isEditing}
-          hasChanges={hasChanges}
+          isSa={userInfo.role === "sa"}
+          onboardingRequired={onboarding?.required}
+          isPersonalEditing={isPersonalEditing}
+          isOrgEditing={isOrgEditing}
+          hasPersonalChanges={hasPersonalChanges}
+          hasOrgChanges={hasOrgChanges}
           defaultCountry={defaultCountry}
           setUserInfo={setUserInfo}
           setPhoneEdited={setPhoneEdited}
           handleChange={handleChange}
-          handleEditToggle={handleEditToggle}
-          handleSave={handleSave}
+          handlePersonalEditToggle={handlePersonalEditToggle}
+          handleOrgEditToggle={handleOrgEditToggle}
+          handleSavePersonal={handleSavePersonal}
+          handleSaveOrg={handleSaveOrg}
         />
 
-        <Security useremail={userInfo.email} />
+        <Security
+          useremail={userInfo.email}
+          onboarding={onboarding}
+          onOnboardingUpdate={updateOnboarding}
+        />
       </div>
 
       {/* Right Column */}

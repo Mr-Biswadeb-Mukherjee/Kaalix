@@ -13,6 +13,7 @@ import MenuBookIcon from '@mui/icons-material/MenuBook';
 import LanIcon from '@mui/icons-material/Lan';
 import './Styles/sidebar.css';
 import Logo from '../UI/Logo'
+import { useAuth } from '../../Context/AuthContext';
 
 
 // ----------------------------------------------------------------------------------------------------
@@ -27,6 +28,7 @@ import Logo from '../UI/Logo'
 const Sidebar = ({ collapsed, setCollapsed }) => {
   const location = useLocation();
   const [active, setActive] = useState(location.pathname);
+  const { onboardingRequired } = useAuth();
   const menuItems = [
     { name: 'Dashboard', icon: <DashboardIcon />, route: '/dashboard' },
     { name: 'Target Config', icon: <StorageIcon />, route: '/target-config' },
@@ -61,11 +63,17 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
       <nav className="sidebar-menu">
         {menuItems.map((item) => (
           <Link
-            to={item.route}
+            to={onboardingRequired ? "/profile" : item.route}
             key={item.name}
-            className={`sidebar-item ${location.pathname === item.route ? 'active' : ''}`}
+            className={`sidebar-item ${location.pathname === item.route ? 'active' : ''} ${onboardingRequired ? 'disabled' : ''}`}
             data-tooltip={collapsed ? item.name : ''}
-            onClick={() => setActive(item.route)}
+            onClick={(event) => {
+              if (onboardingRequired) {
+                event.preventDefault();
+                return;
+              }
+              setActive(item.route);
+            }}
           >
             <span className="sidebar-icon">{item.icon}</span>
             {!collapsed && <span className="sidebar-label">{item.name}</span>}
@@ -77,10 +85,16 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
       {/* Bottom Section: Settings Link */}
       <div className="sidebar-bottom">
         <Link
-          to="/logs"
-          className={`sidebar-item ${location.pathname === '/logs' ? 'active' : ''}`}
+          to={onboardingRequired ? "/profile" : "/logs"}
+          className={`sidebar-item ${location.pathname === '/logs' ? 'active' : ''} ${onboardingRequired ? 'disabled' : ''}`}
           data-tooltip={collapsed ? 'Logs' : ''}
-          onClick={() => setActive('/logs')}
+          onClick={(event) => {
+            if (onboardingRequired) {
+              event.preventDefault();
+              return;
+            }
+            setActive('/logs');
+          }}
         >
           <span className="sidebar-icon"><ListAltIcon /></span>
           {!collapsed && <span className="sidebar-label">Logs</span>}

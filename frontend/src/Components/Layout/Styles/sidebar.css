@@ -214,6 +214,20 @@
   box-shadow: 0 0 0 2px rgba(255, 60, 0, 0.35);
 }
 
+.sidebar-item.disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  pointer-events: auto;
+}
+
+.sidebar-item.disabled:hover,
+.sidebar-item.disabled.active {
+  background-color: transparent;
+  border-left: 3px solid transparent;
+  transform: none;
+  box-shadow: none;
+}
+
 .sidebar-container.collapsed .sidebar-item {
   justify-content: center;
   padding: 12px 0;

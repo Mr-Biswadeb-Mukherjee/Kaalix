@@ -161,7 +161,8 @@
 }
 
 .profile-id-badge {
-  display: inline-flex;
+  display: flex;
+  width: fit-content;
   margin-top: 0.7rem;
   padding: 0.35rem 0.6rem;
   border-radius: 999px;
@@ -169,6 +170,18 @@
   letter-spacing: 0.04em;
   border: 1px solid color-mix(in srgb, var(--accent-color6) 46%, transparent);
   background: color-mix(in srgb, var(--accent-color6) 10%, transparent);
+}
+
+.profile-role-badge {
+  display: flex;
+  width: fit-content;
+  margin-top: 0.7rem;
+  padding: 0.35rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  border: 1px solid color-mix(in srgb, var(--accent-color1) 46%, transparent);
+  background: color-mix(in srgb, var(--accent-color1) 10%, transparent);
 }
 
 /* ===========================
@@ -183,6 +196,21 @@
   font-size: 1.12rem;
   font-weight: 700;
   color: var(--profile-sub-header, var(--text-color));
+}
+
+.profile-onboarding-banner {
+  padding: 0.8rem 0.95rem;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, #e53935 45%, transparent);
+  background: color-mix(in srgb, #e53935 12%, var(--bg-color));
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.profile-setup-note {
+  margin: -0.45rem 0 0.9rem;
+  font-size: 0.82rem;
+  opacity: 0.8;
 }
 
 .profile-item {
