@@ -17,12 +17,27 @@ import { purgeExpiredSoftDeletedAdminsIfDue } from "./adminLifecycle.service.js"
 
 const router = express.Router();
 
-// 📧 Basic email format regex
-const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const hasWhitespace = (value) => {
+  for (let i = 0; i < value.length; i += 1) {
+    const code = value.charCodeAt(i);
+    if (code === 9 || code === 10 || code === 11 || code === 12 || code === 13 || code === 32) {
+      return true;
+    }
+  }
+  return false;
+};
 
 // 📧 Validate only email format so business domains can authenticate
 function isValidEmail(email) {
-  return emailRegex.test(email);
+  const normalized = String(email || "").trim().toLowerCase();
+  if (!normalized || hasWhitespace(normalized)) return false;
+
+  const atIndex = normalized.indexOf("@");
+  if (atIndex <= 0 || atIndex !== normalized.lastIndexOf("@")) return false;
+
+  const domain = normalized.slice(atIndex + 1);
+  const dotIndex = domain.indexOf(".");
+  return dotIndex > 0 && dotIndex < domain.length - 1;
 }
 
 const formatRestoreDeadline = (value) => {

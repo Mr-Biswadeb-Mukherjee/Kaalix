@@ -10,6 +10,7 @@
     "dev:backend": "pnpm --filter amon-backend dev",
     "build": "pnpm -r build",
     "clean": "pnpm -r clean",
+    "postinstall": "node scripts/patch-secure-random.mjs",
     "install-all": "pnpm install",
     "dev": "concurrently \"pnpm --filter amon-frontend dev\" \"pnpm --filter amon-backend dev\"",
     "start": "electron .",

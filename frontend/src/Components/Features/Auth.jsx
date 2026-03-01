@@ -17,7 +17,27 @@ import "./Styles/auth.scss";
 
 const BUSINESS_EMAIL_REQUIRED_MESSAGE =
   "Only business email addresses are allowed. Personal email providers are not permitted.";
-const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const hasWhitespace = (value) => {
+  for (let i = 0; i < value.length; i += 1) {
+    const code = value.charCodeAt(i);
+    if (code === 9 || code === 10 || code === 11 || code === 12 || code === 13 || code === 32) {
+      return true;
+    }
+  }
+  return false;
+};
+
+const isValidEmailFormat = (email) => {
+  const normalized = String(email || "").trim().toLowerCase();
+  if (!normalized || hasWhitespace(normalized)) return false;
+
+  const atIndex = normalized.indexOf("@");
+  if (atIndex <= 0 || atIndex !== normalized.lastIndexOf("@")) return false;
+
+  const domain = normalized.slice(atIndex + 1);
+  const dotIndex = domain.indexOf(".");
+  return dotIndex > 0 && dotIndex < domain.length - 1;
+};
 const personalEmailDomainSet = new Set([
   "gmail.com",
   "googlemail.com",
@@ -136,7 +156,7 @@ const Auth = ({ onAuthSuccess }) => {
     if (fieldName === "email") {
       const email = String(source.email || "").trim().toLowerCase();
       if (!email) return "Email is required.";
-      if (!emailRegex.test(email)) return "Invalid email address.";
+      if (!isValidEmailFormat(email)) return "Invalid email address.";
       if (isPersonalEmail(email)) return BUSINESS_EMAIL_REQUIRED_MESSAGE;
       return "";
     }
