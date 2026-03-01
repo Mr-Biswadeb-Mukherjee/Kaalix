@@ -1,0 +1,23 @@
+-- MFA methods table
+CREATE TABLE IF NOT EXISTS user_mfa (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    user_id VARCHAR(255) NOT NULL,
+    mfa_id CHAR(24) NOT NULL UNIQUE,
+    method VARCHAR(50) NOT NULL,
+    status ENUM('enabled','disabled') DEFAULT 'disabled',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+    UNIQUE KEY ux_user_mfa_user_method (user_id, method)
+);
+
+-- MFA data table
+CREATE TABLE IF NOT EXISTS user_mfa_data (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    mfa_id CHAR(24) NOT NULL,
+    `key` VARCHAR(50) NOT NULL,
+    `value` TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (mfa_id) REFERENCES user_mfa(mfa_id) ON DELETE CASCADE,
+    UNIQUE KEY ux_mfa_data_mfa_key (mfa_id, `key`)
+);
