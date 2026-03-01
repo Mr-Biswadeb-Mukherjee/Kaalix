@@ -1,4 +1,4 @@
-import './Styles/SiemPages.css';
+import SiemPage from "../Components/UI/SiemPage";
 
 const DataSources = () => {
   const sources = [
@@ -9,21 +9,11 @@ const DataSources = () => {
   ];
 
   return (
-    <section className="siem-page">
-      <header className="siem-header">
-        <h1>Data Sources</h1>
-        <p>Configure and validate telemetry pipelines feeding the SIEM.</p>
-      </header>
-
-      <div className="siem-grid">
-        {sources.map((source) => (
-          <article className="siem-card" key={source.title}>
-            <h3>{source.title}</h3>
-            <p>{source.summary}</p>
-          </article>
-        ))}
-      </div>
-    </section>
+    <SiemPage
+      title="Data Sources"
+      description="Configure and validate telemetry pipelines feeding the SIEM."
+      cards={sources}
+    />
   );
 };
 

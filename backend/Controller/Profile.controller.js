@@ -37,6 +37,34 @@ const normalizeLocationConsent = (value) => {
   return Number(value) === 1 || value === true;
 };
 
+const buildProfileResponse = (req, profile, onboarding, includeCreatedAt = false) => {
+  const response = {
+    updatedAt: formatDateTime(profile.updatedAt),
+    role: profile.role,
+    profileId: profile.profileId,
+    fullName: profile.fullName,
+    email: profile.email,
+    org: profile.orgName || profile.org || null,
+    orgName: profile.orgName || profile.org || null,
+    orgId: profile.orgId,
+    orgWebsite: profile.orgWebsite || null,
+    orgEmail: profile.orgEmail || null,
+    orgSa: profile.orgSa || null,
+    phone: profile.phone,
+    bio: profile.bio,
+    websiteUrl: profile.websiteUrl || null,
+    locationConsent: normalizeLocationConsent(profile.locationConsent),
+    avatarUrl: getFullAvatarUrl(req, profile.profile_url),
+    onboarding: onboarding || null,
+  };
+
+  if (includeCreatedAt) {
+    response.createdAt = formatDateTime(profile.createdAt);
+  }
+
+  return response;
+};
+
 /**
  * GET profile
  */
@@ -49,26 +77,7 @@ export const FetchProfile = async (req, res) => {
       return res.status(404).json({ message: "Profile not found" });
     }
 
-    res.json({
-      createdAt: formatDateTime(profile.createdAt),
-      updatedAt: formatDateTime(profile.updatedAt),
-      role: profile.role,
-      profileId: profile.profileId,
-      fullName: profile.fullName,
-      email: profile.email,
-      org: profile.orgName || profile.org || null,
-      orgName: profile.orgName || profile.org || null,
-      orgId: profile.orgId,
-      orgWebsite: profile.orgWebsite || null,
-      orgEmail: profile.orgEmail || null,
-      orgSa: profile.orgSa || null,
-      phone: profile.phone,
-      bio: profile.bio,
-      websiteUrl: profile.websiteUrl || null,
-      locationConsent: normalizeLocationConsent(profile.locationConsent),
-      avatarUrl: getFullAvatarUrl(req, profile.profile_url), // ✅ fixed
-      onboarding: req.onboarding || null,
-    });
+    res.json(buildProfileResponse(req, profile, req.onboarding, true));
   } catch (err) {
     console.error("Error in FetchProfile:", err);
     res.status(500).json({ message: "Internal server error" });
@@ -243,25 +252,7 @@ export const UpdateProfile = async (req, res) => {
     const onboarding = await getUserOnboardingState(userId);
     maybeDeleteBootstrapCredentialsFile({ role: updatedProfile.role, onboarding });
 
-    res.json({
-      updatedAt: formatDateTime(updatedProfile.updatedAt),
-      role: updatedProfile.role,
-      profileId: updatedProfile.profileId,
-      fullName: updatedProfile.fullName,
-      email: updatedProfile.email,
-      org: updatedProfile.orgName || updatedProfile.org || null,
-      orgName: updatedProfile.orgName || updatedProfile.org || null,
-      orgId: updatedProfile.orgId,
-      orgWebsite: updatedProfile.orgWebsite || null,
-      orgEmail: updatedProfile.orgEmail || null,
-      orgSa: updatedProfile.orgSa || null,
-      phone: updatedProfile.phone,
-      bio: updatedProfile.bio,
-      websiteUrl: updatedProfile.websiteUrl || null,
-      locationConsent: normalizeLocationConsent(updatedProfile.locationConsent),
-      avatarUrl: getFullAvatarUrl(req, updatedProfile.profile_url), // ✅ fixed
-      onboarding,
-    });
+    res.json(buildProfileResponse(req, updatedProfile, onboarding));
   } catch (err) {
     console.error("Error in UpdateProfile:", err);
     if (err.code === "USER_EXISTS" || err.code === "EMAIL_EXISTS") {

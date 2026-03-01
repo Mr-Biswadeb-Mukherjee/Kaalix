@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import API from "@amon/shared";
 import { useAuth } from "../Context/AuthContext";
 import { useToast } from "../Components/UI/Toast";
+import { getDomainFromEmail, getDomainFromWebsite } from "../Utils/domainUtils";
 import "./Styles/OrganizationAdmins.css";
 
 const DAY_IN_MS = 24 * 60 * 60 * 1000;
@@ -10,15 +11,6 @@ const STATUS_ORDER = {
   blocked: 1,
   deleted: 2,
 };
-
-const trimTrailingDots = (value = "") => {
-  let end = value.length;
-  while (end > 0 && value[end - 1] === ".") end -= 1;
-  return value.slice(0, end);
-};
-
-const removeLeadingWww = (hostname = "") =>
-  hostname.startsWith("www.") ? hostname.slice(4) : hostname;
 
 const splitWhitespaceWords = (value = "") => {
   const words = [];
@@ -49,28 +41,21 @@ const splitWhitespaceWords = (value = "") => {
   return words;
 };
 
-const getDomainFromEmail = (email = "") => {
-  const normalized = String(email || "").trim().toLowerCase();
-  const atIndex = normalized.lastIndexOf("@");
-  if (atIndex <= 0 || atIndex === normalized.length - 1) return "";
-  return trimTrailingDots(normalized.slice(atIndex + 1));
-};
-
-const getDomainFromWebsite = (website = "") => {
-  const normalized = String(website || "").trim().toLowerCase();
-  if (!normalized) return "";
-  const hasHttpScheme =
-    normalized.startsWith("http://") || normalized.startsWith("https://");
-  const urlText = hasHttpScheme ? normalized : `https://${normalized}`;
-
-  try {
-    const hostname = trimTrailingDots(new URL(urlText).hostname);
-    if (!hostname) return "";
-    return removeLeadingWww(hostname);
-  } catch {
-    return "";
-  }
-};
+const normalizeDirectoryPayload = (payload = {}) => ({
+  organizations: Array.isArray(payload.organizations)
+    ? payload.organizations
+    : [],
+  superAdminOrganization:
+    payload?.superAdminOrganization &&
+    typeof payload.superAdminOrganization === "object"
+      ? payload.superAdminOrganization
+      : null,
+  admins: Array.isArray(payload.admins) ? payload.admins : [],
+  assignments:
+    payload.assignments && typeof payload.assignments === "object"
+      ? payload.assignments
+      : {},
+});
 
 const getAdminStatus = (admin) => admin?.accountStatus || "active";
 
@@ -120,6 +105,29 @@ const OrganizationAdmins = () => {
     email: "",
     password: "",
   });
+  const applyDirectoryPayload = useCallback((payload, options = {}) => {
+    const normalized = normalizeDirectoryPayload(payload);
+    setOrganizations(normalized.organizations);
+    setSuperAdminOrganization(normalized.superAdminOrganization);
+    setAdmins(normalized.admins);
+    setAssignments(normalized.assignments);
+
+    if (!options.syncSelection) return;
+
+    const preferredOrgId = options.preferredOrgId || "";
+    const normalizedPreferredOrgId =
+      typeof preferredOrgId === "string" ? preferredOrgId.trim() : "";
+    setSelectedOrgId((prev) => {
+      const candidate = normalizedPreferredOrgId || prev;
+      if (
+        candidate &&
+        normalized.organizations.some((org) => org.orgId === candidate)
+      ) {
+        return candidate;
+      }
+      return normalized.organizations[0]?.orgId || "";
+    });
+  }, []);
 
   const loadDirectory = useCallback(async (preferredOrgId = "") => {
     if (!token) return;
@@ -138,39 +146,13 @@ const OrganizationAdmins = () => {
       if (!res.ok || !data?.success) {
         throw new Error(data?.message || "Failed to load organization admin data.");
       }
-
-      const nextOrganizations = Array.isArray(data.organizations)
-        ? data.organizations
-        : [];
-      const nextSuperAdminOrganization =
-        data?.superAdminOrganization && typeof data.superAdminOrganization === "object"
-          ? data.superAdminOrganization
-          : null;
-      const nextAdmins = Array.isArray(data.admins) ? data.admins : [];
-      const nextAssignments =
-        data.assignments && typeof data.assignments === "object"
-          ? data.assignments
-          : {};
-
-      setOrganizations(nextOrganizations);
-      setSuperAdminOrganization(nextSuperAdminOrganization);
-      setAdmins(nextAdmins);
-      setAssignments(nextAssignments);
-      const normalizedPreferredOrgId =
-        typeof preferredOrgId === "string" ? preferredOrgId.trim() : "";
-      setSelectedOrgId((prev) => {
-        const candidate = normalizedPreferredOrgId || prev;
-        if (candidate && nextOrganizations.some((org) => org.orgId === candidate)) {
-          return candidate;
-        }
-        return nextOrganizations[0]?.orgId || "";
-      });
+      applyDirectoryPayload(data, { preferredOrgId, syncSelection: true });
     } catch (err) {
       addToast(err.message || "Failed to load organization admin data.", "error");
     } finally {
       setLoading(false);
     }
-  }, [addToast, token]);
+  }, [addToast, token, applyDirectoryPayload]);
 
   useEffect(() => {
     if (authLoading || !isSuperAdmin) {
@@ -267,19 +249,7 @@ const OrganizationAdmins = () => {
       if (!res.ok || !data?.success) {
         throw new Error(data?.message || "Failed to update organization admins.");
       }
-
-      setOrganizations(Array.isArray(data.organizations) ? data.organizations : []);
-      setSuperAdminOrganization(
-        data?.superAdminOrganization && typeof data.superAdminOrganization === "object"
-          ? data.superAdminOrganization
-          : null
-      );
-      setAdmins(Array.isArray(data.admins) ? data.admins : []);
-      setAssignments(
-        data.assignments && typeof data.assignments === "object"
-          ? data.assignments
-          : {}
-      );
+      applyDirectoryPayload(data);
     } catch (err) {
       setAssignments((prev) => ({ ...prev, [orgId]: current }));
       addToast(err.message || "Failed to update organization admins.", "error");
@@ -399,19 +369,7 @@ const OrganizationAdmins = () => {
       if (!res.ok || !data?.success) {
         throw new Error(data?.message || `Failed to ${actionLabel} admin account.`);
       }
-
-      setOrganizations(Array.isArray(data.organizations) ? data.organizations : []);
-      setSuperAdminOrganization(
-        data?.superAdminOrganization && typeof data.superAdminOrganization === "object"
-          ? data.superAdminOrganization
-          : null
-      );
-      setAdmins(Array.isArray(data.admins) ? data.admins : []);
-      setAssignments(
-        data.assignments && typeof data.assignments === "object"
-          ? data.assignments
-          : {}
-      );
+      applyDirectoryPayload(data);
       const fallbackMessage =
         action === "delete"
           ? "Admin soft-deleted successfully."

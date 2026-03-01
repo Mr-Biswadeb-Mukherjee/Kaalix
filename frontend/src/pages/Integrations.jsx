@@ -1,4 +1,4 @@
-import './Styles/SiemPages.css';
+import SiemPage from "../Components/UI/SiemPage";
 
 const Integrations = () => {
   const integrations = [
@@ -9,21 +9,11 @@ const Integrations = () => {
   ];
 
   return (
-    <section className="siem-page">
-      <header className="siem-header">
-        <h1>Integrations</h1>
-        <p>Connect SIEM detections with response and collaboration platforms.</p>
-      </header>
-
-      <div className="siem-grid">
-        {integrations.map((integration) => (
-          <article className="siem-card" key={integration.title}>
-            <h3>{integration.title}</h3>
-            <p>{integration.summary}</p>
-          </article>
-        ))}
-      </div>
-    </section>
+    <SiemPage
+      title="Integrations"
+      description="Connect SIEM detections with response and collaboration platforms."
+      cards={integrations}
+    />
   );
 };
 

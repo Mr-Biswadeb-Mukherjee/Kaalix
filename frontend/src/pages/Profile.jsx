@@ -11,6 +11,7 @@ import "./Styles/Profile.css";
 import ProfileAvatarModal from "./ProfileAvatarModal";
 import { useAuth } from "../Context/AuthContext";
 import { getBrowserLocationLabel } from "../Utils/browserLocation";
+import { isWebsiteEmailDomainMatch } from "../Utils/domainUtils";
 
 const BUSINESS_EMAIL_REQUIRED_MESSAGE =
   "Only business email addresses are allowed. Personal email providers are not permitted.";
@@ -64,15 +65,6 @@ const PERSONAL_EMAIL_DOMAIN_SET = new Set([
   "126.com",
 ]);
 
-const trimTrailingDots = (value = "") => {
-  let end = value.length;
-  while (end > 0 && value[end - 1] === ".") end -= 1;
-  return value.slice(0, end);
-};
-
-const removeLeadingWww = (hostname = "") =>
-  hostname.startsWith("www.") ? hostname.slice(4) : hostname;
-
 const getEmailDomain = (email) => {
   const normalized = String(email || "").trim().toLowerCase();
   const atIndex = normalized.lastIndexOf("@");
@@ -81,36 +73,6 @@ const getEmailDomain = (email) => {
 };
 
 const isPersonalEmail = (email) => PERSONAL_EMAIL_DOMAIN_SET.has(getEmailDomain(email));
-
-const getOrgDomainFromEmail = (email = "") => {
-  const normalized = String(email || "").trim().toLowerCase();
-  const atIndex = normalized.lastIndexOf("@");
-  if (atIndex <= 0 || atIndex === normalized.length - 1) return "";
-  return trimTrailingDots(normalized.slice(atIndex + 1));
-};
-
-const getOrgDomainFromWebsite = (website = "") => {
-  const normalized = String(website || "").trim().toLowerCase();
-  if (!normalized) return "";
-  const hasHttpScheme =
-    normalized.startsWith("http://") || normalized.startsWith("https://");
-  const urlText = hasHttpScheme ? normalized : `https://${normalized}`;
-
-  try {
-    const hostname = trimTrailingDots(new URL(urlText).hostname);
-    if (!hostname) return "";
-    return removeLeadingWww(hostname);
-  } catch {
-    return "";
-  }
-};
-
-const isOrgWebsiteEmailMatch = (website, email) => {
-  const websiteDomain = getOrgDomainFromWebsite(website);
-  const emailDomain = getOrgDomainFromEmail(email);
-  if (!websiteDomain || !emailDomain) return true;
-  return websiteDomain === emailDomain;
-};
 
 const Profile = () => {
   const { addToast } = useToast();
@@ -149,6 +111,14 @@ const Profile = () => {
   const [isLocationConsentSaving, setIsLocationConsentSaving] = useState(false);
 
   const token = localStorage.getItem("token");
+  const applyProfileSnapshot = useCallback((snapshot) => {
+    setUserInfo(snapshot);
+    setOriginalUserInfo(snapshot);
+  }, []);
+  const applyUserInfoPatch = useCallback((patch) => {
+    setUserInfo((prev) => ({ ...prev, ...patch }));
+    setOriginalUserInfo((prev) => ({ ...prev, ...patch }));
+  }, []);
 
   const fetchLocationStats = useCallback(async () => {
     if (!token) return;
@@ -231,14 +201,13 @@ const Profile = () => {
           updatedAt: data.updatedAt || "",
           avatarUrl: data.avatarUrl || ""
         };
-        setUserInfo(profile);
-        setOriginalUserInfo(profile);
+        applyProfileSnapshot(profile);
         if (data?.onboarding) {
           updateOnboarding(data.onboarding);
         }
       })
       .catch(() => addToast("Failed to load profile info", "error"));
-  }, [token, addToast, updateOnboarding]);
+  }, [token, addToast, updateOnboarding, applyProfileSnapshot]);
 
   // Fetch location once
   useEffect(() => {
@@ -343,8 +312,7 @@ const Profile = () => {
       const nextWebsiteUrl = data.websiteUrl || "";
       const nextProfileId = data.profileId || userInfo.profileId;
 
-      setUserInfo((prev) => ({
-        ...prev,
+      applyUserInfoPatch({
         updatedAt: nextUpdatedAt,
         fullName: nextFullName,
         email: nextEmail,
@@ -352,17 +320,7 @@ const Profile = () => {
         bio: nextBio,
         websiteUrl: nextWebsiteUrl,
         profileId: nextProfileId
-      }));
-      setOriginalUserInfo((prev) => ({
-        ...prev,
-        updatedAt: nextUpdatedAt,
-        fullName: nextFullName,
-        email: nextEmail,
-        phone: nextPhone,
-        bio: nextBio,
-        websiteUrl: nextWebsiteUrl,
-        profileId: nextProfileId
-      }));
+      });
       if (data?.onboarding) {
         updateOnboarding(data.onboarding);
       }
@@ -382,7 +340,7 @@ const Profile = () => {
     if (
       userInfo.orgWebsite &&
       userInfo.orgEmail &&
-      !isOrgWebsiteEmailMatch(userInfo.orgWebsite, userInfo.orgEmail)
+      !isWebsiteEmailDomainMatch(userInfo.orgWebsite, userInfo.orgEmail)
     ) {
       addToast(
         "Organization website domain and organization email domain must be the same.",
@@ -418,8 +376,7 @@ const Profile = () => {
       const nextOrgId = data.orgId || "";
       const nextProfileId = data.profileId || userInfo.profileId;
 
-      setUserInfo((prev) => ({
-        ...prev,
+      applyUserInfoPatch({
         updatedAt: nextUpdatedAt,
         role: nextRole,
         orgName: nextOrgName,
@@ -428,18 +385,7 @@ const Profile = () => {
         orgSa: nextOrgSa,
         orgId: nextOrgId,
         profileId: nextProfileId
-      }));
-      setOriginalUserInfo((prev) => ({
-        ...prev,
-        updatedAt: nextUpdatedAt,
-        role: nextRole,
-        orgName: nextOrgName,
-        orgWebsite: nextOrgWebsite,
-        orgEmail: nextOrgEmail,
-        orgSa: nextOrgSa,
-        orgId: nextOrgId,
-        profileId: nextProfileId
-      }));
+      });
       if (data?.onboarding) {
         updateOnboarding(data.onboarding);
       }

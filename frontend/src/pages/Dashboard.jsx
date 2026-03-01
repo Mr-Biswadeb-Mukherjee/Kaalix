@@ -1,4 +1,4 @@
-import './Styles/SiemPages.css';
+import SiemPage from "../Components/UI/SiemPage";
 
 const Dashboard = () => {
   const overview = [
@@ -9,21 +9,11 @@ const Dashboard = () => {
   ];
 
   return (
-    <section className="siem-page">
-      <header className="siem-header">
-        <h1>Security Dashboard</h1>
-        <p>Unified SIEM visibility for telemetry, detections, and response status.</p>
-      </header>
-
-      <div className="siem-grid">
-        {overview.map((item) => (
-          <article className="siem-card" key={item.title}>
-            <h3>{item.title}</h3>
-            <p>{item.summary}</p>
-          </article>
-        ))}
-      </div>
-    </section>
+    <SiemPage
+      title="Security Dashboard"
+      description="Unified SIEM visibility for telemetry, detections, and response status."
+      cards={overview}
+    />
   );
 };
 

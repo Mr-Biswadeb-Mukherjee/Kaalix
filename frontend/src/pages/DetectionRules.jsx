@@ -1,4 +1,4 @@
-import './Styles/SiemPages.css';
+import SiemPage from "../Components/UI/SiemPage";
 
 const DetectionRules = () => {
   const workflows = [
@@ -9,21 +9,12 @@ const DetectionRules = () => {
   ];
 
   return (
-    <section className="siem-page">
-      <header className="siem-header">
-        <h1>Detection Rules</h1>
-        <p>Build correlation logic that turns events into actionable alerts.</p>
-      </header>
-
-      <article className="siem-card">
-        <h3>Active Detection Pipeline</h3>
-        <ul className="siem-list">
-          {workflows.map((workflow) => (
-            <li key={workflow}>{workflow}</li>
-          ))}
-        </ul>
-      </article>
-    </section>
+    <SiemPage
+      title="Detection Rules"
+      description="Build correlation logic that turns events into actionable alerts."
+      listTitle="Active Detection Pipeline"
+      listItems={workflows}
+    />
   );
 };
 
