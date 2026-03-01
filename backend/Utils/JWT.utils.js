@@ -12,6 +12,7 @@ const TOKEN_TTL_SECONDS = 10 * 60;        // 10 min
 const MAX_KIDS = 2;
 
 let initialized = false;
+let rotationInFlight = null;
 
 async function lazyInit() {
   if (initialized) return;
@@ -29,21 +30,32 @@ function generateJTI() {
 }
 
 async function rotateSecret() {
-  const redis = await getOrInitRedisClient();
-  const newKid = Date.now().toString();
-  const newSecret = generateSecret();
+  if (rotationInFlight) return rotationInFlight;
 
-  await redis.set(`${JWT_SECRET_PREFIX}${newKid}`, newSecret);
-  await redis.set(CURRENT_KID_KEY, newKid);
-  await redis.lPush(KID_LIST_KEY, newKid);
-  await redis.lTrim(KID_LIST_KEY, 0, MAX_KIDS - 1);
+  rotationInFlight = (async () => {
+    const redis = await getOrInitRedisClient();
+    const newKid = Date.now().toString();
+    const newSecret = generateSecret();
 
-  const oldKids = await redis.lRange(KID_LIST_KEY, MAX_KIDS, -1);
-  for (const oldKid of oldKids) {
-    await redis.del(`${JWT_SECRET_PREFIX}${oldKid}`);
+    await redis.set(`${JWT_SECRET_PREFIX}${newKid}`, newSecret);
+    await redis.set(CURRENT_KID_KEY, newKid);
+    await redis.lPush(KID_LIST_KEY, newKid);
+    const knownKids = await redis.lRange(KID_LIST_KEY, 0, -1);
+    const staleKids = knownKids.slice(MAX_KIDS);
+
+    for (const oldKid of staleKids) {
+      await redis.del(`${JWT_SECRET_PREFIX}${oldKid}`);
+    }
+    await redis.lTrim(KID_LIST_KEY, 0, MAX_KIDS - 1);
+
+    console.log(`🔁 JWT secret rotated. New kid: ${newKid} at ${new Date().toISOString()}`);
+  })();
+
+  try {
+    await rotationInFlight;
+  } finally {
+    rotationInFlight = null;
   }
-
-  console.log(`🔁 JWT secret rotated. New kid: ${newKid} at ${new Date().toISOString()}`);
 }
 
 function startRotationScheduler() {

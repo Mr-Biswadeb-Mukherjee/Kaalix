@@ -67,6 +67,9 @@ export const processAvatar = async (req, res, next) => {
 
     // Validate dimensions
     const metadata = await sharp(buffer).metadata();
+    if (!metadata.width || !metadata.height) {
+      return res.status(400).json({ message: "Invalid image metadata." });
+    }
     if (
       metadata.width > UPLOAD_CONFIG.maxDimensions.width ||
       metadata.height > UPLOAD_CONFIG.maxDimensions.height
@@ -74,9 +77,19 @@ export const processAvatar = async (req, res, next) => {
       return res.status(400).json({ message: "Image dimensions too large." });
     }
 
+    const rawUserId = String(req.user?.user_id || "").trim();
+    const safeUserId = rawUserId.replace(/[^a-zA-Z0-9_-]/g, "");
+    if (!safeUserId) {
+      return res.status(400).json({ message: "Invalid user identity for avatar upload." });
+    }
+
     // Prepare final filename
-    const finalFilename = `avatar_${req.user.user_id}.jpg`;
-    const finalPath = path.join(UPLOAD_CONFIG.dir, finalFilename);
+    const finalFilename = `avatar_${safeUserId}.jpg`;
+    const finalPath = path.resolve(UPLOAD_CONFIG.dir, finalFilename);
+    const uploadRoot = path.resolve(UPLOAD_CONFIG.dir);
+    if (!finalPath.startsWith(`${uploadRoot}${path.sep}`)) {
+      return res.status(400).json({ message: "Invalid avatar upload path." });
+    }
 
     // Resize & convert to JPEG
     await sharp(buffer)

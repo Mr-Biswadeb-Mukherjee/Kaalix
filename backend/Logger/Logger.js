@@ -1,6 +1,7 @@
 import fs from "fs";
 import { promises as fsp } from "fs";
 import path from "path";
+import crypto from "crypto";
 import winston from "winston";
 import Transport from "winston-transport";
 import { Logger_key } from "../Confs/config.js";
@@ -9,6 +10,8 @@ import { Logger_key } from "../Confs/config.js";
 const CHANNEL_NAME = "System Integrity Channel";
 const retentionDays = 7;
 const HMAC_KEY = Logger_key.HMAC_KEY;
+const RUNTIME_HMAC_KEY = HMAC_KEY || crypto.randomBytes(32).toString("hex");
+let hasWarnedAboutMissingHmac = false;
 
 function formatLogTimestamp(input = new Date()) {
   const date = input instanceof Date ? input : new Date(input);
@@ -128,9 +131,13 @@ async function flushBuffer(filePath) {
 
   const releaseLock = await acquireLock(filePath);
   try {
-    const crypto = await import("crypto");
     const dir = path.dirname(filePath);
     await fs.promises.mkdir(dir, { recursive: true, mode: 0o700 });
+
+    if (!HMAC_KEY && !hasWarnedAboutMissingHmac) {
+      hasWarnedAboutMissingHmac = true;
+      console.warn("[System Logger] LOGGER_HMAC_KEY is not set. Using ephemeral in-memory key for this runtime.");
+    }
 
     const chainFile = path.join(dir, ".chainstate");
     let lastHash = "";
@@ -144,7 +151,7 @@ async function flushBuffer(filePath) {
 
     for (const logEntry of entries) {
       chainHash = crypto
-        .createHmac("sha256", HMAC_KEY)
+        .createHmac("sha256", RUNTIME_HMAC_KEY)
         .update(JSON.stringify(logEntry) + chainHash)
         .digest("hex");
       logEntry.integrityHash = chainHash;

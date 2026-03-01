@@ -3,6 +3,22 @@ import { getDatabase } from "../Connectors/DB.js";
 import bcrypt from "bcrypt";
 import path from "path";
 import { promises as fs } from "fs";
+import { fileURLToPath } from "url";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const AVATAR_UPLOAD_DIR = path.resolve(__dirname, "..", "public", "uploads");
+
+const resolveAvatarPath = (profileUrl) => {
+  const normalized = String(profileUrl || "").replace(/\\/g, "/").trim();
+  if (!normalized.startsWith("/uploads/")) return null;
+
+  const fileName = path.basename(normalized);
+  if (!fileName || fileName !== normalized.split("/").pop()) return null;
+
+  const absolutePath = path.resolve(AVATAR_UPLOAD_DIR, fileName);
+  if (!absolutePath.startsWith(`${AVATAR_UPLOAD_DIR}${path.sep}`)) return null;
+  return absolutePath;
+};
 
 const deleteacc = async (email, password) => {
   const db = await getDatabase();
@@ -24,11 +40,19 @@ const deleteacc = async (email, password) => {
     const profile = profileRows[0];
 
     if (profile?.profile_url) {
-      const avatarPath = path.join(process.cwd(), "public", profile.profile_url);
+      const avatarPath = resolveAvatarPath(profile.profile_url);
+      if (!avatarPath) {
+        throw new Error("Invalid avatar path.");
+      }
+
       try {
         await fs.unlink(avatarPath);
       } catch (err) {
-        throw new Error(`Failed to delete avatar file: ${err.message}`);
+        if (err?.code === "ENOENT") {
+          // Avatar already missing; continue deleting the account.
+        } else {
+          throw new Error(`Failed to delete avatar file: ${err.message}`);
+        }
       }
     }
 
