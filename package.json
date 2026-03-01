@@ -15,7 +15,12 @@
     "start": "electron .",
     "start:all": "pnpm -r start",
     "electron": "electron .",
-    "pack:linux": "electron-builder --linux AppImage"
+    "pack:linux": "electron-builder --linux AppImage",
+    "audit:all": "snyk test --all-projects",
+    "audit:backend": "snyk test --file=backend/package.json",
+    "audit:frontend": "snyk test --file=frontend/package.json",
+    "audit:shared": "snyk test --file=shared/package.json",
+    "audit": "snyk test || true"
   },
   "repository": {
     "type": "git",
@@ -73,6 +78,7 @@
     "react-modal": "^3.16.3",
     "react-phone-input-2": "^2.15.1",
     "sanitize-html": "^2.17.1",
+    "snyk": "^1.1303.0",
     "speakeasy": "^2.0.0",
     "svg-captcha": "^1.4.0",
     "uuid": "^13.0.0",

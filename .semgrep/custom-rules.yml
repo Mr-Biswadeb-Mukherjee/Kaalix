@@ -1,0 +1,60 @@
+rules:
+  # SQL Injection Prevention
+  - id: no-raw-sql-interpolation
+    pattern: $DB.query(`...${...}...`)
+    message: Avoid SQL string interpolation. Use parameterized queries.
+    severity: ERROR
+    languages: [javascript]
+
+  # Controller must not access DB directly
+  - id: controller-db-access
+    pattern: require("../Connectors/DB")
+    message: Controllers must use Services layer instead of DB connector.
+    severity: ERROR
+    languages: [javascript]
+    paths:
+      include:
+        - backend/Controller/
+
+  # JWT misuse
+  - id: no-jwt-decode-auth
+    pattern: jwt.decode(...)
+    message: Do not use jwt.decode for auth validation. Use jwt.verify.
+    severity: ERROR
+    languages: [javascript]
+
+  # Prevent direct fs writes outside upload middleware
+  - id: no-direct-fs-write
+    pattern-either:
+      - pattern: fs.writeFile(...)
+      - pattern: fs.writeFileSync(...)
+    message: File writes must go through controlled upload middleware.
+    severity: WARNING
+    languages: [javascript]
+    paths:
+      exclude:
+        - backend/Middleware/upload.middleware.js
+
+  # Enforce auth middleware in protected routes
+  - id: missing-auth-middleware
+    patterns:
+      - pattern: router.$METHOD($ROUTE, $HANDLER)
+      - pattern-not: router.$METHOD($ROUTE, authMiddleware, ...)
+    message: Protected routes must include auth middleware.
+    severity: ERROR
+    languages: [javascript]
+    paths:
+      include:
+        - backend/Routes/protected.route.js
+
+  # Enforce rate limiter usage
+  - id: missing-rate-limiter
+    patterns:
+      - pattern: router.$METHOD($ROUTE, $HANDLER)
+      - pattern-not: router.$METHOD($ROUTE, rateLimiter, ...)
+    message: Routes must include rateLimiter middleware.
+    severity: ERROR
+    languages: [javascript]
+    paths:
+      include:
+        - backend/Routes/

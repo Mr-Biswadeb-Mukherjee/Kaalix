@@ -186,6 +186,9 @@ importers:
       sanitize-html:
         specifier: ^2.17.1
         version: 2.17.1
+      snyk:
+        specifier: ^1.1303.0
+        version: 1.1303.0
       speakeasy:
         specifier: ^2.0.0
         version: 2.0.0
@@ -216,72 +219,6 @@ importers:
       '@amon/shared':
         specifier: workspace:^
         version: link:../shared
-      bcrypt:
-        specifier: ^6.0.0
-        version: 6.0.0
-      canvas:
-        specifier: ^3.2.1
-        version: 3.2.1
-      chalk:
-        specifier: ^5.6.2
-        version: 5.6.2
-      compression:
-        specifier: ^1.8.1
-        version: 1.8.1
-      cors:
-        specifier: ^2.8.6
-        version: 2.8.6
-      express:
-        specifier: ^5.2.1
-        version: 5.2.1
-      file-type:
-        specifier: ^21.3.0
-        version: 21.3.0
-      jsonwebtoken:
-        specifier: ^9.0.3
-        version: 9.0.3
-      libphonenumber-js:
-        specifier: ^1.12.38
-        version: 1.12.38
-      multer:
-        specifier: ^2.0.2
-        version: 2.0.2
-      mysql2:
-        specifier: ^3.18.2
-        version: 3.18.2(@types/node@25.3.2)
-      node-fetch:
-        specifier: ^3.3.2
-        version: 3.3.2
-      qrcode:
-        specifier: ^1.5.4
-        version: 1.5.4
-      redis:
-        specifier: ^5.11.0
-        version: 5.11.0
-      sanitize-html:
-        specifier: ^2.17.1
-        version: 2.17.1
-      sharp:
-        specifier: ^0.34.5
-        version: 0.34.5
-      speakeasy:
-        specifier: ^2.0.0
-        version: 2.0.0
-      systeminformation:
-        specifier: ^5.31.1
-        version: 5.31.1
-      uuid:
-        specifier: ^13.0.0
-        version: 13.0.0
-      validator:
-        specifier: ^13.15.26
-        version: 13.15.26
-      winston:
-        specifier: ^3.19.0
-        version: 3.19.0
-      winston-transport:
-        specifier: ^4.9.0
-        version: 4.9.0
 
   frontend:
     dependencies:
@@ -1554,6 +1491,30 @@ packages:
 
   '@scure/base@2.0.0':
     resolution: {integrity: sha512-3E1kpuZginKkek01ovG8krQ0Z44E3DHPjc5S2rjJw9lZn3KSQOs8S7wqikF/AH7iRanHypj85uGyxk0XAyC37w==}
+
+  '@sentry-internal/tracing@7.120.4':
+    resolution: {integrity: sha512-Fz5+4XCg3akeoFK+K7g+d7HqGMjmnLoY2eJlpONJmaeT9pXY7yfUyXKZMmMajdE2LxxKJgQ2YKvSCaGVamTjHw==}
+    engines: {node: '>=8'}
+
+  '@sentry/core@7.120.4':
+    resolution: {integrity: sha512-TXu3Q5kKiq8db9OXGkWyXUbIxMMuttB5vJ031yolOl5T/B69JRyAoKuojLBjRv1XX583gS1rSSoX8YXX7ATFGA==}
+    engines: {node: '>=8'}
+
+  '@sentry/integrations@7.120.4':
+    resolution: {integrity: sha512-kkBTLk053XlhDCg7OkBQTIMF4puqFibeRO3E3YiVc4PGLnocXMaVpOSCkMqAc1k1kZ09UgGi8DxfQhnFEjUkpA==}
+    engines: {node: '>=8'}
+
+  '@sentry/node@7.120.4':
+    resolution: {integrity: sha512-qq3wZAXXj2SRWhqErnGCSJKUhPSlZ+RGnCZjhfjHpP49KNpcd9YdPTIUsFMgeyjdh6Ew6aVCv23g1hTP0CHpYw==}
+    engines: {node: '>=8'}
+
+  '@sentry/types@7.120.4':
+    resolution: {integrity: sha512-cUq2hSSe6/qrU6oZsEP4InMI5VVdD86aypE+ENrQ6eZEVLTCYm1w6XhW1NvIu3UuWh7gZec4a9J7AFpYxki88Q==}
+    engines: {node: '>=8'}
+
+  '@sentry/utils@7.120.4':
+    resolution: {integrity: sha512-zCKpyDIWKHwtervNK2ZlaK8mMV7gVUijAgFeJStH+CU/imcdquizV3pFLlSQYRswG+Lbyd6CT/LGRh3IbtkCFw==}
+    engines: {node: '>=8'}
 
   '@sinclair/typebox@0.34.48':
     resolution: {integrity: sha512-kKJTNuK3AQOrgjjotVxMrCn1sUJwM76wMszfq1kdU4uYVJjvEWuFQ6HgvLt4Xz3fSmZlTOxJ/Ie13KnIcWQXFA==}
@@ -2999,6 +2960,9 @@ packages:
     resolution: {integrity: sha512-hsBTNUqQTDwkWtcdYI2i06Y/nUBEsNEDJKjWdigLvegy8kDuJAS8uRlpkkcQpyEXL0Z/pjDy5HBmMjRCJ2gq+g==}
     engines: {node: '>= 4'}
 
+  immediate@3.0.6:
+    resolution: {integrity: sha512-XXOFtyqDjNDAQxVfYxuF7g9Il/IbWmmlQg2MYKOH8ExIT1qg6xc4zyS3HaEEATgs1btfzxq15ciUiY7gjSXRGQ==}
+
   immutable@5.1.4:
     resolution: {integrity: sha512-p6u1bG3YSnINT5RQmx/yRZBpenIl30kVxkTLDyHLIMk0gict704Q9n+thfDI7lTRm9vXdDYutVzXhzcThxTnXA==}
 
@@ -3361,8 +3325,14 @@ packages:
   libphonenumber-js@1.12.38:
     resolution: {integrity: sha512-vwzxmasAy9hZigxtqTbFEwp8ZdZ975TiqVDwj5bKx5sR+zi5ucUQy9mbVTkKM9GzqdLdxux/hTw2nmN5J7POMA==}
 
+  lie@3.1.1:
+    resolution: {integrity: sha512-RiNhHysUjhrDQntfYSfY4MU24coXXdEOgw9WGcKHNeEwffDYbF//u87M1EWaMGzuFoSbqW0C9C6lEEhDOAswfw==}
+
   lines-and-columns@1.2.4:
     resolution: {integrity: sha512-7ylylesZQ/PV29jhEDl3Ufjo6ZX7gCqJr5F7PKrqc93v7fzSymt1BpwEU8nAUXs8qzzvqhbjhK5QZg6Mt/HkBg==}
+
+  localforage@1.10.0:
+    resolution: {integrity: sha512-14/H1aX7hzBBmmh7sGPd+AOMkkIrHM3Z1PAyGgZigA1H1p5O5ANnMyWzvpAETtG68/dC4pC0ncy3+PPGzXZHPg==}
 
   locate-path@5.0.0:
     resolution: {integrity: sha512-t7hw9pI+WvuwNJXwk5zVHpyhIqzg2qTlklJOf0mVxGSbe3Fp2VieZcduNYjaLDoy6p9uGpQEGWG87WpMKlNq8g==}
@@ -4281,6 +4251,11 @@ packages:
   smart-buffer@4.2.0:
     resolution: {integrity: sha512-94hK0Hh8rPqQl2xXc3HsaBoOXKV20MToPkcXvwbISWLEs+64sBq5kFgn2kJDHb1Pry9yrP0dxrCI9RRci7RXKg==}
     engines: {node: '>= 6.0.0', npm: '>= 3.0.0'}
+
+  snyk@1.1303.0:
+    resolution: {integrity: sha512-6xJzpdL0Olhtcsda7xrG1P/QPCamjIZdYAa9qpdgcodd3IctOajLxBYI1OmxHke6XOSt9zKWCxkqTYqixmSWvA==}
+    engines: {node: '>=12'}
+    hasBin: true
 
   socks-proxy-agent@8.0.5:
     resolution: {integrity: sha512-HehCEsotFqbPW9sJ8WVYB6UbmIMv7kUUORIF2Nncq4VQvBfNBLibW9YZR5dlYCSUhwcD628pRllm7n+E+YTzJw==}
@@ -6005,6 +5980,38 @@ snapshots:
 
   '@scure/base@2.0.0': {}
 
+  '@sentry-internal/tracing@7.120.4':
+    dependencies:
+      '@sentry/core': 7.120.4
+      '@sentry/types': 7.120.4
+      '@sentry/utils': 7.120.4
+
+  '@sentry/core@7.120.4':
+    dependencies:
+      '@sentry/types': 7.120.4
+      '@sentry/utils': 7.120.4
+
+  '@sentry/integrations@7.120.4':
+    dependencies:
+      '@sentry/core': 7.120.4
+      '@sentry/types': 7.120.4
+      '@sentry/utils': 7.120.4
+      localforage: 1.10.0
+
+  '@sentry/node@7.120.4':
+    dependencies:
+      '@sentry-internal/tracing': 7.120.4
+      '@sentry/core': 7.120.4
+      '@sentry/integrations': 7.120.4
+      '@sentry/types': 7.120.4
+      '@sentry/utils': 7.120.4
+
+  '@sentry/types@7.120.4': {}
+
+  '@sentry/utils@7.120.4':
+    dependencies:
+      '@sentry/types': 7.120.4
+
   '@sinclair/typebox@0.34.48': {}
 
   '@sindresorhus/is@4.6.0': {}
@@ -6484,8 +6491,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  boolean@3.2.0:
-    optional: true
+  boolean@3.2.0: {}
 
   brace-expansion@1.1.12:
     dependencies:
@@ -6865,14 +6871,12 @@ snapshots:
       es-define-property: 1.0.1
       es-errors: 1.3.0
       gopd: 1.2.0
-    optional: true
 
   define-properties@1.2.1:
     dependencies:
       define-data-property: 1.1.4
       has-property-descriptors: 1.0.2
       object-keys: 1.1.1
-    optional: true
 
   delayed-stream@1.0.0: {}
 
@@ -6916,8 +6920,7 @@ snapshots:
 
   detect-newline@3.1.0: {}
 
-  detect-node@2.1.0:
-    optional: true
+  detect-node@2.1.0: {}
 
   dijkstrajs@1.0.3: {}
 
@@ -7106,8 +7109,7 @@ snapshots:
       has-tostringtag: 1.0.2
       hasown: 2.0.2
 
-  es6-error@4.1.1:
-    optional: true
+  es6-error@4.1.1: {}
 
   esbuild@0.27.3:
     optionalDependencies:
@@ -7544,7 +7546,6 @@ snapshots:
       roarr: 2.15.4
       semver: 7.7.4
       serialize-error: 7.0.1
-    optional: true
 
   global-modules@1.0.0:
     dependencies:
@@ -7566,7 +7567,6 @@ snapshots:
     dependencies:
       define-properties: 1.2.1
       gopd: 1.2.0
-    optional: true
 
   gopd@1.2.0: {}
 
@@ -7593,7 +7593,6 @@ snapshots:
   has-property-descriptors@1.0.2:
     dependencies:
       es-define-property: 1.0.1
-    optional: true
 
   has-symbols@1.1.0: {}
 
@@ -7682,6 +7681,8 @@ snapshots:
   ignore-by-default@1.0.1: {}
 
   ignore@5.3.2: {}
+
+  immediate@3.0.6: {}
 
   immutable@5.1.4: {}
 
@@ -8167,8 +8168,7 @@ snapshots:
 
   json-stable-stringify-without-jsonify@1.0.1: {}
 
-  json-stringify-safe@5.0.1:
-    optional: true
+  json-stringify-safe@5.0.1: {}
 
   json5@2.2.3: {}
 
@@ -8223,7 +8223,15 @@ snapshots:
 
   libphonenumber-js@1.12.38: {}
 
+  lie@3.1.1:
+    dependencies:
+      immediate: 3.0.6
+
   lines-and-columns@1.2.4: {}
+
+  localforage@1.10.0:
+    dependencies:
+      lie: 3.1.1
 
   locate-path@5.0.0:
     dependencies:
@@ -8330,7 +8338,6 @@ snapshots:
   matcher@3.0.0:
     dependencies:
       escape-string-regexp: 4.0.0
-    optional: true
 
   math-intrinsics@1.1.0: {}
 
@@ -8572,8 +8579,7 @@ snapshots:
 
   object-inspect@1.13.4: {}
 
-  object-keys@1.1.1:
-    optional: true
+  object-keys@1.1.1: {}
 
   on-finished@2.4.1:
     dependencies:
@@ -8997,7 +9003,6 @@ snapshots:
       json-stringify-safe: 5.0.1
       semver-compare: 1.0.0
       sprintf-js: 1.1.3
-    optional: true
 
   rollup@4.59.0:
     dependencies:
@@ -9102,7 +9107,6 @@ snapshots:
   serialize-error@7.0.1:
     dependencies:
       type-fest: 0.13.1
-    optional: true
 
   serve-static@2.2.1:
     dependencies:
@@ -9223,6 +9227,11 @@ snapshots:
 
   smart-buffer@4.2.0: {}
 
+  snyk@1.1303.0:
+    dependencies:
+      '@sentry/node': 7.120.4
+      global-agent: 3.0.0
+
   socks-proxy-agent@8.0.5:
     dependencies:
       agent-base: 7.1.4
@@ -9258,8 +9267,7 @@ snapshots:
 
   sprintf-js@1.0.3: {}
 
-  sprintf-js@1.1.3:
-    optional: true
+  sprintf-js@1.1.3: {}
 
   sql-escaper@1.3.3: {}
 
@@ -9452,8 +9460,7 @@ snapshots:
 
   type-detect@4.0.8: {}
 
-  type-fest@0.13.1:
-    optional: true
+  type-fest@0.13.1: {}
 
   type-fest@0.21.3: {}
 

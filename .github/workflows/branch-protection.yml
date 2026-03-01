@@ -1,0 +1,53 @@
+name: Enforce Branch Protection
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 2 * * *"
+  push:
+    branches: [main]
+    paths:
+      - .github/branch-protection.json
+      - .github/workflows/branch-protection.yml
+      - .github/workflows/security.yml
+
+permissions:
+  contents: read
+
+jobs:
+  apply:
+    name: Apply Branch Protection Policy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate admin token secret
+        run: |
+          if [ -z "${{ secrets.BRANCH_PROTECTION_TOKEN }}" ]; then
+            echo "Missing BRANCH_PROTECTION_TOKEN secret."
+            echo "Create a PAT with repository administration:write access and store it as this repository secret."
+            exit 1
+          fi
+
+      - name: Apply policy to main
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.BRANCH_PROTECTION_TOKEN }}
+          script: |
+            const fs = require("fs");
+            const path = ".github/branch-protection.json";
+            const raw = fs.readFileSync(path, "utf8");
+            const policy = JSON.parse(raw);
+
+            const branch = policy.branch || "main";
+            delete policy.branch;
+
+            await github.rest.repos.updateBranchProtection({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              branch,
+              ...policy
+            });
+
+            core.info(`Branch protection policy applied to ${context.repo.owner}/${context.repo.repo}@${branch}`);

@@ -11,3 +11,12 @@ Built for operational teams, Kaalix eliminates blind spots between performance a
 Kaalix does not merely record events. It interprets them in context, revealing patterns across time, infrastructure, and threat vectors.
 
 With Kaalix, organizations gain persistent awareness over their web ecosystem — where time, visibility, and control converge into decisive intelligence.
+
+## Branch Protection Enforcement
+
+Branch protection is managed as code using:
+
+- `.github/branch-protection.json` (policy source of truth)
+- `.github/workflows/branch-protection.yml` (enforcement workflow)
+
+To apply it, add a repository secret named `BRANCH_PROTECTION_TOKEN` with repository administration write access, then run the **Enforce Branch Protection** workflow from the Actions tab.
