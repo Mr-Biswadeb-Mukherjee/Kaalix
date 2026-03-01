@@ -2,7 +2,8 @@ import express from "express";
 import {
   loginUser,
   comparePassword,
-  updateFailedAttempts
+  updateFailedAttempts,
+  USER_ACCOUNT_STATUSES,
 } from "./user.service.js";
 
 import { verifyCaptcha, getStoredCaptcha } from "./captcha.service.js";
@@ -12,6 +13,7 @@ import {
   isStrictBusinessEmailModeEnabled,
 } from "../Utils/emailPolicy.utils.js";
 import { maybeDeleteBootstrapCredentialsFile } from "../Utils/bootstrapCredentials.utils.js";
+import { purgeExpiredSoftDeletedAdminsIfDue } from "./adminLifecycle.service.js";
 
 const router = express.Router();
 
@@ -22,6 +24,13 @@ const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 function isValidEmail(email) {
   return emailRegex.test(email);
 }
+
+const formatRestoreDeadline = (value) => {
+  if (!value) return null;
+  const parsed = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(parsed.getTime())) return null;
+  return parsed.toISOString();
+};
 
 // 🚪 POST /auth  → LOGIN ONLY
 router.post("/", async (req, res) => {
@@ -53,14 +62,17 @@ router.post("/", async (req, res) => {
     });
   }
 
-  const trimmedEmail = email.trim();
+  const trimmedEmail = email.trim().toLowerCase();
   const trimmedPassword = password.trim();
 
   if (!trimmedEmail) {
     errors.push("Email is required.");
   } else if (!isValidEmail(trimmedEmail)) {
     errors.push("Invalid email address.");
-  } else if (isStrictBusinessEmailModeEnabled() && isPersonalEmail(trimmedEmail)) {
+  } else if (
+    isStrictBusinessEmailModeEnabled() &&
+    isPersonalEmail(trimmedEmail)
+  ) {
     errors.push(BUSINESS_EMAIL_REQUIRED_MESSAGE);
   }
 
@@ -124,12 +136,37 @@ router.post("/", async (req, res) => {
     const MAX_ATTEMPTS = 5;
     const LOCK_MINUTES = 30;
 
+    await purgeExpiredSoftDeletedAdminsIfDue();
+
     const user = await loginUser(trimmedEmail);
     if (!user) {
       return res.status(401).json({
         success: false,
         message: "Invalid credentials.",
         errors: ["Invalid credentials."],
+      });
+    }
+
+    if (user.account_status === USER_ACCOUNT_STATUSES.BLOCKED) {
+      return res.status(403).json({
+        success: false,
+        code: "ACCOUNT_BLOCKED",
+        message: "Account is blocked by super admin. Please contact support.",
+        errors: ["Account is blocked by super admin."],
+      });
+    }
+
+    if (user.account_status === USER_ACCOUNT_STATUSES.DELETED) {
+      const restoreUntil = formatRestoreDeadline(user.hard_delete_at);
+      const deletedMessage = restoreUntil
+        ? `Account has been soft-deleted by super admin. It can be restored until ${restoreUntil}.`
+        : "Account has been soft-deleted by super admin.";
+      return res.status(403).json({
+        success: false,
+        code: "ACCOUNT_SOFT_DELETED",
+        message: deletedMessage,
+        errors: [deletedMessage],
+        restoreUntil,
       });
     }
 
@@ -211,6 +248,7 @@ router.post("/", async (req, res) => {
 
     const token = await res.generateToken({
       user_id: user.user_id,
+      username: user.username,
       email: user.email,
       fullName: user.fullName,
       role,
@@ -222,6 +260,7 @@ router.post("/", async (req, res) => {
       message: "Login successful.",
       user: {
         user_id: user.user_id,
+        username: user.username,
         email: user.email,
         fullName: user.fullName,
         role,

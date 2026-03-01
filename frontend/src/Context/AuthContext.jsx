@@ -26,16 +26,38 @@ const normalizeOnboarding = (onboarding) => {
   };
 };
 
+const normalizeUser = (user) => {
+  if (!user || typeof user !== "object") return null;
+  const role =
+    typeof user.role === "string" ? user.role.trim().toLowerCase() : null;
+
+  return {
+    user_id: typeof user.user_id === "string" ? user.user_id : null,
+    username: typeof user.username === "string" ? user.username : null,
+    email: typeof user.email === "string" ? user.email : null,
+    fullName: typeof user.fullName === "string" ? user.fullName : null,
+    role: role || null,
+  };
+};
+
 const isSameOnboarding = (a, b) =>
   Boolean(a?.mustChangePassword) === Boolean(b?.mustChangePassword) &&
   Boolean(a?.mustUpdateProfile) === Boolean(b?.mustUpdateProfile) &&
   Boolean(a?.mustShareLocation) === Boolean(b?.mustShareLocation) &&
   Boolean(a?.required) === Boolean(b?.required);
 
+const isSameUser = (a, b) =>
+  (a?.user_id || null) === (b?.user_id || null) &&
+  (a?.username || null) === (b?.username || null) &&
+  (a?.email || null) === (b?.email || null) &&
+  (a?.fullName || null) === (b?.fullName || null) &&
+  (a?.role || null) === (b?.role || null);
+
 export const AuthProvider = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true); // Avoid UI flash before verifying
   const [onboarding, setOnboarding] = useState(defaultOnboardingState);
+  const [currentUser, setCurrentUser] = useState(null);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -58,11 +80,16 @@ export const AuthProvider = ({ children }) => {
       .then((data) => {
         setIsAuthenticated(true);
         setOnboarding(normalizeOnboarding(data?.onboarding));
+        const normalizedUser = normalizeUser(data?.user);
+        setCurrentUser((prev) =>
+          isSameUser(prev, normalizedUser) ? prev : normalizedUser
+        );
       })
       .catch(() => {
         localStorage.removeItem("token");
         setIsAuthenticated(false);
         setOnboarding(defaultOnboardingState);
+        setCurrentUser(null);
       })
       .finally(() => {
         setLoading(false);
@@ -73,14 +100,19 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem("token");
     setIsAuthenticated(false);
     setOnboarding(defaultOnboardingState);
+    setCurrentUser(null);
   }, []);
 
   const login = useCallback((token, userData = null) => {
     localStorage.setItem("token", token);
     setIsAuthenticated(true);
     const nextOnboarding = normalizeOnboarding(userData?.onboarding);
+    const normalizedUser = normalizeUser(userData);
     setOnboarding((prev) =>
       isSameOnboarding(prev, nextOnboarding) ? prev : nextOnboarding
+    );
+    setCurrentUser((prev) =>
+      isSameUser(prev, normalizedUser) ? prev : normalizedUser
     );
   }, []);
 
@@ -149,6 +181,9 @@ export const AuthProvider = ({ children }) => {
         onboarding,
         onboardingRequired: onboarding.required,
         updateOnboarding,
+        currentUser,
+        role: currentUser?.role || null,
+        isSuperAdmin: currentUser?.role === "sa",
       }}
     >
       {children}

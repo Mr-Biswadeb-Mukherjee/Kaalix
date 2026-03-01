@@ -4,6 +4,7 @@ import express from "express";
 import app from "./Routes/index.js";  
 import { getDatabase } from "./Connectors/DB.js";
 import { server } from "./Confs/config.js";
+import { startAdminSoftDeletePurgeJob } from "./Services/adminLifecycle.service.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -19,6 +20,7 @@ app.use("/uploads", express.static(path.join(__dirname, "public/uploads")));
 async function startServer() {
   try {
     await getDatabase();
+    startAdminSoftDeletePurgeJob();
     app.listen(PORT, () => {
       console.log(
         `🟢 Server running in ${NODE_ENV} mode at http://localhost:${PORT}`

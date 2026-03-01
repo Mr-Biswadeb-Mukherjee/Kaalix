@@ -11,6 +11,7 @@ import MenuBookIcon from '@mui/icons-material/MenuBook';
 import RuleIcon from '@mui/icons-material/Rule';
 import HubIcon from '@mui/icons-material/Hub';
 import SyncAltIcon from '@mui/icons-material/SyncAlt';
+import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 import './Styles/sidebar.css';
 import Logo from '../UI/Logo'
 import { useAuth } from '../../Context/AuthContext';
@@ -28,13 +29,16 @@ import { useAuth } from '../../Context/AuthContext';
 const Sidebar = ({ collapsed, setCollapsed }) => {
   const location = useLocation();
   const [active, setActive] = useState(location.pathname);
-  const { onboardingRequired } = useAuth();
+  const { onboardingRequired, isSuperAdmin } = useAuth();
   const menuItems = [
     { name: 'Dashboard', icon: <DashboardIcon />, route: '/dashboard' },
     { name: 'Data Sources', icon: <StorageIcon />, route: '/data-sources' },
     { name: 'Detection Rules', icon: <RuleIcon />, route: '/detection-rules' },
     { name: 'Integrations', icon: <HubIcon />, route: '/integrations' },
     { name: 'Log Forwarder', icon: <SyncAltIcon />, route: '/log-forwarder' },
+    ...(isSuperAdmin
+      ? [{ name: 'Org Admins', icon: <AdminPanelSettingsIcon />, route: '/organization-admins' }]
+      : []),
     { name: 'About Us', icon: <InfoIcon />, route: '/about' },
     { name: 'Documentation', icon: <MenuBookIcon />, route: '/docs' },
   ];

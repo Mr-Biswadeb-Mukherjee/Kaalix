@@ -23,6 +23,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const logger = LoggerContainer.get("Schemas");
 const MACHINE_ID_PATHS = ["/etc/machine-id", "/var/lib/dbus/machine-id"];
 const SA_MACHINE_SECRET_NAMESPACE = "kaalix-sa-bootstrap-v1";
+const USERNAME_REGEX = /^[a-z0-9](?:[a-z0-9._-]{2,31})$/;
 
 const sha256 = (value) =>
   crypto.createHash("sha256").update(value).digest("hex");
@@ -85,6 +86,17 @@ const resolveDefaultSaCredentials = () => {
     emailSource,
     passwordSource,
   };
+};
+
+const resolveDefaultSaLoginUsername = () => {
+  const candidate = String(process.env.DEFAULT_SA_LOGIN || "kaalix-sa")
+    .trim()
+    .toLowerCase();
+  const sanitized = candidate.replace(/\s+/g, "_");
+  if (USERNAME_REGEX.test(sanitized)) {
+    return sanitized;
+  }
+  return "kaalix-sa";
 };
 
 const resolveOnboardingState = (state = {}) => {
@@ -184,8 +196,9 @@ export async function initializeDatabase(pool) {
  * If an SA user already exists, this is a no-op.
  */
 export async function ensureDefaultSaAccount(pool) {
-  const defaultUsername =
+  const defaultDisplayName =
     (process.env.DEFAULT_SA_USERNAME || "Kaalix Super Admin").trim();
+  const defaultLoginUsername = resolveDefaultSaLoginUsername();
   const {
     email: defaultEmail,
     password: defaultPassword,
@@ -238,7 +251,7 @@ export async function ensureDefaultSaAccount(pool) {
     await conn.beginTransaction();
 
     const [saRows] = await conn.execute(
-      "SELECT user_id, email, must_change_password FROM users WHERE role = 'sa' LIMIT 1 FOR UPDATE"
+      "SELECT user_id, username, email, must_change_password FROM users WHERE role = 'sa' LIMIT 1 FOR UPDATE"
     );
 
     if (saRows.length > 0) {
@@ -257,7 +270,7 @@ export async function ensureDefaultSaAccount(pool) {
       if (profileRows.length === 0) {
         await conn.execute(
           "INSERT INTO profiles (user_id, profile_id, fullName) VALUES (?, ?, ?)",
-          [saUserId, null, defaultUsername]
+          [saUserId, null, defaultDisplayName]
         );
         logger.warn(`⚠️ SA profile was missing and has been restored for ${saUserId}.`);
       }
@@ -288,7 +301,7 @@ export async function ensureDefaultSaAccount(pool) {
       if (canRecoverBootstrapCredentials && (!bootstrapFileExists || forceBootstrapReseed)) {
         const bootstrapFilePathEmitted = writeBootstrapCredentialsFile({
           userId: saUserId,
-          username: defaultUsername,
+          username: saIdentity.username || defaultLoginUsername,
           email: String(saIdentity.email || defaultEmail).trim().toLowerCase(),
           password: defaultPassword,
         });
@@ -317,22 +330,22 @@ export async function ensureDefaultSaAccount(pool) {
     const userId = `KAALIX-SA-${uuidv4().replace(/-/g, "").slice(0, 10)}`;
 
     await conn.execute(
-      "INSERT INTO users (user_id, email, password, role, must_change_password) VALUES (?, ?, ?, 'sa', 1)",
-      [userId, defaultEmail, hashedPassword]
+      "INSERT INTO users (user_id, username, email, password, role, must_change_password) VALUES (?, ?, ?, ?, 'sa', 1)",
+      [userId, defaultLoginUsername, defaultEmail, hashedPassword]
     );
 
     await conn.execute(
       "INSERT INTO profiles (user_id, profile_id, fullName) VALUES (?, ?, ?)",
-      [userId, null, defaultUsername]
+      [userId, null, defaultDisplayName]
     );
 
     await conn.commit();
     logger.warn(
-      `🔐 Default SA user created (email: ${defaultEmail}, role: sa, emailSource: ${emailSource}, passwordSource: ${passwordSource}). Rotate this password immediately.`
+      `🔐 Default SA user created (username: ${defaultLoginUsername}, email: ${defaultEmail}, role: sa, emailSource: ${emailSource}, passwordSource: ${passwordSource}). Rotate this password immediately.`
     );
     const bootstrapFilePath = writeBootstrapCredentialsFile({
       userId,
-      username: defaultUsername,
+      username: defaultLoginUsername,
       email: defaultEmail,
       password: defaultPassword,
     });

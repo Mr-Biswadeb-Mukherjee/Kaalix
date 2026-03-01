@@ -222,10 +222,7 @@ const Auth = ({ onAuthSuccess }) => {
         return;
       }
 
-      addToast(
-        `Welcome back, ${data.user.fullName || formData.email}.`,
-        "success"
-      );
+      addToast(`Welcome back, ${data.user.fullName || formData.email}.`, "success");
 
       localStorage.setItem("token", data.token);
       onAuthSuccess?.(data);

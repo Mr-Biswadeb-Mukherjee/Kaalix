@@ -59,6 +59,71 @@ const getDefaultOrgSa = async (conn) => {
   return rows[0]?.sa_name || null;
 };
 
+const findOrganizationByOwner = async (conn, ownerUserId) => {
+  const [rows] = await conn.execute(
+    `SELECT
+        org_id AS orgId,
+        org_name AS orgName,
+        org_website AS orgWebsite,
+        org_email AS orgEmail,
+        org_sa AS orgSa
+     FROM organizations
+     WHERE user_id = ?
+     LIMIT 1`,
+    [ownerUserId]
+  );
+  return rows[0] || null;
+};
+
+const findOrganizationAssignedToAdmin = async (conn, adminUserId) => {
+  const [rows] = await conn.execute(
+    `SELECT
+        o.org_id AS orgId,
+        o.org_name AS orgName,
+        o.org_website AS orgWebsite,
+        o.org_email AS orgEmail,
+        o.org_sa AS orgSa
+     FROM organization_admins oa
+     INNER JOIN organizations o ON o.org_id = oa.org_id
+     WHERE oa.admin_user_id = ?
+     ORDER BY oa.created_at DESC, oa.id DESC
+     LIMIT 1`,
+    [adminUserId]
+  );
+  return rows[0] || null;
+};
+
+const findSuperAdminOrganization = async (conn) => {
+  const [rows] = await conn.execute(
+    `SELECT
+        o.org_id AS orgId,
+        o.org_name AS orgName,
+        o.org_website AS orgWebsite,
+        o.org_email AS orgEmail,
+        o.org_sa AS orgSa
+     FROM organizations o
+     INNER JOIN users u ON u.user_id = o.user_id
+     WHERE u.role = 'sa'
+     ORDER BY o.updated_at DESC, o.id DESC
+     LIMIT 1`
+  );
+  return rows[0] || null;
+};
+
+const resolveOrganizationForProfile = async (conn, { userId, role }) => {
+  if (role === "sa") {
+    return findOrganizationByOwner(conn, userId);
+  }
+
+  const assignedOrganization = await findOrganizationAssignedToAdmin(conn, userId);
+  if (assignedOrganization) return assignedOrganization;
+
+  const ownedOrganization = await findOrganizationByOwner(conn, userId);
+  if (ownedOrganization) return ownedOrganization;
+
+  return findSuperAdminOrganization(conn);
+};
+
 const getDomainFromEmail = (email = "") => {
   const normalized = String(email || "").trim().toLowerCase();
   const atIndex = normalized.lastIndexOf("@");
@@ -170,18 +235,6 @@ export const fetchProfile = async (userId) => {
         p.profile_id AS profileId,
         u.email AS email,
         p.fullName AS fullName,
-        o.org_name AS orgName,
-        o.org_name AS org,
-        o.org_id AS orgId,
-        o.org_website AS orgWebsite,
-        o.org_email AS orgEmail,
-        (
-          SELECT COALESCE(NULLIF(TRIM(p_sa.fullName), ''), sa.email, sa.user_id)
-          FROM profiles p_sa
-          WHERE p_sa.user_id = sa.user_id
-          ORDER BY p_sa.id DESC
-          LIMIT 1
-        ) AS orgSa,
         p.phone AS phone,
         p.bio AS bio,
         p.website_url AS websiteUrl,
@@ -194,14 +247,30 @@ export const fetchProfile = async (userId) => {
         p.location_label AS location_label
      FROM users u
      LEFT JOIN profiles p ON u.user_id = p.user_id
-     LEFT JOIN organizations o ON o.user_id = u.user_id
-     LEFT JOIN users sa ON sa.role = 'sa'
      WHERE u.user_id = ?
      ORDER BY p.id DESC
      LIMIT 1`,
     [userId]
   );
-  return rows[0] || null;
+  const identity = rows[0] || null;
+  if (!identity) return null;
+
+  const organization = await resolveOrganizationForProfile(db, {
+    userId,
+    role: identity.role,
+  });
+  const fallbackOrgSa = await getDefaultOrgSa(db);
+  const orgName = organization?.orgName || null;
+
+  return {
+    ...identity,
+    orgName,
+    org: orgName,
+    orgId: organization?.orgId || null,
+    orgWebsite: organization?.orgWebsite || null,
+    orgEmail: organization?.orgEmail || null,
+    orgSa: organization?.orgSa || fallbackOrgSa || null,
+  };
 };
 
 // 📝 Public: Update profile
@@ -307,6 +376,13 @@ export const updateProfile = async (
         err.status = 409;
         throw err;
       }
+    }
+
+    if (hasOrgInput && identity.role !== "sa") {
+      const err = new Error("Only super admin can update organization details.");
+      err.code = "ORG_UPDATE_FORBIDDEN";
+      err.status = 403;
+      throw err;
     }
 
     const normalizedOrgName = hasOrgNameInput ? orgName.trim() : null;

@@ -2,10 +2,14 @@
 CREATE TABLE IF NOT EXISTS users (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     user_id VARCHAR(255) UNIQUE NOT NULL,
+    username VARCHAR(64) UNIQUE NOT NULL,
     email VARCHAR(255) UNIQUE NOT NULL,
     password VARCHAR(255) NOT NULL,
     must_change_password TINYINT(1) NOT NULL DEFAULT 1,
     role ENUM('sa','admin') NOT NULL DEFAULT 'admin',
+    account_status ENUM('active','blocked','deleted') NOT NULL DEFAULT 'active',
+    deleted_at TIMESTAMP NULL DEFAULT NULL,
+    hard_delete_at TIMESTAMP NULL DEFAULT NULL,
     super_admin_guard TINYINT GENERATED ALWAYS AS (
         CASE WHEN role = 'sa' THEN 1 ELSE NULL END
     ) STORED,
@@ -15,6 +19,64 @@ CREATE TABLE IF NOT EXISTS users (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     UNIQUE KEY ux_single_super_admin (super_admin_guard)
 );
+
+-- Ensure username exists for already-created users table
+SET @users_username_column_exists := (
+    SELECT COUNT(*)
+    FROM INFORMATION_SCHEMA.COLUMNS
+    WHERE TABLE_SCHEMA = DATABASE()
+      AND TABLE_NAME = 'users'
+      AND COLUMN_NAME = 'username'
+);
+
+SET @users_add_username_sql := IF(
+    @users_username_column_exists = 0,
+    "ALTER TABLE users ADD COLUMN username VARCHAR(64) NULL AFTER user_id",
+    "SELECT 1"
+);
+
+PREPARE users_add_username_stmt FROM @users_add_username_sql;
+EXECUTE users_add_username_stmt;
+DEALLOCATE PREPARE users_add_username_stmt;
+
+-- Backfill missing usernames deterministically
+UPDATE users
+SET username = CONCAT('user_', CAST(id AS CHAR))
+WHERE username IS NULL OR TRIM(username) = '';
+
+-- Repair duplicate usernames before adding unique index
+UPDATE users u
+INNER JOIN (
+    SELECT username
+    FROM users
+    WHERE username IS NOT NULL AND TRIM(username) <> ''
+    GROUP BY username
+    HAVING COUNT(*) > 1
+) d ON d.username = u.username
+SET u.username = CONCAT('user_', CAST(u.id AS CHAR));
+
+-- Ensure username is NOT NULL
+ALTER TABLE users MODIFY COLUMN username VARCHAR(64) NOT NULL;
+
+-- Ensure username unique index exists
+SET @users_username_index_exists := (
+    SELECT COUNT(*)
+    FROM INFORMATION_SCHEMA.STATISTICS
+    WHERE TABLE_SCHEMA = DATABASE()
+      AND TABLE_NAME = 'users'
+      AND COLUMN_NAME = 'username'
+      AND NON_UNIQUE = 0
+);
+
+SET @users_add_username_index_sql := IF(
+    @users_username_index_exists = 0,
+    "ALTER TABLE users ADD UNIQUE KEY ux_users_username (username)",
+    "SELECT 1"
+);
+
+PREPARE users_add_username_index_stmt FROM @users_add_username_index_sql;
+EXECUTE users_add_username_index_stmt;
+DEALLOCATE PREPARE users_add_username_index_stmt;
 
 -- Ensure role exists for already-created users table
 SET @users_role_column_exists := (
@@ -60,6 +122,90 @@ ALTER TABLE users MODIFY COLUMN must_change_password TINYINT(1) NOT NULL DEFAULT
 ALTER TABLE users MODIFY COLUMN role ENUM('sa','super_admin','admin') NOT NULL DEFAULT 'admin';
 UPDATE users SET role = 'sa' WHERE role = 'super_admin';
 ALTER TABLE users MODIFY COLUMN role ENUM('sa','admin') NOT NULL DEFAULT 'admin';
+
+-- Ensure account_status exists for admin lifecycle controls
+SET @users_account_status_column_exists := (
+    SELECT COUNT(*)
+    FROM INFORMATION_SCHEMA.COLUMNS
+    WHERE TABLE_SCHEMA = DATABASE()
+      AND TABLE_NAME = 'users'
+      AND COLUMN_NAME = 'account_status'
+);
+
+SET @users_add_account_status_sql := IF(
+    @users_account_status_column_exists = 0,
+    "ALTER TABLE users ADD COLUMN account_status ENUM('active','blocked','deleted') NOT NULL DEFAULT 'active' AFTER role",
+    "SELECT 1"
+);
+
+PREPARE users_add_account_status_stmt FROM @users_add_account_status_sql;
+EXECUTE users_add_account_status_stmt;
+DEALLOCATE PREPARE users_add_account_status_stmt;
+
+UPDATE users
+SET account_status = 'active'
+WHERE account_status IS NULL
+   OR TRIM(account_status) = ''
+   OR account_status NOT IN ('active', 'blocked', 'deleted');
+
+ALTER TABLE users
+MODIFY COLUMN account_status ENUM('active','blocked','deleted') NOT NULL DEFAULT 'active';
+
+-- Ensure deleted_at exists for admin soft-delete metadata
+SET @users_deleted_at_column_exists := (
+    SELECT COUNT(*)
+    FROM INFORMATION_SCHEMA.COLUMNS
+    WHERE TABLE_SCHEMA = DATABASE()
+      AND TABLE_NAME = 'users'
+      AND COLUMN_NAME = 'deleted_at'
+);
+
+SET @users_add_deleted_at_sql := IF(
+    @users_deleted_at_column_exists = 0,
+    "ALTER TABLE users ADD COLUMN deleted_at TIMESTAMP NULL DEFAULT NULL AFTER account_status",
+    "SELECT 1"
+);
+
+PREPARE users_add_deleted_at_stmt FROM @users_add_deleted_at_sql;
+EXECUTE users_add_deleted_at_stmt;
+DEALLOCATE PREPARE users_add_deleted_at_stmt;
+
+-- Ensure hard_delete_at exists for admin soft-delete metadata
+SET @users_hard_delete_at_column_exists := (
+    SELECT COUNT(*)
+    FROM INFORMATION_SCHEMA.COLUMNS
+    WHERE TABLE_SCHEMA = DATABASE()
+      AND TABLE_NAME = 'users'
+      AND COLUMN_NAME = 'hard_delete_at'
+);
+
+SET @users_add_hard_delete_at_sql := IF(
+    @users_hard_delete_at_column_exists = 0,
+    "ALTER TABLE users ADD COLUMN hard_delete_at TIMESTAMP NULL DEFAULT NULL AFTER deleted_at",
+    "SELECT 1"
+);
+
+PREPARE users_add_hard_delete_at_stmt FROM @users_add_hard_delete_at_sql;
+EXECUTE users_add_hard_delete_at_stmt;
+DEALLOCATE PREPARE users_add_hard_delete_at_stmt;
+
+-- Backfill existing deleted admins with a 30-day purge schedule
+UPDATE users
+SET
+    deleted_at = COALESCE(deleted_at, updated_at, CURRENT_TIMESTAMP),
+    hard_delete_at = COALESCE(
+        hard_delete_at,
+        DATE_ADD(COALESCE(deleted_at, updated_at, CURRENT_TIMESTAMP), INTERVAL 30 DAY)
+    )
+WHERE role = 'admin'
+  AND COALESCE(account_status, 'active') = 'deleted';
+
+-- Clear stale soft-delete metadata for non-deleted accounts
+UPDATE users
+SET
+    deleted_at = NULL,
+    hard_delete_at = NULL
+WHERE COALESCE(account_status, 'active') <> 'deleted';
 
 -- Ensure generated guard column exists for sa uniqueness
 SET @users_guard_column_exists := (

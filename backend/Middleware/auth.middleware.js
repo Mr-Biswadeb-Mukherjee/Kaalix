@@ -1,6 +1,11 @@
 import { verifyToken } from "../Utils/JWT.utils.js";
-import { getUserOnboardingState } from "../Services/user.service.js";
+import {
+  getUserAccessState,
+  getUserOnboardingState,
+  USER_ACCOUNT_STATUSES,
+} from "../Services/user.service.js";
 import API from "@amon/shared";
+import { purgeExpiredSoftDeletedAdminsIfDue } from "../Services/adminLifecycle.service.js";
 
 /**
  * Middleware factory to control token revocation
@@ -23,6 +28,25 @@ export default function authMiddleware(options = {}) {
       }
 
       const payload = await verifyToken(token, { revoke: mergedOptions.revoke });
+      await purgeExpiredSoftDeletedAdminsIfDue();
+      const accessState = await getUserAccessState(payload.user_id);
+      if (!accessState) {
+        return res.status(401).json({ message: "Unauthorized: user not found." });
+      }
+      if (accessState.account_status === USER_ACCOUNT_STATUSES.BLOCKED) {
+        return res.status(403).json({
+          success: false,
+          code: "ACCOUNT_BLOCKED",
+          message: "Your account is blocked by super admin.",
+        });
+      }
+      if (accessState.account_status === USER_ACCOUNT_STATUSES.DELETED) {
+        return res.status(403).json({
+          success: false,
+          code: "ACCOUNT_SOFT_DELETED",
+          message: "Your account has been soft-deleted by super admin.",
+        });
+      }
       const onboarding = await getUserOnboardingState(payload.user_id);
 
       if (!onboarding) {

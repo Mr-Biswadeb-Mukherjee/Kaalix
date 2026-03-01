@@ -4,6 +4,7 @@ import path from "path";
 import crypto from "crypto";
 import winston from "winston";
 import Transport from "winston-transport";
+import { fileURLToPath } from "url";
 import { Logger_key } from "../Confs/config.js";
 
 
@@ -30,23 +31,9 @@ function formatLogTimestamp(input = new Date()) {
 // ==================================================================
 // [1] Locate absolute project root and ensure Logs/ exists there
 // ==================================================================
-function findProjectRoot(startDir = process.cwd()) {
-  let current = startDir;
-
-  while (current !== path.parse(current).root) {
-    const pkgPath = path.join(current, "package.json");
-    const gitPath = path.join(current, ".git");
-
-    if (fs.existsSync(pkgPath) || fs.existsSync(gitPath)) {
-      return current;
-    }
-    current = path.dirname(current);
-  }
-
-  return startDir;
-}
-
-const projectRoot = findProjectRoot(path.resolve(process.cwd(), "../"));
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const projectRoot = path.resolve(__dirname, "..", "..");
 const logRoot = path.join(projectRoot, "Logs");
 
 if (!fs.existsSync(logRoot)) {

@@ -10,6 +10,12 @@ import {
   UpdateLocationConsent,
   UpdatePreciseLocation,
 } from "../Controller/Profile.controller.js";
+import {
+  CreateManagedUser,
+  FetchOrganizationAdmins,
+  ManageAdminAccount,
+  UpdateOrganizationAdmins,
+} from "../Controller/OrgAdmin.controller.js";
 import { getLocationSharingState } from "../Services/profile.service.js";
 import { upload, processAvatar, handleUploadErrors } from "../Middleware/upload.middleware.js";
 import { MFAService } from "../Services/MFA.service.js";
@@ -118,6 +124,31 @@ router.post(
   API.system.protected.locationUpdate.endpoint,
   authMiddleware({ revoke: false, allowDuringOnboarding: true }),
   UpdatePreciseLocation
+);
+
+// Super-admin org-admin assignment
+router.get(
+  API.system.protected.organizationAdmins.endpoint,
+  authMiddleware({ revoke: false }),
+  FetchOrganizationAdmins
+);
+
+router.post(
+  API.system.protected.updateOrganizationAdmins.endpoint,
+  authMiddleware({ revoke: false }),
+  UpdateOrganizationAdmins
+);
+
+router.post(
+  API.system.protected.managedUsers.endpoint,
+  authMiddleware({ revoke: false }),
+  CreateManagedUser
+);
+
+router.post(
+  API.system.protected.manageAdminAccount.endpoint,
+  authMiddleware({ revoke: false }),
+  ManageAdminAccount
 );
 
 // ===================== MFA Routes =====================

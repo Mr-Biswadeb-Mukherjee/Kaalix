@@ -1,7 +1,9 @@
 import bcrypt from "bcrypt";
 import { v4 as uuidv4 } from "uuid";
+import validator from "validator";
 import { getDatabase } from "../Connectors/DB.js";
 import {
+  BUSINESS_EMAIL_REQUIRED_MESSAGE,
   isBusinessEmail,
   isStrictBusinessEmailModeEnabled,
 } from "../Utils/emailPolicy.utils.js";
@@ -10,8 +12,15 @@ export const USER_ROLES = Object.freeze({
   SA: "sa",
   ADMIN: "admin",
 });
+export const USER_ACCOUNT_STATUSES = Object.freeze({
+  ACTIVE: "active",
+  BLOCKED: "blocked",
+  DELETED: "deleted",
+});
 
 const allowedRoles = new Set(Object.values(USER_ROLES));
+const allowedAccountStatuses = new Set(Object.values(USER_ACCOUNT_STATUSES));
+const USERNAME_REGEX = /^[a-z0-9](?:[a-z0-9._-]{2,31})$/;
 
 // 🧼 Normalize email for consistent matching
 export const normalizeEmail = (email) => {
@@ -19,11 +28,51 @@ export const normalizeEmail = (email) => {
   return email.trim().toLowerCase();
 };
 
+export const normalizeUsername = (username) => {
+  if (!username || typeof username !== "string") return "";
+  return username.trim().toLowerCase();
+};
+
 export const normalizeRole = (role) => {
   if (typeof role !== "string") return USER_ROLES.ADMIN;
   const normalized = role.trim().toLowerCase();
   if (normalized === "super_admin") return USER_ROLES.SA;
   return normalized;
+};
+
+const buildUsernameBaseFromEmail = (email) => {
+  const localPart = String(email || "").split("@")[0] || "";
+  const normalized = localPart
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9._-]+/g, "-")
+    .replace(/[-_.]{2,}/g, "-")
+    .replace(/^[-_.]+|[-_.]+$/g, "");
+
+  if (!normalized) return "user";
+  if (/^[a-z0-9]/.test(normalized)) return normalized.slice(0, 20);
+  return `u${normalized}`.slice(0, 20);
+};
+
+const buildUsernameCandidate = (base, attempt) => {
+  const safeBase = base || "user";
+  if (attempt === 0) return safeBase.slice(0, 32);
+  const suffix = String(attempt + 1);
+  const maxBaseLength = Math.max(3, 32 - suffix.length - 1);
+  return `${safeBase.slice(0, maxBaseLength)}-${suffix}`;
+};
+
+const generateUniqueUsername = async (conn, base) => {
+  for (let attempt = 0; attempt < 50; attempt += 1) {
+    const candidate = buildUsernameCandidate(base, attempt);
+    if (!USERNAME_REGEX.test(candidate)) continue;
+    const [rows] = await conn.execute(
+      "SELECT user_id FROM users WHERE username = ? LIMIT 1",
+      [candidate]
+    );
+    if (rows.length === 0) return candidate;
+  }
+  throw new InvalidUsernameError("Unable to generate a unique username.");
 };
 
 // ❗ Custom error class for "user already exists"
@@ -41,6 +90,18 @@ export class InvalidUserRoleError extends Error {
     super(message);
     this.name = "InvalidUserRoleError";
     this.code = "INVALID_ROLE";
+    this.status = 400;
+  }
+}
+
+export class InvalidUsernameError extends Error {
+  constructor(
+    message =
+      "Invalid username. Use 3-32 characters with lowercase letters, numbers, dot, underscore, or hyphen."
+  ) {
+    super(message);
+    this.name = "InvalidUsernameError";
+    this.code = "INVALID_USERNAME";
     this.status = 400;
   }
 }
@@ -85,6 +146,16 @@ export const findUserByEmail = async (email) => {
   return rows[0] || null;
 };
 
+export const findUserByUsername = async (username) => {
+  const db = await getDatabase();
+  const normalizedUsername = normalizeUsername(username);
+  const [rows] = await db.execute(
+    "SELECT * FROM users WHERE username = ? LIMIT 1",
+    [normalizedUsername]
+  );
+  return rows[0] || null;
+};
+
 // 🔑 Public: Fetch user by ID
 export const findUserById = async (userId) => {
   const db = await getDatabase();
@@ -119,16 +190,74 @@ export const getUserOnboardingState = async (userId) => {
   return normalizeOnboardingState(identity);
 };
 
+export const getUserAccessState = async (userId) => {
+  const db = await getDatabase();
+  const [rows] = await db.execute(
+    `SELECT
+        user_id AS user_id,
+        role AS role,
+        COALESCE(account_status, 'active') AS account_status
+     FROM users
+     WHERE user_id = ?
+     LIMIT 1`,
+    [userId]
+  );
+
+  const state = rows[0] || null;
+  if (!state) return null;
+  const normalizedStatus = String(state.account_status || "").trim().toLowerCase();
+  return {
+    user_id: state.user_id,
+    role: state.role,
+    account_status: allowedAccountStatuses.has(normalizedStatus)
+      ? normalizedStatus
+      : USER_ACCOUNT_STATUSES.ACTIVE,
+  };
+};
+
 // 🛠️ Public: Register user
 export const registerUser = async ({
+  username,
   fullName,
   email,
   password,
   role = USER_ROLES.ADMIN,
 }) => {
   const db = await getDatabase();
-  const existing = await findUserByEmail(email);
-  if (existing) throw new UserExistsError();
+  const normalizedEmail = normalizeEmail(email);
+  const requestedUsername = normalizeUsername(username);
+
+  if (!normalizedEmail || !validator.isEmail(normalizedEmail)) {
+    const err = new Error("Invalid email address.");
+    err.code = "INVALID_EMAIL";
+    err.status = 400;
+    throw err;
+  }
+
+  if (
+    isStrictBusinessEmailModeEnabled() &&
+    !isBusinessEmail(normalizedEmail)
+  ) {
+    const err = new Error(BUSINESS_EMAIL_REQUIRED_MESSAGE);
+    err.code = "BUSINESS_EMAIL_REQUIRED";
+    err.status = 400;
+    throw err;
+  }
+
+  if (requestedUsername && !USERNAME_REGEX.test(requestedUsername)) {
+    throw new InvalidUsernameError();
+  }
+
+  const existingEmail = await findUserByEmail(normalizedEmail);
+  if (existingEmail) throw new UserExistsError("User already exists with this email.");
+
+  if (requestedUsername) {
+    const existingUsername = await findUserByUsername(requestedUsername);
+    if (existingUsername) {
+      throw new UserExistsError("User already exists with this username.");
+    }
+  }
+
   const normalizedRole = normalizeRole(role);
   if (!allowedRoles.has(normalizedRole)) {
     throw new InvalidUserRoleError();
@@ -137,6 +266,7 @@ export const registerUser = async ({
   const conn = await db.getConnection();
   try {
     await conn.beginTransaction();
+    let normalizedUsername = requestedUsername;
 
     if (normalizedRole === USER_ROLES.SA) {
       const [superAdminRows] = await conn.execute(
@@ -146,6 +276,11 @@ export const registerUser = async ({
       if (superAdminRows.length > 0) {
         throw new SuperAdminExistsError();
       }
+    }
+
+    if (!normalizedUsername) {
+      const usernameBase = buildUsernameBaseFromEmail(normalizedEmail);
+      normalizedUsername = await generateUniqueUsername(conn, usernameBase);
     }
 
     const hexUuid = uuidv4().replace(/-/g, "").substring(0, 8);
@@ -170,8 +305,16 @@ export const registerUser = async ({
     const userId = `KAALIX-${hexUuid}-${suffix}`;
 
     await conn.execute(
-      "INSERT INTO users (user_id, email, password, role, must_change_password) VALUES (?, ?, ?, ?, ?)",
-      [userId, normalizeEmail(email), hashedPassword, normalizedRole, 1]
+      "INSERT INTO users (user_id, username, email, password, role, account_status, must_change_password) VALUES (?, ?, ?, ?, ?, ?, ?)",
+      [
+        userId,
+        normalizedUsername,
+        normalizedEmail,
+        hashedPassword,
+        normalizedRole,
+        USER_ACCOUNT_STATUSES.ACTIVE,
+        1,
+      ]
     );
 
     await conn.execute(
@@ -184,7 +327,8 @@ export const registerUser = async ({
       user_id: userId,
       profile_id: null,
       fullName,
-      email: normalizeEmail(email),
+      username: normalizedUsername,
+      email: normalizedEmail,
       role: normalizedRole,
     };
   } catch (err) {
@@ -202,9 +346,15 @@ export const registerUser = async ({
 };
 
 // 🔐 Public: Login (fetch only, don’t enforce lockout here)
-export const loginUser = async (email) => {
+export const loginUser = async (identifier) => {
   const db = await getDatabase();
-  const normalizedEmail = normalizeEmail(email);
+  const normalizedIdentifier =
+    typeof identifier === "string" ? identifier.trim().toLowerCase() : "";
+  const isEmailIdentifier = normalizedIdentifier.includes("@");
+
+  if (!normalizedIdentifier) return null;
+
+  const lookupColumn = isEmailIdentifier ? "u.email" : "u.username";
   const [rows] = await db.execute(
     `SELECT
         u.*,
@@ -215,16 +365,20 @@ export const loginUser = async (email) => {
         p.location_lng AS location_lng
      FROM users u
      LEFT JOIN profiles p ON p.user_id = u.user_id
-     WHERE u.email = ?
+     WHERE ${lookupColumn} = ?
      ORDER BY p.id DESC
      LIMIT 1`,
-    [normalizedEmail]
+    [normalizedIdentifier]
   );
 
   if (!rows[0]) return null;
   const user = rows[0];
+  const normalizedStatus = String(user.account_status || "").trim().toLowerCase();
   return {
     ...user,
+    account_status: allowedAccountStatuses.has(normalizedStatus)
+      ? normalizedStatus
+      : USER_ACCOUNT_STATUSES.ACTIVE,
     onboarding: normalizeOnboardingState(user),
   };
 };

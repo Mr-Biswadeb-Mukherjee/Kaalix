@@ -96,6 +96,22 @@ const API = {
         method: 'POST',
         endpoint: `${API_BASE}/MFA/verify`,
       },
+      organizationAdmins: {
+        method: 'GET',
+        endpoint: `${API_BASE}/organization-admins`,
+      },
+      updateOrganizationAdmins: {
+        method: 'POST',
+        endpoint: `${API_BASE}/organization-admins`,
+      },
+      managedUsers: {
+        method: 'POST',
+        endpoint: `${API_BASE}/managed-users`,
+      },
+      manageAdminAccount: {
+        method: 'POST',
+        endpoint: `${API_BASE}/managed-users/account-status`,
+      },
     },
   },
 };

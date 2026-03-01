@@ -279,6 +279,9 @@ export const UpdateProfile = async (req, res) => {
     if (err.code === "ORG_WEBSITE_EMAIL_MISMATCH") {
       return res.status(400).json({ message: err.message });
     }
+    if (err.code === "ORG_UPDATE_FORBIDDEN") {
+      return res.status(403).json({ message: err.message });
+    }
     res.status(500).json({ message: "Internal server error" });
   }
 };

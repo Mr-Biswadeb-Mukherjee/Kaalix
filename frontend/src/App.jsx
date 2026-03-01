@@ -27,6 +27,7 @@ const routeConfig = [
   { path: 'docs', element: <Pages.Documentation />, title: 'Documentation | Kaalix' },
   { path: 'logs', element: <Pages.Logs />, title: 'Logs | Kaalix' },
   { path: 'profile', element: <Pages.Profile />, title: 'Profile | Kaalix' },
+  { path: 'organization-admins', element: <Pages.OrganizationAdmins />, title: 'Organization Admins | Kaalix' },
 ];
 
 // === Core Routing Logic with Protected Routes ===

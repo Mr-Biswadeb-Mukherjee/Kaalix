@@ -6,4 +6,5 @@ export { default as LogForwarder } from './LogForwarder';
 export { default as AboutUs } from './Aboutus';
 export { default as Documentation } from './Docs';
 export { default as Logs } from './Logs';
-export { default as Profile } from './Profile'
+export { default as Profile } from './Profile';
+export { default as OrganizationAdmins } from './OrganizationAdmins';

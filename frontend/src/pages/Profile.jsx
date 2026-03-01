@@ -235,6 +235,13 @@ const Profile = () => {
     if (!email || !EMAIL_PATTERN.test(email)) return "";
     return isPersonalEmail(email) ? BUSINESS_EMAIL_REQUIRED_MESSAGE : "";
   }, [isPersonalEditing, userInfo.email]);
+  const canEditOrganization = userInfo.role === "sa";
+
+  useEffect(() => {
+    if (!canEditOrganization && isOrgEditing) {
+      setIsOrgEditing(false);
+    }
+  }, [canEditOrganization, isOrgEditing]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -257,6 +264,7 @@ const Profile = () => {
   };
 
   const handleOrgEditToggle = () => {
+    if (!canEditOrganization) return;
     if (isOrgEditing) {
       setUserInfo((prev) => ({
         ...prev,
@@ -335,6 +343,10 @@ const Profile = () => {
   };
 
   const handleSaveOrg = async () => {
+    if (!canEditOrganization) {
+      addToast("Only super admin can edit organization details.", "error");
+      return;
+    }
     if (!hasOrgChanges) return;
     if (
       userInfo.orgWebsite &&
@@ -565,6 +577,7 @@ const Profile = () => {
 
         <ProfileInfo
           userInfo={userInfo}
+          canEditOrganization={canEditOrganization}
           onboardingRequired={onboarding?.required}
           isPersonalEditing={isPersonalEditing}
           isOrgEditing={isOrgEditing}

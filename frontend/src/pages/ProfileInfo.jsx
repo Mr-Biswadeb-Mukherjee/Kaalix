@@ -5,6 +5,7 @@ import "./Styles/Profile.css";
 
 const ProfileInfo = ({
   userInfo,
+  canEditOrganization,
   onboardingRequired,
   isPersonalEditing,
   isOrgEditing,
@@ -20,6 +21,8 @@ const ProfileInfo = ({
   handleSaveOrg,
   businessEmailError,
 }) => {
+  const isOrganizationEditing = canEditOrganization && isOrgEditing;
+
   return (
     <>
       <div className="profile-section">
@@ -146,10 +149,15 @@ const ProfileInfo = ({
 
       <div className="profile-section">
         <h3>Organization Information</h3>
+        {!canEditOrganization && (
+          <p className="profile-setup-note">
+            Organization fields are managed by Super Admin and are read-only for admins.
+          </p>
+        )}
 
         <div className="profile-item">
           <span>Organization Name</span>
-          {isOrgEditing ? (
+          {isOrganizationEditing ? (
             <input
               className="profile-input"
               type="text"
@@ -164,8 +172,8 @@ const ProfileInfo = ({
         </div>
 
         <div className="profile-item">
-          <span>Organization Website</span>
-          {isOrgEditing ? (
+          <span>Organization Website URL</span>
+          {isOrganizationEditing ? (
             <input
               className="profile-input"
               type="text"
@@ -181,7 +189,7 @@ const ProfileInfo = ({
 
         <div className="profile-item">
           <span>Organization Email</span>
-          {isOrgEditing ? (
+          {isOrganizationEditing ? (
             <input
               className="profile-input"
               type="email"
@@ -204,31 +212,35 @@ const ProfileInfo = ({
           <span>Organization ID</span>
           <p>
             {userInfo.orgId ||
-              "Will be generated after organization details are saved"}
+              (canEditOrganization
+                ? "Will be generated after organization details are saved"
+                : "Not set")}
           </p>
         </div>
 
-        <div className="profile-actions">
-          {!isOrgEditing && (
-            <button className="edit-btn" onClick={handleOrgEditToggle}>
-              Edit Organization
-            </button>
-          )}
-          {isOrgEditing && (
-            <>
-              <button className="cancel-btn" onClick={handleOrgEditToggle}>
-                Cancel
+        {canEditOrganization && (
+          <div className="profile-actions">
+            {!isOrganizationEditing && (
+              <button className="edit-btn" onClick={handleOrgEditToggle}>
+                Edit Organization
               </button>
-              <button
-                className="save-btn"
-                onClick={handleSaveOrg}
-                disabled={!hasOrgChanges}
-              >
-                Save Organization
-              </button>
-            </>
-          )}
-        </div>
+            )}
+            {isOrganizationEditing && (
+              <>
+                <button className="cancel-btn" onClick={handleOrgEditToggle}>
+                  Cancel
+                </button>
+                <button
+                  className="save-btn"
+                  onClick={handleSaveOrg}
+                  disabled={!hasOrgChanges}
+                >
+                  Save Organization
+                </button>
+              </>
+            )}
+          </div>
+        )}
       </div>
     </>
   );
