@@ -56,10 +56,15 @@ export const FetchProfile = async (req, res) => {
       profileId: profile.profileId,
       fullName: profile.fullName,
       email: profile.email,
-      org: profile.org,
+      org: profile.orgName || profile.org || null,
+      orgName: profile.orgName || profile.org || null,
       orgId: profile.orgId,
+      orgWebsite: profile.orgWebsite || null,
+      orgEmail: profile.orgEmail || null,
+      orgSa: profile.orgSa || null,
       phone: profile.phone,
       bio: profile.bio,
+      websiteUrl: profile.websiteUrl || null,
       locationConsent: normalizeLocationConsent(profile.locationConsent),
       avatarUrl: getFullAvatarUrl(req, profile.profile_url), // ✅ fixed
       onboarding: req.onboarding || null,
@@ -76,14 +81,31 @@ export const FetchProfile = async (req, res) => {
 export const UpdateProfile = async (req, res) => {
   try {
     const userId = req.user.user_id;
-    let { fullName, email, phone, bio, org } = req.body;
+    let { fullName, email, phone, bio, websiteUrl, org, orgName, orgWebsite, orgEmail } = req.body;
     const hasFullNameField = Object.prototype.hasOwnProperty.call(req.body, "fullName");
     const hasEmailField = Object.prototype.hasOwnProperty.call(req.body, "email");
     const hasPhoneField = Object.prototype.hasOwnProperty.call(req.body, "phone");
     const hasBioField = Object.prototype.hasOwnProperty.call(req.body, "bio");
+    const hasWebsiteUrlField = Object.prototype.hasOwnProperty.call(req.body, "websiteUrl");
     const hasOrgField = Object.prototype.hasOwnProperty.call(req.body, "org");
+    const hasOrgNameField = Object.prototype.hasOwnProperty.call(req.body, "orgName");
+    const hasOrgWebsiteField = Object.prototype.hasOwnProperty.call(req.body, "orgWebsite");
+    const hasOrgEmailField = Object.prototype.hasOwnProperty.call(req.body, "orgEmail");
+    const hasNormalizedOrgNameField = hasOrgNameField || hasOrgField;
+
+    if (!hasOrgNameField && hasOrgField) {
+      orgName = org;
+    }
+
     const hasAnyUpdatableField =
-      hasFullNameField || hasEmailField || hasPhoneField || hasBioField || hasOrgField;
+      hasFullNameField ||
+      hasEmailField ||
+      hasPhoneField ||
+      hasBioField ||
+      hasWebsiteUrlField ||
+      hasNormalizedOrgNameField ||
+      hasOrgWebsiteField ||
+      hasOrgEmailField;
 
     if (!hasAnyUpdatableField) {
       return res.status(400).json({ message: "No profile fields provided for update." });
@@ -101,15 +123,30 @@ export const UpdateProfile = async (req, res) => {
     if (hasBioField && typeof bio !== "string") {
       return res.status(400).json({ message: "Invalid bio." });
     }
-    if (hasOrgField && typeof org !== "string") {
+    if (hasWebsiteUrlField && typeof websiteUrl !== "string") {
+      return res.status(400).json({ message: "Invalid website URL." });
+    }
+    if (hasNormalizedOrgNameField && typeof orgName !== "string") {
       return res.status(400).json({ message: "Invalid organization." });
+    }
+    if (hasOrgWebsiteField && typeof orgWebsite !== "string") {
+      return res.status(400).json({ message: "Invalid organization website." });
+    }
+    if (hasOrgEmailField && typeof orgEmail !== "string") {
+      return res.status(400).json({ message: "Invalid organization email." });
     }
 
     fullName = hasFullNameField && typeof fullName === "string" ? fullName.trim() : undefined;
     email = hasEmailField && typeof email === "string" ? email.trim().toLowerCase() : undefined;
     phone = hasPhoneField && typeof phone === "string" ? phone.trim() : undefined;
     bio = hasBioField && typeof bio === "string" ? bio.trim() : undefined;
-    org = hasOrgField && typeof org === "string" ? org.trim() : undefined;
+    websiteUrl =
+      hasWebsiteUrlField && typeof websiteUrl === "string" ? websiteUrl.trim() : undefined;
+    orgName =
+      hasNormalizedOrgNameField && typeof orgName === "string" ? orgName.trim() : undefined;
+    orgWebsite =
+      hasOrgWebsiteField && typeof orgWebsite === "string" ? orgWebsite.trim() : undefined;
+    orgEmail = hasOrgEmailField && typeof orgEmail === "string" ? orgEmail.trim().toLowerCase() : undefined;
 
     const namePattern = /^[a-zA-Z\s.'-]{1,50}$/;
     const bioPattern = /^[a-zA-Z0-9\s.,'"\-!?()]*$/;
@@ -154,18 +191,40 @@ export const UpdateProfile = async (req, res) => {
     if (hasBioField && bio && !bioPattern.test(bio)) {
       return res.status(400).json({ message: "Bio contains invalid characters." });
     }
-    if (hasOrgField && org && !orgPattern.test(org)) {
+    if (hasWebsiteUrlField && websiteUrl) {
+      const validWebsiteUrl = validator.isURL(websiteUrl, {
+        require_protocol: false,
+        protocols: ["http", "https"],
+        allow_protocol_relative_urls: false,
+      });
+      if (!validWebsiteUrl) {
+        return res.status(400).json({ message: "Invalid website URL." });
+      }
+    }
+    if (hasNormalizedOrgNameField && orgName && !orgPattern.test(orgName)) {
       return res.status(400).json({ message: "Organization contains invalid characters or exceeds 120 characters." });
     }
-
+    if (hasOrgWebsiteField && orgWebsite) {
+      const validOrgWebsite = validator.isURL(orgWebsite, {
+        require_protocol: false,
+        protocols: ["http", "https"],
+        allow_protocol_relative_urls: false,
+      });
+      if (!validOrgWebsite) {
+        return res.status(400).json({ message: "Invalid organization website URL." });
+      }
+    }
+    if (hasOrgEmailField && orgEmail && !validator.isEmail(orgEmail)) {
+      return res.status(400).json({ message: "Invalid organization email." });
+    }
     if (hasBioField && bio) {
       bio = sanitizeHtml(bio, {
         allowedTags: [],
         allowedAttributes: {},
       });
     }
-    if (hasOrgField && org) {
-      org = sanitizeHtml(org, {
+    if (hasNormalizedOrgNameField && orgName) {
+      orgName = sanitizeHtml(orgName, {
         allowedTags: [],
         allowedAttributes: {},
       });
@@ -176,7 +235,10 @@ export const UpdateProfile = async (req, res) => {
       email,
       phone: normalizedPhone,
       bio,
-      org,
+      websiteUrl,
+      orgName,
+      orgWebsite,
+      orgEmail,
     });
     const onboarding = await getUserOnboardingState(userId);
     maybeDeleteBootstrapCredentialsFile({ role: updatedProfile.role, onboarding });
@@ -187,10 +249,15 @@ export const UpdateProfile = async (req, res) => {
       profileId: updatedProfile.profileId,
       fullName: updatedProfile.fullName,
       email: updatedProfile.email,
-      org: updatedProfile.org,
+      org: updatedProfile.orgName || updatedProfile.org || null,
+      orgName: updatedProfile.orgName || updatedProfile.org || null,
       orgId: updatedProfile.orgId,
+      orgWebsite: updatedProfile.orgWebsite || null,
+      orgEmail: updatedProfile.orgEmail || null,
+      orgSa: updatedProfile.orgSa || null,
       phone: updatedProfile.phone,
       bio: updatedProfile.bio,
+      websiteUrl: updatedProfile.websiteUrl || null,
       locationConsent: normalizeLocationConsent(updatedProfile.locationConsent),
       avatarUrl: getFullAvatarUrl(req, updatedProfile.profile_url), // ✅ fixed
       onboarding,
@@ -205,6 +272,12 @@ export const UpdateProfile = async (req, res) => {
     }
     if (err.code === "PHONE_EXISTS") {
       return res.status(409).json({ message: "Phone number already in use" });
+    }
+    if (err.code === "ORG_NAME_REQUIRED") {
+      return res.status(400).json({ message: err.message });
+    }
+    if (err.code === "ORG_WEBSITE_EMAIL_MISMATCH") {
+      return res.status(400).json({ message: err.message });
     }
     res.status(500).json({ message: "Internal server error" });
   }

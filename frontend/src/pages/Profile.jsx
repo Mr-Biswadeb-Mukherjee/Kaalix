@@ -53,6 +53,34 @@ const getEmailDomain = (email) => {
 
 const isPersonalEmail = (email) => PERSONAL_EMAIL_DOMAIN_SET.has(getEmailDomain(email));
 
+const getOrgDomainFromEmail = (email = "") => {
+  const normalized = String(email || "").trim().toLowerCase();
+  const atIndex = normalized.lastIndexOf("@");
+  if (atIndex <= 0 || atIndex === normalized.length - 1) return "";
+  return normalized.slice(atIndex + 1).replace(/\.+$/, "");
+};
+
+const getOrgDomainFromWebsite = (website = "") => {
+  const normalized = String(website || "").trim().toLowerCase();
+  if (!normalized) return "";
+  const urlText = /^https?:\/\//.test(normalized) ? normalized : `https://${normalized}`;
+
+  try {
+    const hostname = new URL(urlText).hostname.replace(/\.+$/, "");
+    if (!hostname) return "";
+    return hostname.replace(/^www\./, "");
+  } catch {
+    return "";
+  }
+};
+
+const isOrgWebsiteEmailMatch = (website, email) => {
+  const websiteDomain = getOrgDomainFromWebsite(website);
+  const emailDomain = getOrgDomainFromEmail(email);
+  if (!websiteDomain || !emailDomain) return true;
+  return websiteDomain === emailDomain;
+};
+
 const Profile = () => {
   const { addToast } = useToast();
   const { onboarding, updateOnboarding } = useAuth();
@@ -68,10 +96,14 @@ const Profile = () => {
     email: "",
     role: "",
     phone: "",
-    org: "",
+    orgName: "",
+    orgWebsite: "",
+    orgEmail: "",
+    orgSa: "",
     orgId: "",
     profileId: "",
     bio: "",
+    websiteUrl: "",
     createdAt: "",
     updatedAt: "",
     avatarUrl: ""
@@ -156,10 +188,14 @@ const Profile = () => {
           email: data.email || "",
           role: data.role || "",
           phone: data.phone || "",
-          org: data.org || "",
+          orgName: data.orgName || data.org || "",
+          orgWebsite: data.orgWebsite || "",
+          orgEmail: data.orgEmail || "",
+          orgSa: data.orgSa || "",
           orgId: data.orgId || "",
           profileId: data.profileId || "",
           bio: data.bio || "",
+          websiteUrl: data.websiteUrl || "",
           createdAt: data.createdAt || "",
           updatedAt: data.updatedAt || "",
           avatarUrl: data.avatarUrl || ""
@@ -180,14 +216,17 @@ const Profile = () => {
 
   const hasPersonalChanges = useMemo(
     () =>
-      ["fullName", "email", "phone", "bio"].some(
+      ["fullName", "email", "phone", "bio", "websiteUrl"].some(
         (key) => originalUserInfo[key] !== userInfo[key]
       ),
     [originalUserInfo, userInfo]
   );
 
   const hasOrgChanges = useMemo(
-    () => originalUserInfo.org !== userInfo.org,
+    () =>
+      ["orgName", "orgWebsite", "orgEmail"].some(
+        (key) => (originalUserInfo[key] || "") !== (userInfo[key] || "")
+      ),
     [originalUserInfo, userInfo]
   );
   const businessEmailError = useMemo(() => {
@@ -209,7 +248,8 @@ const Profile = () => {
         fullName: originalUserInfo.fullName,
         email: originalUserInfo.email,
         phone: originalUserInfo.phone,
-        bio: originalUserInfo.bio
+        bio: originalUserInfo.bio,
+        websiteUrl: originalUserInfo.websiteUrl
       }));
       setPhoneEdited(false);
     }
@@ -220,7 +260,9 @@ const Profile = () => {
     if (isOrgEditing) {
       setUserInfo((prev) => ({
         ...prev,
-        org: originalUserInfo.org,
+        orgName: originalUserInfo.orgName,
+        orgWebsite: originalUserInfo.orgWebsite,
+        orgEmail: originalUserInfo.orgEmail,
         orgId: originalUserInfo.orgId
       }));
     }
@@ -242,7 +284,8 @@ const Profile = () => {
           fullName: userInfo.fullName,
           email: userInfo.email,
           phone: userInfo.phone,
-          bio: userInfo.bio
+          bio: userInfo.bio,
+          websiteUrl: userInfo.websiteUrl
         })
       });
       const data = await res.json();
@@ -258,6 +301,7 @@ const Profile = () => {
       const nextEmail = data.email || userInfo.email;
       const nextPhone = data.phone || userInfo.phone;
       const nextBio = data.bio || userInfo.bio;
+      const nextWebsiteUrl = data.websiteUrl || "";
       const nextProfileId = data.profileId || userInfo.profileId;
 
       setUserInfo((prev) => ({
@@ -267,6 +311,7 @@ const Profile = () => {
         email: nextEmail,
         phone: nextPhone,
         bio: nextBio,
+        websiteUrl: nextWebsiteUrl,
         profileId: nextProfileId
       }));
       setOriginalUserInfo((prev) => ({
@@ -276,6 +321,7 @@ const Profile = () => {
         email: nextEmail,
         phone: nextPhone,
         bio: nextBio,
+        websiteUrl: nextWebsiteUrl,
         profileId: nextProfileId
       }));
       if (data?.onboarding) {
@@ -290,13 +336,26 @@ const Profile = () => {
 
   const handleSaveOrg = async () => {
     if (!hasOrgChanges) return;
+    if (
+      userInfo.orgWebsite &&
+      userInfo.orgEmail &&
+      !isOrgWebsiteEmailMatch(userInfo.orgWebsite, userInfo.orgEmail)
+    ) {
+      addToast(
+        "Organization website domain and organization email domain must be the same.",
+        "error"
+      );
+      return;
+    }
     try {
       const res = await fetch(API.system.protected.updateprofile.endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({
           updatedAt: userInfo.updatedAt,
-          org: userInfo.org
+          orgName: userInfo.orgName,
+          orgWebsite: userInfo.orgWebsite,
+          orgEmail: userInfo.orgEmail
         })
       });
       const data = await res.json();
@@ -309,7 +368,10 @@ const Profile = () => {
 
       const nextUpdatedAt = data.updatedAt || userInfo.updatedAt;
       const nextRole = data.role || userInfo.role;
-      const nextOrg = data.org || "";
+      const nextOrgName = data.orgName || data.org || "";
+      const nextOrgWebsite = data.orgWebsite || "";
+      const nextOrgEmail = data.orgEmail || "";
+      const nextOrgSa = data.orgSa || "";
       const nextOrgId = data.orgId || "";
       const nextProfileId = data.profileId || userInfo.profileId;
 
@@ -317,7 +379,10 @@ const Profile = () => {
         ...prev,
         updatedAt: nextUpdatedAt,
         role: nextRole,
-        org: nextOrg,
+        orgName: nextOrgName,
+        orgWebsite: nextOrgWebsite,
+        orgEmail: nextOrgEmail,
+        orgSa: nextOrgSa,
         orgId: nextOrgId,
         profileId: nextProfileId
       }));
@@ -325,7 +390,10 @@ const Profile = () => {
         ...prev,
         updatedAt: nextUpdatedAt,
         role: nextRole,
-        org: nextOrg,
+        orgName: nextOrgName,
+        orgWebsite: nextOrgWebsite,
+        orgEmail: nextOrgEmail,
+        orgSa: nextOrgSa,
         orgId: nextOrgId,
         profileId: nextProfileId
       }));
@@ -497,7 +565,6 @@ const Profile = () => {
 
         <ProfileInfo
           userInfo={userInfo}
-          isSa={userInfo.role === "sa"}
           onboardingRequired={onboarding?.required}
           isPersonalEditing={isPersonalEditing}
           isOrgEditing={isOrgEditing}

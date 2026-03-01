@@ -5,7 +5,6 @@ import "./Styles/Profile.css";
 
 const ProfileInfo = ({
   userInfo,
-  isSa,
   onboardingRequired,
   isPersonalEditing,
   isOrgEditing,
@@ -106,6 +105,22 @@ const ProfileInfo = ({
           )}
         </div>
 
+        <div className="profile-item">
+          <span>Website URL</span>
+          {isPersonalEditing ? (
+            <input
+              className="profile-input"
+              type="url"
+              name="websiteUrl"
+              value={userInfo.websiteUrl || ""}
+              onChange={handleChange}
+              placeholder="https://example.com"
+            />
+          ) : (
+            <p>{userInfo.websiteUrl || "Not set"}</p>
+          )}
+        </div>
+
         <div className="profile-actions">
           {!isPersonalEditing && (
             <button className="edit-btn" onClick={handlePersonalEditToggle}>
@@ -133,54 +148,87 @@ const ProfileInfo = ({
         <h3>Organization Information</h3>
 
         <div className="profile-item">
-          <span>Organization</span>
-          {isOrgEditing && isSa ? (
+          <span>Organization Name</span>
+          {isOrgEditing ? (
             <input
               className="profile-input"
               type="text"
-              name="org"
-              value={userInfo.org || ""}
+              name="orgName"
+              value={userInfo.orgName || ""}
               onChange={handleChange}
               placeholder="Enter organization name"
             />
           ) : (
-            <p>{userInfo.org || "Not set"}</p>
+            <p>{userInfo.orgName || "Not set"}</p>
           )}
+        </div>
+
+        <div className="profile-item">
+          <span>Organization Website</span>
+          {isOrgEditing ? (
+            <input
+              className="profile-input"
+              type="text"
+              name="orgWebsite"
+              value={userInfo.orgWebsite || ""}
+              onChange={handleChange}
+              placeholder="https://example.com"
+            />
+          ) : (
+            <p>{userInfo.orgWebsite || "Not set"}</p>
+          )}
+        </div>
+
+        <div className="profile-item">
+          <span>Organization Email</span>
+          {isOrgEditing ? (
+            <input
+              className="profile-input"
+              type="email"
+              name="orgEmail"
+              value={userInfo.orgEmail || ""}
+              onChange={handleChange}
+              placeholder="team@example.com"
+            />
+          ) : (
+            <p>{userInfo.orgEmail || "Not set"}</p>
+          )}
+        </div>
+
+        <div className="profile-item">
+          <span>Organization SA (Auto)</span>
+          <p>{userInfo.orgSa || "Not set"}</p>
         </div>
 
         <div className="profile-item">
           <span>Organization ID</span>
           <p>
             {userInfo.orgId ||
-              (isSa
-                ? "Will be generated after SA saves organization"
-                : "Not assigned")}
+              "Will be generated after organization details are saved"}
           </p>
         </div>
 
-        {isSa && (
-          <div className="profile-actions">
-            {!isOrgEditing && (
-              <button className="edit-btn" onClick={handleOrgEditToggle}>
-                Edit Organization
+        <div className="profile-actions">
+          {!isOrgEditing && (
+            <button className="edit-btn" onClick={handleOrgEditToggle}>
+              Edit Organization
+            </button>
+          )}
+          {isOrgEditing && (
+            <>
+              <button className="cancel-btn" onClick={handleOrgEditToggle}>
+                Cancel
               </button>
-            )}
-            {isOrgEditing && (
-              <>
-                <button className="cancel-btn" onClick={handleOrgEditToggle}>
-                  Cancel
-                </button>
-                <button
-                  className="save-btn"
-                  onClick={handleSaveOrg}
-                  disabled={!hasOrgChanges}
-                >
-                  Save Organization
-                </button>
-              </>
-            )}
-          </div>
-        )}
+              <button
+                className="save-btn"
+                onClick={handleSaveOrg}
+                disabled={!hasOrgChanges}
+              >
+                Save Organization
+              </button>
+            </>
+          )}
+        </div>
       </div>
     </>
   );
