@@ -38,11 +38,11 @@ const MFA = () => {
           setMfaMethods((prev) => ({ ...prev, ...data.status }));
         }
       } catch (err) {
-        console.error("Failed to fetch MFA status:", err);
+        addToast(err?.message || "Failed to fetch MFA status.", "error");
       }
     };
     fetchStatus();
-  }, [token]);
+  }, [token, addToast]);
 
   // ----------------- Toggle MFA -----------------
   const handleToggle = async (method) => {
@@ -82,8 +82,7 @@ const MFA = () => {
         setActiveMethod(method); // open OTP verification modal
       }
     } catch (err) {
-      console.error("MFA toggle error:", err);
-      notify.error(err.message);
+      notify.error(err?.message || "MFA update failed.");
     } finally {
       setLoading(false);
     }
@@ -119,8 +118,7 @@ const MFA = () => {
       setQrCodeUrl(null);
       setOtp("");
     } catch (err) {
-      console.error("OTP verification error:", err);
-      notify.error(err.message);
+      notify.error(err?.message || "OTP verification failed.");
     } finally {
       setVerifying(false);
     }
@@ -149,8 +147,7 @@ const MFA = () => {
       setMfaMethods((prev) => ({ ...prev, [method]: "disabled" }));
       notify.success(`${method.replace("_", " ")} disabled successfully`);
     } catch (err) {
-      console.error("MFA disable error:", err);
-      notify.error(err.message);
+      notify.error(err?.message || "Failed to disable MFA.");
     } finally {
       setLoading(false);
       setConfirmDisableMethod(null); // close confirmation modal

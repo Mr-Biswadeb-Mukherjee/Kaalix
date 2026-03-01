@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   Email,
   Lock,
@@ -102,7 +102,7 @@ const Auth = ({ onAuthSuccess }) => {
   const isFormDisabled =
     loading || !formValid || !formData.captcha?.trim() || remainingTime > 0;
 
-  const fetchCaptcha = async () => {
+  const fetchCaptcha = useCallback(async () => {
     try {
       const res = await fetch(API.system.public.captcha.endpoint);
       const data = await res.json();
@@ -111,12 +111,12 @@ const Auth = ({ onAuthSuccess }) => {
     } catch {
       addToast("Error loading CAPTCHA.", "error");
     }
-  };
+  }, [addToast]);
 
   useEffect(() => {
     if (canvasRef.current) initBloodFlow(canvasRef.current);
     fetchCaptcha();
-  }, []);
+  }, [fetchCaptcha]);
 
   const handleChange = e => {
     const { name, value } = e.target;

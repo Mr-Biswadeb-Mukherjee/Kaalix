@@ -62,7 +62,7 @@ const TopBar = ({ collapsed }) => {
         setUser({ username: 'Unknown User', avatar: null });
         addToast('Failed to load profile info', 'error');
       });
-  }, [token]);
+  }, [token, addToast]);
 
 
   // Fetch location
@@ -168,8 +168,7 @@ const TopBar = ({ collapsed }) => {
       }
 
       addToast(result?.message || 'Logout failed.', result?.blocked ? 'warning' : 'error');
-    } catch (err) {
-      console.error('🚨 Logout error:', err);
+    } catch {
       addToast('Network error during logout. Please try again.', 'error');
     }
   };

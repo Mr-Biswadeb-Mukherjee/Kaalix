@@ -5,6 +5,7 @@ const Logs = () => {
   const [logsEnabled, setLogsEnabled] = useState(false);
   const [isPending, setIsPending] = useState(false);
   const [viewMode, setViewMode] = useState("table");
+  const [requestError, setRequestError] = useState("");
 
   const toggleRef = useRef(null);
   const [dragging, setDragging] = useState(false);
@@ -17,8 +18,9 @@ const Logs = () => {
         const res = await fetch('/api/logging/status');
         const data = await res.json();
         setLogsEnabled(data.enabled);
-      } catch (error) {
-        console.error("Failed to fetch logging status:", error);
+        setRequestError("");
+      } catch {
+        setRequestError("Failed to fetch logging status.");
       }
     };
     fetchStatus();
@@ -33,9 +35,14 @@ const Logs = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ enabled: !logsEnabled })
       });
-      if (res.ok) setLogsEnabled(!logsEnabled);
-    } catch (error) {
-      console.error("Failed to toggle logging:", error);
+      if (res.ok) {
+        setLogsEnabled(!logsEnabled);
+        setRequestError("");
+      } else {
+        setRequestError("Failed to toggle logging.");
+      }
+    } catch {
+      setRequestError("Failed to toggle logging.");
     } finally {
       setIsPending(false);
     }
@@ -124,6 +131,7 @@ const Logs = () => {
           </span>
         </div>
       </div>
+      {requestError && <p className="logs-error">{requestError}</p>}
 
       {logsEnabled && (
         <div className="logs-container">

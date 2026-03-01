@@ -44,8 +44,7 @@ const StatusBar = ({ collapsed }) => {
         const data = await response.json();
         setStats(data.stats);   // ✅ FIX: only use the "stats" field
         setError(null);
-      } catch (err) {
-        console.error('Failed to fetch system stats:', err);
+      } catch {
         setError('Unable to fetch stats');
       }
     };

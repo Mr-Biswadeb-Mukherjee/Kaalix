@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 // Toast.jsx
 import { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import './Styles/toast.css';

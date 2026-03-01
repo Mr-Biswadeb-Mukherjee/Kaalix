@@ -53,7 +53,6 @@ const LogForwarder = () => {
   };
 
   const handleSaveConfiguration = () => {
-    console.log("Saving forwarder configuration:", config, forwarderType);
     alert("Log forwarder configuration saved.");
   };
 

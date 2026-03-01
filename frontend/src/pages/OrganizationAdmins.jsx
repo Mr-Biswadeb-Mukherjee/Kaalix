@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import API from "@amon/shared";
 import { useAuth } from "../Context/AuthContext";
 import { useToast } from "../Components/UI/Toast";
@@ -81,7 +81,7 @@ const OrganizationAdmins = () => {
     password: "",
   });
 
-  const loadDirectory = async (preferredOrgId = "") => {
+  const loadDirectory = useCallback(async (preferredOrgId = "") => {
     if (!token) return;
 
     setLoading(true);
@@ -130,7 +130,7 @@ const OrganizationAdmins = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [addToast, token]);
 
   useEffect(() => {
     if (authLoading || !isSuperAdmin) {
@@ -138,7 +138,7 @@ const OrganizationAdmins = () => {
       return;
     }
     loadDirectory();
-  }, [authLoading, isSuperAdmin]);
+  }, [authLoading, isSuperAdmin, loadDirectory]);
 
   const selectedOrganization = useMemo(
     () => organizations.find((org) => org.orgId === selectedOrgId) || null,

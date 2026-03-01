@@ -27,21 +27,26 @@ const SafeImage = ({ src, alt = "", fallback = null, ...props }) => {
   const [safeSrc, setSafeSrc] = useState(null);
 
   useEffect(() => {
-    // When src changes, validate it
-    if (!src || !isSafeUrl(src)) {
-      if (safeSrc && safeSrc.startsWith("blob:")) {
-        URL.revokeObjectURL(safeSrc); // cleanup old blob
+    setSafeSrc((previousSafeSrc) => {
+      // When src changes, validate it
+      if (!src || !isSafeUrl(src)) {
+        if (previousSafeSrc && previousSafeSrc.startsWith("blob:")) {
+          URL.revokeObjectURL(previousSafeSrc); // cleanup old blob
+        }
+        return null;
       }
-      setSafeSrc(null);
-      return;
-    }
 
-    // Cleanup old blob before setting new one
-    if (safeSrc && safeSrc.startsWith("blob:") && safeSrc !== src) {
-      URL.revokeObjectURL(safeSrc);
-    }
+      // Cleanup old blob before setting new one
+      if (
+        previousSafeSrc &&
+        previousSafeSrc.startsWith("blob:") &&
+        previousSafeSrc !== src
+      ) {
+        URL.revokeObjectURL(previousSafeSrc);
+      }
 
-    setSafeSrc(src);
+      return src;
+    });
 
     // Cleanup on unmount
     return () => {
