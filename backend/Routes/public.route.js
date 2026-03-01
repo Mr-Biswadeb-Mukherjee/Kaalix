@@ -1,21 +1,14 @@
 import express from "express";
 import API from "@amon/shared";
-import authRouter from "../Services/auth.service.js";
-import logoutHandler from "../Services/logout.service.js";
+import authRouter from "../Controller/Auth.controller.js";
+import logoutHandler from "../Controller/Logout.controller.js";
 import authMiddleware from "../Middleware/auth.middleware.js";
-import { generateCaptcha } from "../Services/captcha.service.js";
+import { GetCaptcha } from "../Controller/Captcha.controller.js";
 
 const publicRouter = express.Router();
 
 // Captcha
-publicRouter.get(API.system.public.captcha.endpoint, async (req, res, next) => {
-  try {
-    const { id, image } = await generateCaptcha();
-    res.status(200).json({ id, image });
-  } catch (err) {
-    next(err);
-  }
-});
+publicRouter.get(API.system.public.captcha.endpoint, GetCaptcha);
 
 // Auth
 publicRouter.use(API.system.public.login.endpoint, authRouter);
