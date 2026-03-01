@@ -1,3 +1,5 @@
+import { secureRandomFloat } from "../../Utils/secureRandom";
+
 export function initBloodFlow(canvas) {
   const ctx = canvas.getContext("2d");
   canvas.width = window.innerWidth;
@@ -12,13 +14,13 @@ export function initBloodFlow(canvas) {
     }
 
     reset() {
-      this.x = Math.random() * canvas.width;
-      this.y = Math.random() * -canvas.height;
-      this.length = 10 + Math.random() * 40;
-      this.speed = 2 + Math.random() * 3;
-      this.alpha = 0.6 + Math.random() * 0.4;
-      this.radius = 1 + Math.random() * 1.5;
-      this.glow = Math.random() < 0.2;
+      this.x = secureRandomFloat() * canvas.width;
+      this.y = secureRandomFloat() * -canvas.height;
+      this.length = 10 + secureRandomFloat() * 40;
+      this.speed = 2 + secureRandomFloat() * 3;
+      this.alpha = 0.6 + secureRandomFloat() * 0.4;
+      this.radius = 1 + secureRandomFloat() * 1.5;
+      this.glow = secureRandomFloat() < 0.2;
     }
 
     update() {

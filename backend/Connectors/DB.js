@@ -1,4 +1,5 @@
 import mysql from "mysql2/promise";
+import { randomInt } from "node:crypto";
 import { mysql as mysqlConfig } from "../Confs/config.js";
 import { initializeDatabase, ensureDefaultSaAccount } from "../Database/init.loader.js";
 import { LoggerContainer, flushLogger } from "../Logger/Logger.js";
@@ -71,7 +72,7 @@ async function reconnectWithBackoff(maxRetries = 10) {
 
   while (attempt < maxRetries) {
     const baseDelay = Math.min(1000 * 2 ** attempt, 30000); // exponential up to 30s
-    const jitter = Math.floor(Math.random() * 1000);         // random ±1s
+    const jitter = randomInt(1000);                          // random ±1s
     const waitTime = baseDelay + jitter;
 
     logger.warn(`⏳ Reconnection attempt #${attempt + 1} in ${(waitTime / 1000).toFixed(1)}s...`);

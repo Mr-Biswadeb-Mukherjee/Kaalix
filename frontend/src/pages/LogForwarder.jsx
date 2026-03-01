@@ -10,6 +10,7 @@ import {
   Button,
   CircularProgress,
 } from '@mui/material';
+import { secureRandomFloat } from "../Utils/secureRandom";
 import './Styles/LogForwarder.css';
 
 const LogForwarder = () => {
@@ -42,7 +43,7 @@ const LogForwarder = () => {
     setTestResult(null);
 
     setTimeout(() => {
-      const success = Math.random() > 0.3;
+      const success = secureRandomFloat() > 0.3;
       setTestResult(success ? "success" : "failed");
       setIsTesting(false);
     }, 1500);

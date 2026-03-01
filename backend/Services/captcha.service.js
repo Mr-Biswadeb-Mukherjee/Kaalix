@@ -1,5 +1,6 @@
 // Modules/captcha.js
 import { createCanvas } from "canvas";
+import { randomInt } from "node:crypto";
 import { v4 as uuidv4 } from "uuid";
 import { getOrInitRedisClient } from "../Connectors/Redis.js";
 
@@ -22,7 +23,7 @@ export const generateCaptcha = async (difficulty = 5) => {
 
   // ✅ Generate random text
   const text = Array.from({ length }, () =>
-    Math.random().toString(36).charAt(2).toUpperCase()
+    randomBase36Char()
   ).join("");
 
   const id = uuidv4();
@@ -42,8 +43,8 @@ export const generateCaptcha = async (difficulty = 5) => {
   for (let i = 0; i < difficulty * 2; i++) {
     ctx.strokeStyle = randomColor(0.5);
     ctx.beginPath();
-    ctx.moveTo(Math.random() * width, Math.random() * height);
-    ctx.lineTo(Math.random() * width, Math.random() * height);
+    ctx.moveTo(randomFloat() * width, randomFloat() * height);
+    ctx.lineTo(randomFloat() * width, randomFloat() * height);
     ctx.stroke();
   }
 
@@ -53,8 +54,9 @@ export const generateCaptcha = async (difficulty = 5) => {
   const letterSpacing = width / (length + 1);
 
   for (let i = 0; i < length; i++) {
-    const char = text[i];
-    const font = `${baseFontSize}px ${fonts[Math.floor(Math.random() * fonts.length)]}`;
+    const char = text.charAt(i);
+    const fontFamily = fonts.at(randomInt(fonts.length)) ?? fonts[0];
+    const font = `${baseFontSize}px ${fontFamily}`;
     ctx.font = font;
 
     ctx.save();
@@ -64,7 +66,7 @@ export const generateCaptcha = async (difficulty = 5) => {
     const y = height / 2 + baseFontSize / 3;
 
     // ✅ Rotation per letter
-    const angle = (Math.random() - 0.5) * (0.4 + difficulty * 0.05);
+    const angle = (randomFloat() - 0.5) * (0.4 + difficulty * 0.05);
     ctx.translate(x, y);
     ctx.rotate(angle);
 
@@ -72,8 +74,8 @@ export const generateCaptcha = async (difficulty = 5) => {
     ctx.fillStyle = difficulty > 5 ? randomColor() : "#333";
 
     // ✅ Slight position jitter at high difficulty
-    const jitterX = difficulty > 6 ? Math.random() * 4 - 2 : 0;
-    const jitterY = difficulty > 6 ? Math.random() * 4 - 2 : 0;
+    const jitterX = difficulty > 6 ? randomFloat() * 4 - 2 : 0;
+    const jitterY = difficulty > 6 ? randomFloat() * 4 - 2 : 0;
 
     ctx.fillText(char, jitterX, jitterY);
     ctx.restore();
@@ -82,9 +84,9 @@ export const generateCaptcha = async (difficulty = 5) => {
   // ✅ Random dots/noise
   const noiseCount = 10 + difficulty * 10;
   for (let i = 0; i < noiseCount; i++) {
-    ctx.fillStyle = randomColor(Math.random());
+    ctx.fillStyle = randomColor(randomFloat());
     ctx.beginPath();
-    ctx.arc(Math.random() * width, Math.random() * height, 1.5, 0, Math.PI * 2);
+    ctx.arc(randomFloat() * width, randomFloat() * height, 1.5, 0, Math.PI * 2);
     ctx.fill();
   }
 
@@ -126,10 +128,18 @@ export async function getStoredCaptcha(id) {
  * Random color generator
  */
 function randomColor(alpha = 1) {
-  const r = Math.floor(Math.random() * 150 + 50);
-  const g = Math.floor(Math.random() * 150 + 50);
-  const b = Math.floor(Math.random() * 150 + 50);
+  const r = randomInt(150) + 50;
+  const g = randomInt(150) + 50;
+  const b = randomInt(150) + 50;
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+function randomFloat() {
+  return randomInt(0x1_0000_0000) / 0x1_0000_0000;
+}
+
+function randomBase36Char() {
+  return randomInt(36).toString(36).toUpperCase();
 }
 
 export default { generateCaptcha, verifyCaptcha, getStoredCaptcha };

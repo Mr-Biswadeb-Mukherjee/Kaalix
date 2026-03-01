@@ -1,4 +1,5 @@
 import { createClient } from 'redis';
+import { randomInt } from 'node:crypto';
 import { redis as redisConfig } from '../Confs/config.js'; // Adjust path if needed
 import { LoggerContainer, flushLogger } from "../Logger/Logger.js";
 
@@ -139,7 +140,7 @@ async function enforceHybridEviction() {
   if (currentSessions <= maxSessions) return;
   const [lruEvict] = await redis.zRange(LRU_ZSET_KEY, 0, 0);
   const [lifoEvict] = await redis.lRange(LIFO_STACK_KEY, -1, -1);
-  const candidate = Math.random() < 0.5 ? lruEvict : lifoEvict;
+  const candidate = randomInt(2) === 0 ? lruEvict : lifoEvict;
   if (candidate) {
     await redis.del(candidate);
     await redis.zRem(LRU_ZSET_KEY, candidate);
