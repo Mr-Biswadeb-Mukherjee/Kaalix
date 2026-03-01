@@ -3,6 +3,10 @@ import {
   ADMIN_SOFT_DELETE_GRACE_DAYS,
   purgeExpiredSoftDeletedAdmins,
 } from "./adminLifecycle.service.js";
+import {
+  getDomainFromEmail,
+  getDomainFromWebsite,
+} from "../Utils/domain.utils.js";
 
 const MAX_ASSIGNABLE_ADMINS = 250;
 const ADMIN_ACTIONS = Object.freeze({
@@ -18,38 +22,6 @@ const ACCOUNT_STATUSES = Object.freeze({
 });
 const ORG_EMAIL_DOMAIN_MISMATCH_MESSAGE =
   "Admin email domain must match the super admin organization domain.";
-
-const trimTrailingDots = (value = "") => {
-  let end = value.length;
-  while (end > 0 && value[end - 1] === ".") end -= 1;
-  return value.slice(0, end);
-};
-
-const removeLeadingWww = (hostname = "") =>
-  hostname.startsWith("www.") ? hostname.slice(4) : hostname;
-
-const getDomainFromEmail = (email = "") => {
-  const normalized = String(email || "").trim().toLowerCase();
-  const atIndex = normalized.lastIndexOf("@");
-  if (atIndex <= 0 || atIndex === normalized.length - 1) return "";
-  return trimTrailingDots(normalized.slice(atIndex + 1));
-};
-
-const getDomainFromWebsite = (website = "") => {
-  const normalized = String(website || "").trim().toLowerCase();
-  if (!normalized) return "";
-  const hasHttpScheme =
-    normalized.startsWith("http://") || normalized.startsWith("https://");
-  const urlText = hasHttpScheme ? normalized : `https://${normalized}`;
-
-  try {
-    const hostname = trimTrailingDots(new URL(urlText).hostname);
-    if (!hostname) return "";
-    return removeLeadingWww(hostname);
-  } catch {
-    return "";
-  }
-};
 
 const normalizeIdList = (value) => {
   if (!Array.isArray(value)) return [];

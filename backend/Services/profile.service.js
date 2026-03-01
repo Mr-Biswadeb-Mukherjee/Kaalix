@@ -6,6 +6,7 @@ import {
   isBusinessEmail,
   isStrictBusinessEmailModeEnabled,
 } from "../Utils/emailPolicy.utils.js";
+import { isWebsiteEmailDomainMatch } from "../Utils/domain.utils.js";
 
 const ORG_ID_SUFFIX_LENGTH = 8;
 
@@ -40,15 +41,6 @@ const toSlugChars = (value = "") => {
 
   return trimChars(output, "-");
 };
-
-const trimTrailingDots = (value = "") => {
-  let end = value.length;
-  while (end > 0 && value[end - 1] === ".") end -= 1;
-  return value.slice(0, end);
-};
-
-const removeLeadingWww = (hostname = "") =>
-  hostname.startsWith("www.") ? hostname.slice(4) : hostname;
 
 const buildOrgSlug = (orgName = "") => {
   const slug = toSlugChars(orgName.trim().toLowerCase());
@@ -159,36 +151,6 @@ const resolveOrganizationForProfile = async (conn, { userId, role }) => {
   if (ownedOrganization) return ownedOrganization;
 
   return findSuperAdminOrganization(conn);
-};
-
-const getDomainFromEmail = (email = "") => {
-  const normalized = String(email || "").trim().toLowerCase();
-  const atIndex = normalized.lastIndexOf("@");
-  if (atIndex <= 0 || atIndex === normalized.length - 1) return "";
-  return trimTrailingDots(normalized.slice(atIndex + 1));
-};
-
-const getDomainFromWebsite = (website = "") => {
-  const normalized = String(website || "").trim().toLowerCase();
-  if (!normalized) return "";
-  const hasHttpScheme =
-    normalized.startsWith("http://") || normalized.startsWith("https://");
-  const urlText = hasHttpScheme ? normalized : `https://${normalized}`;
-
-  try {
-    const hostname = trimTrailingDots(new URL(urlText).hostname);
-    if (!hostname) return "";
-    return removeLeadingWww(hostname);
-  } catch {
-    return "";
-  }
-};
-
-const isOrgWebsiteEmailMatch = (website, email) => {
-  const websiteDomain = getDomainFromWebsite(website);
-  const emailDomain = getDomainFromEmail(email);
-  if (!websiteDomain || !emailDomain) return true;
-  return websiteDomain === emailDomain;
 };
 
 const mapLocationConsent = (value) => {
@@ -456,7 +418,7 @@ export const updateProfile = async (
         throw err;
       }
       if ((hasOrgWebsiteInput || hasOrgEmailInput) && orgWebsiteValue && orgEmailValue) {
-        if (!isOrgWebsiteEmailMatch(orgWebsiteValue, orgEmailValue)) {
+        if (!isWebsiteEmailDomainMatch(orgWebsiteValue, orgEmailValue)) {
           const err = new Error(
             "Organization website domain must match organization email domain."
           );
