@@ -8,13 +8,50 @@ import {
 } from "../Utils/emailPolicy.utils.js";
 
 const ORG_ID_SUFFIX_LENGTH = 8;
+
+const trimChars = (value = "", char = "-") => {
+  let start = 0;
+  let end = value.length;
+  while (start < end && value[start] === char) start += 1;
+  while (end > start && value[end - 1] === char) end -= 1;
+  return value.slice(start, end);
+};
+
+const toSlugChars = (value = "") => {
+  let output = "";
+  let previousWasDash = false;
+
+  for (let i = 0; i < value.length; i += 1) {
+    const ch = value[i];
+    const isLowerAlpha = ch >= "a" && ch <= "z";
+    const isDigit = ch >= "0" && ch <= "9";
+
+    if (isLowerAlpha || isDigit) {
+      output += ch;
+      previousWasDash = false;
+      continue;
+    }
+
+    if (!previousWasDash) {
+      output += "-";
+      previousWasDash = true;
+    }
+  }
+
+  return trimChars(output, "-");
+};
+
+const trimTrailingDots = (value = "") => {
+  let end = value.length;
+  while (end > 0 && value[end - 1] === ".") end -= 1;
+  return value.slice(0, end);
+};
+
+const removeLeadingWww = (hostname = "") =>
+  hostname.startsWith("www.") ? hostname.slice(4) : hostname;
+
 const buildOrgSlug = (orgName = "") => {
-  const slug = orgName
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/-{2,}/g, "-")
-    .replace(/^-+|-+$/g, "");
+  const slug = toSlugChars(orgName.trim().toLowerCase());
 
   return slug || "org";
 };
@@ -128,18 +165,20 @@ const getDomainFromEmail = (email = "") => {
   const normalized = String(email || "").trim().toLowerCase();
   const atIndex = normalized.lastIndexOf("@");
   if (atIndex <= 0 || atIndex === normalized.length - 1) return "";
-  return normalized.slice(atIndex + 1).replace(/\.+$/, "");
+  return trimTrailingDots(normalized.slice(atIndex + 1));
 };
 
 const getDomainFromWebsite = (website = "") => {
   const normalized = String(website || "").trim().toLowerCase();
   if (!normalized) return "";
-  const urlText = /^https?:\/\//.test(normalized) ? normalized : `https://${normalized}`;
+  const hasHttpScheme =
+    normalized.startsWith("http://") || normalized.startsWith("https://");
+  const urlText = hasHttpScheme ? normalized : `https://${normalized}`;
 
   try {
-    const hostname = new URL(urlText).hostname.replace(/\.+$/, "");
+    const hostname = trimTrailingDots(new URL(urlText).hostname);
     if (!hostname) return "";
-    return hostname.replace(/^www\./, "");
+    return removeLeadingWww(hostname);
   } catch {
     return "";
   }

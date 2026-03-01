@@ -22,6 +22,54 @@ const allowedRoles = new Set(Object.values(USER_ROLES));
 const allowedAccountStatuses = new Set(Object.values(USER_ACCOUNT_STATUSES));
 const USERNAME_REGEX = /^[a-z0-9](?:[a-z0-9._-]{2,31})$/;
 
+const isLowerAlpha = (ch) => ch >= "a" && ch <= "z";
+const isDigit = (ch) => ch >= "0" && ch <= "9";
+const isSeparator = (ch) => ch === "-" || ch === "_" || ch === ".";
+const isAllowedUsernameChar = (ch) =>
+  isLowerAlpha(ch) || isDigit(ch) || isSeparator(ch);
+
+const sanitizeUsernameLocalPart = (value = "") => {
+  const normalized = String(value || "").trim().toLowerCase();
+
+  let stageOne = "";
+  let inInvalidRun = false;
+  for (let i = 0; i < normalized.length; i += 1) {
+    const ch = normalized[i];
+    if (isAllowedUsernameChar(ch)) {
+      stageOne += ch;
+      inInvalidRun = false;
+      continue;
+    }
+    if (!inInvalidRun) {
+      stageOne += "-";
+      inInvalidRun = true;
+    }
+  }
+
+  let stageTwo = "";
+  let i = 0;
+  while (i < stageOne.length) {
+    const ch = stageOne[i];
+    if (!isSeparator(ch)) {
+      stageTwo += ch;
+      i += 1;
+      continue;
+    }
+
+    let j = i + 1;
+    while (j < stageOne.length && isSeparator(stageOne[j])) j += 1;
+    const runLength = j - i;
+    stageTwo += runLength === 1 ? ch : "-";
+    i = j;
+  }
+
+  let start = 0;
+  let end = stageTwo.length;
+  while (start < end && isSeparator(stageTwo[start])) start += 1;
+  while (end > start && isSeparator(stageTwo[end - 1])) end -= 1;
+  return stageTwo.slice(start, end);
+};
+
 // 🧼 Normalize email for consistent matching
 export const normalizeEmail = (email) => {
   if (!email || typeof email !== "string") return "";
@@ -42,15 +90,12 @@ export const normalizeRole = (role) => {
 
 const buildUsernameBaseFromEmail = (email) => {
   const localPart = String(email || "").split("@")[0] || "";
-  const normalized = localPart
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9._-]+/g, "-")
-    .replace(/[-_.]{2,}/g, "-")
-    .replace(/^[-_.]+|[-_.]+$/g, "");
+  const normalized = sanitizeUsernameLocalPart(localPart);
 
   if (!normalized) return "user";
-  if (/^[a-z0-9]/.test(normalized)) return normalized.slice(0, 20);
+  if (isLowerAlpha(normalized[0]) || isDigit(normalized[0])) {
+    return normalized.slice(0, 20);
+  }
   return `u${normalized}`.slice(0, 20);
 };
 

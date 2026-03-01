@@ -11,22 +11,62 @@ const STATUS_ORDER = {
   deleted: 2,
 };
 
+const trimTrailingDots = (value = "") => {
+  let end = value.length;
+  while (end > 0 && value[end - 1] === ".") end -= 1;
+  return value.slice(0, end);
+};
+
+const removeLeadingWww = (hostname = "") =>
+  hostname.startsWith("www.") ? hostname.slice(4) : hostname;
+
+const splitWhitespaceWords = (value = "") => {
+  const words = [];
+  let token = "";
+
+  for (let i = 0; i < value.length; i += 1) {
+    const code = value.charCodeAt(i);
+    const isWhitespace =
+      code === 9 ||
+      code === 10 ||
+      code === 11 ||
+      code === 12 ||
+      code === 13 ||
+      code === 32;
+
+    if (!isWhitespace) {
+      token += value[i];
+      continue;
+    }
+
+    if (token) {
+      words.push(token);
+      token = "";
+    }
+  }
+
+  if (token) words.push(token);
+  return words;
+};
+
 const getDomainFromEmail = (email = "") => {
   const normalized = String(email || "").trim().toLowerCase();
   const atIndex = normalized.lastIndexOf("@");
   if (atIndex <= 0 || atIndex === normalized.length - 1) return "";
-  return normalized.slice(atIndex + 1).replace(/\.+$/, "");
+  return trimTrailingDots(normalized.slice(atIndex + 1));
 };
 
 const getDomainFromWebsite = (website = "") => {
   const normalized = String(website || "").trim().toLowerCase();
   if (!normalized) return "";
-  const urlText = /^https?:\/\//.test(normalized) ? normalized : `https://${normalized}`;
+  const hasHttpScheme =
+    normalized.startsWith("http://") || normalized.startsWith("https://");
+  const urlText = hasHttpScheme ? normalized : `https://${normalized}`;
 
   try {
-    const hostname = new URL(urlText).hostname.replace(/\.+$/, "");
+    const hostname = trimTrailingDots(new URL(urlText).hostname);
     if (!hostname) return "";
-    return hostname.replace(/^www\./, "");
+    return removeLeadingWww(hostname);
   } catch {
     return "";
   }
@@ -38,7 +78,7 @@ const getInitials = (fullName, email) => {
   const source = (fullName || email || "").trim();
   if (!source) return "AD";
 
-  const parts = source.split(/\s+/).filter(Boolean);
+  const parts = splitWhitespaceWords(source);
   if (parts.length === 1) {
     return parts[0].slice(0, 2).toUpperCase();
   }

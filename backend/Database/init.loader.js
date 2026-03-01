@@ -24,9 +24,68 @@ const logger = LoggerContainer.get("Schemas");
 const MACHINE_ID_PATHS = ["/etc/machine-id", "/var/lib/dbus/machine-id"];
 const SA_MACHINE_SECRET_NAMESPACE = "kaalix-sa-bootstrap-v1";
 const USERNAME_REGEX = /^[a-z0-9](?:[a-z0-9._-]{2,31})$/;
+const SOURCE_KEYWORD = "source";
 
 const sha256 = (value) =>
   crypto.createHash("sha256").update(value).digest("hex");
+
+const replaceWhitespaceWithUnderscore = (value = "") => {
+  let output = "";
+  let previousWasWhitespace = false;
+
+  for (let i = 0; i < value.length; i += 1) {
+    const ch = value[i];
+    const code = value.charCodeAt(i);
+    const isWhitespace =
+      code === 9 ||
+      code === 10 ||
+      code === 11 ||
+      code === 12 ||
+      code === 13 ||
+      code === 32;
+
+    if (!isWhitespace) {
+      output += ch;
+      previousWasWhitespace = false;
+      continue;
+    }
+
+    if (!previousWasWhitespace) {
+      output += "_";
+      previousWasWhitespace = true;
+    }
+  }
+
+  return output;
+};
+
+const parseSourceRefs = (sqlText = "") => {
+  const refs = [];
+  const lines = String(sqlText || "").split("\n");
+
+  for (let index = 0; index < lines.length; index += 1) {
+    const rawLine = lines[index];
+    const lineWithoutCarriage =
+      rawLine.endsWith("\r") ? rawLine.slice(0, -1) : rawLine;
+    const line = lineWithoutCarriage.trim();
+    if (!line) continue;
+    if (line.startsWith("--") || line.startsWith("#")) continue;
+
+    const lowerLine = line.toLowerCase();
+    if (!lowerLine.startsWith(SOURCE_KEYWORD)) continue;
+
+    const afterKeyword = line.slice(SOURCE_KEYWORD.length).trimStart();
+    if (!afterKeyword) continue;
+
+    const semicolonIndex = afterKeyword.indexOf(";");
+    if (semicolonIndex <= 0) continue;
+
+    const fileRef = afterKeyword.slice(0, semicolonIndex).trim();
+    if (fileRef) refs.push(path.basename(fileRef));
+  }
+
+  return refs;
+};
 
 const getMachineFingerprint = () => {
   for (const machineIdPath of MACHINE_ID_PATHS) {
@@ -92,7 +151,7 @@ const resolveDefaultSaLoginUsername = () => {
   const candidate = String(process.env.DEFAULT_SA_LOGIN || "kaalix-sa")
     .trim()
     .toLowerCase();
-  const sanitized = candidate.replace(/\s+/g, "_");
+  const sanitized = replaceWhitespaceWithUnderscore(candidate);
   if (USERNAME_REGEX.test(sanitized)) {
     return sanitized;
   }
@@ -383,14 +442,7 @@ function getExecutionOrder(files, dbDir) {
 
   if (files.includes(initFile)) {
     const initContent = fs.readFileSync(path.join(dbDir, initFile), "utf8");
-    const regex = /SOURCE\s+(.+?);/gi;
-    let match;
-    const sources = [];
-
-    while ((match = regex.exec(initContent)) !== null) {
-      const ref = path.basename(match[1].trim());
-      if (ref) sources.push(ref);
-    }
+    const sources = parseSourceRefs(initContent);
 
     // Execute files referenced in init.sql first
     ordered = [
