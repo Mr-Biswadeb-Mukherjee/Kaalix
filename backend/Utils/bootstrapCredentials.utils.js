@@ -30,6 +30,20 @@ const isTruthy = (value) => {
   return ["1", "true", "yes", "on"].includes(normalized);
 };
 
+const writeJsonFileSecure = (filePath, payload) => {
+  const data = Buffer.from(`${JSON.stringify(payload, null, 2)}\n`, "utf8");
+  const fd = fs.openSync(filePath, "w", 0o600);
+
+  try {
+    fs.writeSync(fd, data, 0, data.length, 0);
+    fs.fsyncSync(fd);
+  } finally {
+    fs.closeSync(fd);
+  }
+
+  fs.chmodSync(filePath, 0o600);
+};
+
 const normalizeBootstrapPath = (candidatePath) => {
   const resolvedPath = path.resolve(candidatePath);
   const normalizedLegacyDir = path.normalize(LEGACY_LOGS_DIR);
@@ -89,11 +103,7 @@ export const markBootstrapSealed = ({ reason = "onboarding-complete" } = {}) => 
 
   try {
     fs.mkdirSync(path.dirname(sealPath), { recursive: true });
-    fs.writeFileSync(sealPath, JSON.stringify(payload, null, 2), {
-      encoding: "utf8",
-      mode: 0o600,
-    });
-    fs.chmodSync(sealPath, 0o600);
+    writeJsonFileSecure(sealPath, payload);
     logger.warn(`🔒 Bootstrap SA seed sealed at ${sealPath}`);
     return true;
   } catch (err) {
@@ -121,11 +131,7 @@ export const writeBootstrapCredentialsFile = ({
 
   try {
     fs.mkdirSync(path.dirname(filePath), { recursive: true });
-    fs.writeFileSync(filePath, JSON.stringify(payload, null, 2), {
-      encoding: "utf8",
-      mode: 0o600,
-    });
-    fs.chmodSync(filePath, 0o600);
+    writeJsonFileSecure(filePath, payload);
 
     logger.warn(`🔐 Bootstrap SA credentials saved to ${filePath}`);
     console.warn(`[BOOTSTRAP] SA credentials file created at: ${filePath}`);

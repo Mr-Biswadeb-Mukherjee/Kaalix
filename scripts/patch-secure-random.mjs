@@ -122,6 +122,29 @@ async function fileExists(filePath) {
   }
 }
 
+async function writeTextFile(filePath, content) {
+  const data = Buffer.from(content, 'utf8');
+  const handle = await fs.open(filePath, 'w');
+
+  try {
+    let offset = 0;
+    while (offset < data.length) {
+      const { bytesWritten } = await handle.write(
+        data,
+        offset,
+        data.length - offset,
+        offset
+      );
+      offset += bytesWritten;
+    }
+
+    await handle.truncate(data.length);
+    await handle.sync();
+  } finally {
+    await handle.close();
+  }
+}
+
 async function listPnpmPackageFiles(nodeModulesRoot, packagePrefix, relativeFile) {
   const results = [];
   const pnpmRoot = path.join(nodeModulesRoot, '.pnpm');
@@ -185,7 +208,7 @@ async function patchFile(filePath, patch) {
     return { patched: false, reason: 'no_change' };
   }
 
-  await fs.writeFile(filePath, updated, 'utf8');
+  await writeTextFile(filePath, updated);
   return { patched: true };
 }
 
@@ -211,7 +234,7 @@ async function patchDotenv(filePath) {
     return { patched: false, reason: 'no_change' };
   }
 
-  await fs.writeFile(filePath, patchedSource, 'utf8');
+  await writeTextFile(filePath, patchedSource);
   return { patched: true };
 }
 

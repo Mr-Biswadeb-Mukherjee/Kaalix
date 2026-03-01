@@ -14,6 +14,29 @@ const MAX_KIDS = 2;
 let initialized = false;
 let rotationInFlight = null;
 
+function parseJwtHeader(token) {
+  const parts = String(token || '').split('.');
+  if (parts.length !== 3) {
+    throw new Error("Invalid token format");
+  }
+
+  const base64 = parts[0].replace(/-/g, '+').replace(/_/g, '/');
+  const padded = base64.padEnd(Math.ceil(base64.length / 4) * 4, '=');
+
+  let header;
+  try {
+    header = JSON.parse(Buffer.from(padded, 'base64').toString('utf8'));
+  } catch {
+    throw new Error("Invalid token header");
+  }
+
+  if (!header || typeof header !== 'object' || !header.kid) {
+    throw new Error("Missing kid in token header");
+  }
+
+  return header;
+}
+
 async function lazyInit() {
   if (initialized) return;
   await getOrInitRedisClient();
@@ -100,12 +123,7 @@ async function generateToken(payload) {
 async function verifyToken(token, options = { revoke: true }) {
   await lazyInit();
 
-  const decoded = jwt.decode(token, { complete: true });
-  if (!decoded || !decoded.header?.kid) {
-    throw new Error("Missing kid in token header");
-  }
-
-  const { kid } = decoded.header;
+  const { kid } = parseJwtHeader(token);
   const redis = await getOrInitRedisClient();
 
   const secret = await redis.get(`${JWT_SECRET_PREFIX}${kid}`);
@@ -161,17 +179,21 @@ async function verifyToken(token, options = { revoke: true }) {
 async function revokeToken(token) {
   await lazyInit();
 
-  const decoded = jwt.decode(token);
-  if (!decoded || !decoded.jti) {
+  const { kid } = parseJwtHeader(token);
+  const redis = await getOrInitRedisClient();
+  const secret = await redis.get(`${JWT_SECRET_PREFIX}${kid}`);
+  if (!secret) throw new Error(`Secret not found for kid=${kid}`);
+
+  const payload = jwt.verify(token, secret, { algorithms: ["HS512"] });
+  if (!payload || typeof payload !== "object" || !payload.jti) {
     throw new Error('Cannot revoke: missing JTI');
   }
 
-  const redis = await getOrInitRedisClient();
-  await redis.set(`${REVOCATION_SET_PREFIX}${decoded.jti}`, 'revoked', {
+  await redis.set(`${REVOCATION_SET_PREFIX}${payload.jti}`, 'revoked', {
     EX: TOKEN_TTL_SECONDS,
   });
 
-  console.log(`⛔ Token manually revoked: jti=${decoded.jti}`);
+  console.log(`⛔ Token manually revoked: jti=${payload.jti}`);
 }
 
 /**

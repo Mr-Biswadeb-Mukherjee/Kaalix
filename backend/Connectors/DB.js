@@ -112,7 +112,7 @@ export async function initDatabase(isReconnecting = false) {
           multipleStatements: true,
         });
 
-        await bootstrap.query(`CREATE DATABASE IF NOT EXISTS \`${database}\`;`);
+        await bootstrap.query("CREATE DATABASE IF NOT EXISTS ??;", [database]);
         logOnce("verified", `🏗️  Database '${database}' verified/created`);
         await bootstrap.end();
       }
