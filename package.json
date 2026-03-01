@@ -45,6 +45,7 @@
   },
   "homepage": "https://github.com/official-biswadeb941/Kaalix",
   "devDependencies": {
+    "@eslint/eslintrc": "^3.3.4",
     "@eslint/js": "^10.0.1",
     "@fortawesome/free-solid-svg-icons": "^7.2.0",
     "@fortawesome/react-fontawesome": "^3.2.0",

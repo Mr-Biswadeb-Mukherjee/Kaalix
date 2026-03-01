@@ -2,22 +2,34 @@ import js from "@eslint/js";
 import globals from "globals";
 import reactHooks from "eslint-plugin-react-hooks";
 import reactRefresh from "eslint-plugin-react-refresh";
+import { FlatCompat } from "@eslint/eslintrc";
+
+const compat = new FlatCompat({
+  baseDirectory: import.meta.dirname,
+  recommendedConfig: js.configs.recommended,
+});
 
 export default [
-  // Base JS rules
-  js.configs.recommended,
 
-  // Frontend (React + Vite)
   {
-    files: ["**/*.{js,jsx}"],
+    ignores: [
+      "**/node_modules/**",
+      "**/dist/**",
+      "**/build/**",
+    ],
+  },
+
+  // Properly wrap eslint:recommended
+  ...compat.extends("eslint:recommended"),
+
+  {
+    files: ["frontend/**/*.{js,jsx,ts,tsx}"],
     languageOptions: {
       globals: globals.browser,
       ecmaVersion: "latest",
       sourceType: "module",
       parserOptions: {
-        ecmaFeatures: {
-          jsx: true,
-        },
+        ecmaFeatures: { jsx: true },
       },
     },
     plugins: {
@@ -36,8 +48,12 @@ export default [
     },
   },
 
-  // Global ignores
   {
-    ignores: ["dist/**", "node_modules/**"],
+    files: ["backend/**/*.{js,ts}"],
+    languageOptions: {
+      globals: globals.node,
+      ecmaVersion: "latest",
+      sourceType: "module",
+    },
   },
 ];
