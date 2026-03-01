@@ -5,6 +5,7 @@
   "main": "Endpoints.js",
   "exports": {
     ".": "./Endpoints.js",
+    "./domain-utils": "./domainUtils.js",
     "./assets/*": "./assets/*"
   }
 }
