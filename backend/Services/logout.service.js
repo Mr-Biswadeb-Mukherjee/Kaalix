@@ -30,7 +30,7 @@ async function logoutHandler(req, res) {
     }
 
     await res.revokeToken(token);
-    console.log(`✅ Token revoked successfully: ${token.substring(0, 10)}...`);
+    console.log("✅ Token revoked successfully");
 
     // 👇 Clear cached IP + location on logout
     resetPublicIPAndLocation();
