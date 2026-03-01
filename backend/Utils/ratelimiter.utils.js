@@ -23,12 +23,96 @@ let redisTrippedUntil = 0;
 
 // In-memory fallback
 const memoryStore = new Map();
+const attackStore = new Map();
 
 // Memory GC interval (clean entries that haven't seen activity in 10 minutes)
 const MEMORY_GC_INTERVAL_MS = 10 * 60 * 1000;
 const MEMORY_ENTRY_TTL_MS = 10 * 60 * 1000;
+const ATTACK_WINDOW_MS = 60 * 1000;
+const ATTACK_ALERT_COOLDOWN_MS = 60 * 1000;
+const ATTACK_SINGLE_IP_THRESHOLD = 10;
+const ATTACK_DISTRIBUTED_THRESHOLD = 35;
+const ATTACK_DISTRIBUTED_UNIQUE_IP_THRESHOLD = 8;
 
 let memoryGcHandle = null;
+
+function pruneEvents(queue, cutoff) {
+  while (queue.length > 0 && queue[0] < cutoff) queue.shift();
+}
+
+function sanitizeEndpoint(endpoint) {
+  const source = String(endpoint || "unknown");
+  return source.split("?")[0] || "unknown";
+}
+
+function trackAttackSignal(endpoint, ip, now) {
+  const endpointKey = sanitizeEndpoint(endpoint);
+  const cutoff = now - ATTACK_WINDOW_MS;
+  const tracker = attackStore.get(endpointKey) || {
+    events: [],
+    ipEvents: new Map(),
+    lastSingleIpAlertByIp: new Map(),
+    lastDistributedAlertAt: 0,
+    lastSeen: now,
+  };
+
+  tracker.lastSeen = now;
+  tracker.events.push(now);
+  pruneEvents(tracker.events, cutoff);
+
+  const ipQueue = tracker.ipEvents.get(ip) || [];
+  ipQueue.push(now);
+  pruneEvents(ipQueue, cutoff);
+  tracker.ipEvents.set(ip, ipQueue);
+
+  for (const [trackedIp, timestamps] of tracker.ipEvents.entries()) {
+    pruneEvents(timestamps, cutoff);
+    if (timestamps.length === 0) {
+      tracker.ipEvents.delete(trackedIp);
+      tracker.lastSingleIpAlertByIp.delete(trackedIp);
+    }
+  }
+
+  const incidents = [];
+  const totalEvents = tracker.events.length;
+  const uniqueIpCount = tracker.ipEvents.size;
+  const ipEvents = ipQueue.length;
+
+  const lastSingleIpAlertAt = tracker.lastSingleIpAlertByIp.get(ip) || 0;
+  if (
+    ipEvents >= ATTACK_SINGLE_IP_THRESHOLD &&
+    now - lastSingleIpAlertAt >= ATTACK_ALERT_COOLDOWN_MS
+  ) {
+    tracker.lastSingleIpAlertByIp.set(ip, now);
+    incidents.push({
+      type: "single_ip_abuse",
+      endpoint: endpointKey,
+      ip,
+      totalEvents,
+      ipEvents,
+      uniqueIpCount,
+      windowMs: ATTACK_WINDOW_MS,
+    });
+  }
+
+  if (
+    totalEvents >= ATTACK_DISTRIBUTED_THRESHOLD &&
+    uniqueIpCount >= ATTACK_DISTRIBUTED_UNIQUE_IP_THRESHOLD &&
+    now - tracker.lastDistributedAlertAt >= ATTACK_ALERT_COOLDOWN_MS
+  ) {
+    tracker.lastDistributedAlertAt = now;
+    incidents.push({
+      type: "distributed_abuse",
+      endpoint: endpointKey,
+      totalEvents,
+      uniqueIpCount,
+      windowMs: ATTACK_WINDOW_MS,
+    });
+  }
+
+  attackStore.set(endpointKey, tracker);
+  return incidents;
+}
 
 async function lazyInit() {
   if (initialized) return;
@@ -46,6 +130,11 @@ async function lazyInit() {
       for (const [ip, rec] of memoryStore.entries()) {
         if ((now - (rec.lastSeen || 0)) > MEMORY_ENTRY_TTL_MS) {
           memoryStore.delete(ip);
+        }
+      }
+      for (const [endpoint, rec] of attackStore.entries()) {
+        if ((now - (rec.lastSeen || 0)) > MEMORY_ENTRY_TTL_MS) {
+          attackStore.delete(endpoint);
         }
       }
     }, MEMORY_GC_INTERVAL_MS);
@@ -285,6 +374,30 @@ const Ratelimiter = ({
       }
     }
     logger.warn(`Rate limit exceeded for IP: ${ip}, Endpoint: ${endpoint}. Fixed: ${fixedCount}/${adaptiveMax}, Burst: ${burstCount}/${adaptiveBurst}, Penalty: ${penalty}`);
+
+    const incidents = trackAttackSignal(endpoint, ip, now);
+    for (const incident of incidents) {
+      logger.alert(
+        JSON.stringify({
+          signalType: "rate_limit_attack_pattern",
+          reason: incident.type,
+          endpoint: incident.endpoint,
+          ip: incident.ip || null,
+          windowMs: incident.windowMs,
+          totalEvents: incident.totalEvents,
+          ipEvents: incident.ipEvents || null,
+          uniqueIpCount: incident.uniqueIpCount,
+          fixedCount,
+          burstCount,
+          adaptiveMax,
+          adaptiveBurst,
+          penalty,
+        })
+      );
+    }
+
+    res.locals.errorReason = "rate_limit_exceeded";
+    res.locals.errorCode = "RATE_LIMIT_EXCEEDED";
 
     // helpful headers
     res.set("Retry-After", Math.ceil(windowMs / 1000));

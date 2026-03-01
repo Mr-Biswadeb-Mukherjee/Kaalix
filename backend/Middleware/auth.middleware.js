@@ -24,6 +24,8 @@ export default function authMiddleware(options = {}) {
       const token = authHeader.split(" ")[1];
 
       if (!token) {
+        res.locals.errorReason = "missing_auth_token";
+        res.locals.errorCode = "AUTH_TOKEN_MISSING";
         return res.status(401).json({ message: "🔐 Missing token" });
       }
 
@@ -31,9 +33,13 @@ export default function authMiddleware(options = {}) {
       await purgeExpiredSoftDeletedAdminsIfDue();
       const accessState = await getUserAccessState(payload.user_id);
       if (!accessState) {
+        res.locals.errorReason = "auth_user_not_found";
+        res.locals.errorCode = "AUTH_USER_NOT_FOUND";
         return res.status(401).json({ message: "Unauthorized: user not found." });
       }
       if (accessState.account_status === USER_ACCOUNT_STATUSES.BLOCKED) {
+        res.locals.errorReason = "account_blocked";
+        res.locals.errorCode = "ACCOUNT_BLOCKED";
         return res.status(403).json({
           success: false,
           code: "ACCOUNT_BLOCKED",
@@ -41,6 +47,8 @@ export default function authMiddleware(options = {}) {
         });
       }
       if (accessState.account_status === USER_ACCOUNT_STATUSES.DELETED) {
+        res.locals.errorReason = "account_soft_deleted";
+        res.locals.errorCode = "ACCOUNT_SOFT_DELETED";
         return res.status(403).json({
           success: false,
           code: "ACCOUNT_SOFT_DELETED",
@@ -50,6 +58,8 @@ export default function authMiddleware(options = {}) {
       const onboarding = await getUserOnboardingState(payload.user_id);
 
       if (!onboarding) {
+        res.locals.errorReason = "onboarding_state_missing";
+        res.locals.errorCode = "ONBOARDING_STATE_MISSING";
         return res.status(401).json({ message: "Unauthorized: user not found." });
       }
 
@@ -61,6 +71,8 @@ export default function authMiddleware(options = {}) {
       req.token = token; // optional, useful for revocation
 
       if (onboarding.required && !mergedOptions.allowDuringOnboarding) {
+        res.locals.errorReason = "onboarding_required";
+        res.locals.errorCode = "ONBOARDING_REQUIRED";
         return res.status(423).json({
           success: false,
           code: "ONBOARDING_REQUIRED",
@@ -80,6 +92,10 @@ export default function authMiddleware(options = {}) {
       next();
     } catch (err) {
       console.error("🛑 JWT verification failed:", err.message);
+      res.locals.errorReason = err.message.includes("revoked")
+        ? "auth_token_revoked_or_account_deleted"
+        : "auth_token_invalid_or_expired";
+      res.locals.errorCode = err?.name || "AUTH_VERIFICATION_FAILED";
       res.status(401).json({
         message: err.message.includes("revoked")
           ? "Your account has been deleted or logged out from all devices."

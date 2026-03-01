@@ -213,6 +213,8 @@ router.post(
 
 // -------------------- Error Handler --------------------
 router.use((err, req, res, next) => {
+  res.locals.errorReason = err?.message || "Protected route execution failed";
+  res.locals.errorCode = err?.code || err?.name || "PROTECTED_ROUTE_ERROR";
   console.error("🚨 Router Error:", err);
   return res.status(500).json({ success: false, message: "Internal Server Error" });
 });

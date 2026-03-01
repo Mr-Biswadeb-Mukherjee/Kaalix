@@ -51,6 +51,8 @@ app.use(protectedRoutes);
 
 // 🔹 Global error handler
 app.use((err, req, res, next) => {
+  res.locals.errorReason = err?.message || "Unhandled server exception";
+  res.locals.errorCode = err?.code || err?.name || "UNHANDLED_EXCEPTION";
   console.error("🔥 Global error caught:", err.stack || err);
   res.status(500).json({
     success: false,
