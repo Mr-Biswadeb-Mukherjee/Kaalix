@@ -150,7 +150,7 @@ export const UpdateProfile = async (req, res) => {
 
     const namePattern = /^[a-zA-Z\s.'-]{1,50}$/;
     const bioPattern = /^[a-zA-Z0-9\s.,'"\-!?()]*$/;
-    const orgPattern = /^[a-zA-Z0-9\s&.,'()\-]{1,120}$/;
+    const orgPattern = /^[a-zA-Z0-9\s&.,'()-]{1,120}$/;
 
     if (hasFullNameField && (!fullName || !namePattern.test(fullName))) {
       return res.status(400).json({ message: "Full name contains invalid characters or exceeds 50 characters." });

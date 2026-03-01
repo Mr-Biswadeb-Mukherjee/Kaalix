@@ -70,8 +70,11 @@ lint-fix:
 
 lint:
 	@mkdir -p "$(RUN_DIR)"
-	@pnpm exec eslint --config eslint.config.js backend frontend/src shared index.js --max-warnings=0 | tee "$(RUN_DIR)/eslint.log"
-
+	@pnpm exec eslint --config eslint.config.js backend frontend/src shared index.js \
+		--max-warnings=0 \
+		--report-unused-disable-directives \
+		| tee "$(RUN_DIR)/eslint.log"
+		
 architecture:
 	@mkdir -p "$(RUN_DIR)"
 	@bash scripts/check-architecture.sh | tee "$(RUN_DIR)/architecture.log"

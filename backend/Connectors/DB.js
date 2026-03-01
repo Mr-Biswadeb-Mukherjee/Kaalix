@@ -19,27 +19,44 @@ let initPromise = null;
 // =============================================================
 // Internal State Tracker (prevents duplicate spam)
 // =============================================================
-const dbState = {
-  verified: false,
-  connected: false,
-  ready: false,
-  reconnecting: false,
-};
+const dbState = new Map([
+  ["verified", false],
+  ["connected", false],
+  ["ready", false],
+  ["reconnecting", false],
+]);
 
 // =============================================================
 // Utility: Controlled logging (log only once per state)
 // =============================================================
 function logOnce(stateKey, message, level = "info") {
-  if (!dbState[stateKey]) {
-    dbState[stateKey] = true;
-    logger[level](message);
+  if (!dbState.has(stateKey)) {
+    logger.info(message);
+    return;
+  }
+
+  if (!dbState.get(stateKey)) {
+    dbState.set(stateKey, true);
+    switch (level) {
+      case "warn":
+        logger.warn(message);
+        break;
+      case "error":
+        logger.error(message);
+        break;
+      case "critical":
+        logger.critical(message);
+        break;
+      default:
+        logger.info(message);
+    }
   }
 }
 
 function resetDbState() {
-  dbState.verified = false;
-  dbState.connected = false;
-  dbState.ready = false;
+  dbState.set("verified", false);
+  dbState.set("connected", false);
+  dbState.set("ready", false);
 }
 
 // =============================================================
@@ -130,8 +147,8 @@ export async function initDatabase(isReconnecting = false) {
       // Pool Error Handling
       // =========================================================
       pool.on("error", async (err) => {
-        if (dbState.reconnecting) return; // avoid duplicate attempts
-        dbState.reconnecting = true;
+        if (dbState.get("reconnecting")) return; // avoid duplicate attempts
+        dbState.set("reconnecting", true);
 
         logger.error(`❌ MySQL Pool Error: ${err.message}`);
         resetDbState();
@@ -143,7 +160,7 @@ export async function initDatabase(isReconnecting = false) {
           await flushLogger();
           process.exit(1);
         } finally {
-          dbState.reconnecting = false;
+          dbState.set("reconnecting", false);
         }
       });
 
