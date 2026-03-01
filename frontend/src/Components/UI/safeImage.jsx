@@ -1,5 +1,5 @@
 // components/SafeImage.jsx
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 
 const isSafeUrl = (url) => {
   if (!url) return false;

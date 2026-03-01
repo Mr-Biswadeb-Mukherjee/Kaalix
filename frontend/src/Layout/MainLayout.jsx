@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Box } from '@mui/material';
 import { Outlet } from 'react-router-dom';
 
@@ -27,7 +27,7 @@ const MainLayout = () => {
   const countdownIntervalRef = useRef(null);
 
   // Reset timers on user activity
-  const resetTimers = () => {
+  const resetTimers = useCallback(() => {
     clearTimeout(warningTimerRef.current);
     clearTimeout(logoutTimerRef.current);
     clearInterval(countdownIntervalRef.current);
@@ -59,7 +59,7 @@ const MainLayout = () => {
     logoutTimerRef.current = setTimeout(async () => {
       await logout();
     }, 75000); // 75s
-  };
+  }, [logout, onboardingRequired]);
 
   // Attach user activity listeners
   useEffect(() => {
@@ -83,7 +83,7 @@ const MainLayout = () => {
       clearTimeout(logoutTimerRef.current);
       clearInterval(countdownIntervalRef.current);
     };
-  }, [onboardingRequired]);
+  }, [onboardingRequired, resetTimers]);
 
   useEffect(() => {
     localStorage.setItem('sidebar-collapsed', collapsed.toString());

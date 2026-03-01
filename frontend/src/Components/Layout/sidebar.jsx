@@ -1,6 +1,5 @@
 // Sidebar.jsx
 
-import React, { useState } from 'react';
 // Importing React Router DOM hooks for navigation
 import { Link, useLocation } from 'react-router-dom';
 import DashboardIcon from '@mui/icons-material/Dashboard';
@@ -28,7 +27,6 @@ import { useAuth } from '../../Context/AuthContext';
 
 const Sidebar = ({ collapsed, setCollapsed }) => {
   const location = useLocation();
-  const [active, setActive] = useState(location.pathname);
   const { onboardingRequired, isSuperAdmin } = useAuth();
   const menuItems = [
     { name: 'Dashboard', icon: <DashboardIcon />, route: '/dashboard' },
@@ -76,7 +74,6 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
                 event.preventDefault();
                 return;
               }
-              setActive(item.route);
             }}
           >
             <span className="sidebar-icon">{item.icon}</span>
@@ -97,7 +94,6 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
               event.preventDefault();
               return;
             }
-            setActive('/logs');
           }}
         >
           <span className="sidebar-icon"><ListAltIcon /></span>

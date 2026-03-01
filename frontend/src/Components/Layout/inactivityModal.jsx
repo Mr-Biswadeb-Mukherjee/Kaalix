@@ -1,4 +1,3 @@
-import React from 'react';
 import './Styles/inactivityModal.css';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';

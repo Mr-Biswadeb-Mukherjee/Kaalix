@@ -149,7 +149,7 @@ export async function initializeDatabase(pool) {
         "SELECT hash FROM _init_history WHERE filename = ?",
         [file]
       );
-    } catch (err) {
+    } catch {
       // Skip if _init_history doesn't exist yet (db_history.sql will create it)
       existing = [];
     }

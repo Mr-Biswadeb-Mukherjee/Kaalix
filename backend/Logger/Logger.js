@@ -153,7 +153,6 @@ async function flushBuffer(filePath) {
 
     try {
       const moduleFolder = path.dirname(filePath);
-      const moduleName = path.basename(moduleFolder);
       const counterFile = path.join(moduleFolder, "event-counter.json");
 
       const lastEntry = entries[entries.length - 1];

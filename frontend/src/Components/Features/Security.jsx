@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useToast } from '../UI/Toast';
 import './Styles/Security.css';
 import API from '@amon/shared';

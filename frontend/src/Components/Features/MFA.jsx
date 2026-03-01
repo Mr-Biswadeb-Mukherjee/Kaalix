@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import Modal from "../UI/Modal";
 import "./Styles/MFA.css";
 import API from "@amon/shared";
@@ -158,7 +158,6 @@ const MFA = () => {
   };
 
   const getCheckboxState = (status) => status === "enabled";
-  const getLabel = (status) => (status === "enabled" ? "Enabled" : "Disabled");
 
   return (
     <section className="mfa-section">

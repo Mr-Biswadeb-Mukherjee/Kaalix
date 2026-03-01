@@ -178,7 +178,7 @@ export const UpdateProfile = async (req, res) => {
         }
 
         normalizedPhone = parsed.number;
-      } catch (e) {
+      } catch {
         return res.status(400).json({ message: "Invalid phone number format." });
       }
     } else if (hasPhoneField) {

@@ -1,5 +1,5 @@
 // Profile.jsx
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useToast } from "../Components/UI/Toast";
 import CameraAltIcon from "@mui/icons-material/CameraAlt";
 import Security from "../Components/Features/Security";

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import './Styles/statusBar.css';
 
 import DnsIcon from '@mui/icons-material/Dns'; // OS

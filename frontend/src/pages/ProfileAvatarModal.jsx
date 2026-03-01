@@ -1,5 +1,5 @@
 // ProfileAvatarModal.jsx
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Button, TextField } from "@mui/material";
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import LinkIcon from "@mui/icons-material/Link";

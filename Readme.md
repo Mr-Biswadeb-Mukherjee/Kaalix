@@ -12,6 +12,16 @@ Kaalix does not merely record events. It interprets them in context, revealing p
 
 With Kaalix, organizations gain persistent awareness over their web ecosystem — where time, visibility, and control converge into decisive intelligence.
 
+## Local CI/CD (Makefile)
+
+The repository includes a fully local `Makefile` pipeline to detect security risks, architecture violations, quality issues, and build regressions.
+
+- Run local CI (offline-friendly): `make ci`
+- Run full CI including online vulnerability checks: `make ci-full`
+- Run local release gate (CI + build): `make cd`
+
+Pipeline outputs are written to timestamped folders under `Logs/ci/`.
+
 ## Branch Protection Enforcement
 
 Branch protection is managed as code using:
