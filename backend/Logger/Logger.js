@@ -130,7 +130,8 @@ async function flushBuffer(filePath) {
     let lastHash = "";
     try {
       lastHash = await fs.promises.readFile(chainFile, "utf8");
-    } catch {
+    } catch (err) {
+      if (err?.code !== "ENOENT") throw err;
     }
 
     let chainHash = lastHash;

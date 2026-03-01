@@ -438,7 +438,7 @@ export async function ensureDefaultSaAccount(pool) {
  */
 function getExecutionOrder(files, dbDir) {
   const initFile = "init.sql";
-  let ordered = [];
+  let ordered;
 
   if (files.includes(initFile)) {
     const initContent = fs.readFileSync(path.join(dbDir, initFile), "utf8");
