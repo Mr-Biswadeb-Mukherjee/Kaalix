@@ -20,11 +20,10 @@ jobs:
         with:
           fetch-depth: 0
 
-      # Install pnpm first
+      # Install pnpm (auto-detects version from package.json)
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
-          version: 9
           run_install: false
 
       # Setup Node with pnpm caching
@@ -34,11 +33,11 @@ jobs:
           node-version: 20
           cache: pnpm
 
-      # Install all workspace deps
+      # Install workspace dependencies
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      # Lint entire workspace
+      # Lint workspace
       - name: Lint
         run: pnpm lint
 
@@ -54,7 +53,7 @@ jobs:
       - name: Build frontend
         run: pnpm --filter frontend build
 
-      # SonarQube Scan
+      # SonarQube scan
       - name: SonarQube Scan
         uses: SonarSource/sonarqube-scan-action@v6
         env:
