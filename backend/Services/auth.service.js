@@ -55,18 +55,12 @@ const normalizeText = (value) =>
   typeof value === "string" ? value.trim() : "";
 
 const resolveLoginActorLabel = (user) => {
-  const fullName = normalizeText(user?.fullName);
   const username = normalizeText(user?.username);
-  const email = normalizeText(user?.email);
+  const fullName = normalizeText(user?.fullName);
   const userId = normalizeText(user?.user_id);
 
-  if (fullName && email) return `${fullName} (${email})`;
-  if (username && email && username.toLowerCase() !== email.toLowerCase()) {
-    return `${username} (${email})`;
-  }
-  if (email) return email;
-  if (fullName) return fullName;
   if (username) return username;
+  if (fullName) return fullName;
   if (userId) return `ID ${userId}`;
   return "unknown user";
 };
