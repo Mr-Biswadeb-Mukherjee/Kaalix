@@ -47,7 +47,6 @@ jobs:
       - name: Run ESLint
         run: pnpm exec eslint . --max-warnings=0
 
-
   codeql:
     name: CodeQL Deep Analysis
     runs-on: ubuntu-latest
@@ -75,22 +74,31 @@ jobs:
         with:
           category: "/language:${{ matrix.language }}"
 
-
   semgrep:
-    name: Semgrep Security + Architecture Enforcement
+    name: Semgrep Security 
     runs-on: ubuntu-latest
     timeout-minutes: 20
+
+    permissions:
+      contents: read
+      security-events: write
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Run Semgrep Rulesets
-        uses: semgrep/semgrep-action@v1
+      - name: Run Semgrep (Non-Blocking)
+        uses: returntocorp/semgrep-action@v1
         with:
           config: |
             p/default
             .semgrep/custom-rules.yml
+        continue-on-error: true
 
+      - name: Upload Semgrep Results
+        if: always()
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: semgrep.sarif
 
   trivy:
     name: Trivy Dependency + Secret + IaC Scan

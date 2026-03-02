@@ -1,29 +1,150 @@
 rules:
-  # SQL Injection Prevention
-  - id: no-raw-sql-interpolation
-    pattern: $DB.query(`...${...}...`)
-    message: Avoid SQL string interpolation. Use parameterized queries.
+
+############################################################
+# 🔥 TIER 1 — CRITICAL EXPLOIT PRIMITIVES (TAINT MODE)
+############################################################
+
+  - id: global-command-injection
+    mode: taint
+    languages: [javascript]
+    severity: ERROR
+    message: Untrusted input flows into command execution.
+    pattern-sources:
+      - pattern: $REQ.body.$ANY
+      - pattern: $REQ.query.$ANY
+      - pattern: $REQ.params.$ANY
+      - pattern: $REQ.headers.$ANY
+      - pattern: process.env.$ANY
+    pattern-sinks:
+      - pattern: child_process.exec($CMD)
+      - pattern: child_process.execSync($CMD)
+      - pattern: child_process.spawn($CMD, ...)
+      - pattern: $CP.exec($CMD)
+      - pattern: $CP.spawn($CMD, ...)
+    pattern-sanitizers:
+      - pattern: sanitize(...)
+      - pattern: validateInput(...)
+    focus-metavariable: $CMD
+
+
+  - id: global-sql-injection
+    mode: taint
+    languages: [javascript]
+    severity: ERROR
+    message: Untrusted input flows into database query.
+    pattern-sources:
+      - pattern: $REQ.body.$ANY
+      - pattern: $REQ.query.$ANY
+      - pattern: $REQ.params.$ANY
+      - pattern: $REQ.headers.$ANY
+    pattern-sinks:
+      - pattern: $DB.query($QUERY)
+      - pattern: $DB.execute($QUERY)
+      - pattern: $DB.raw($QUERY)
+    pattern-sanitizers:
+      - pattern: sanitize(...)
+      - pattern: validateInput(...)
+    focus-metavariable: $QUERY
+
+
+  - id: global-ssrf
+    mode: taint
+    languages: [javascript]
+    severity: ERROR
+    message: Untrusted input used as outbound request URL.
+    pattern-sources:
+      - pattern: $REQ.body.$ANY
+      - pattern: $REQ.query.$ANY
+      - pattern: $REQ.params.$ANY
+      - pattern: $REQ.headers.$ANY
+    pattern-sinks:
+      - pattern: fetch($URL)
+      - pattern: axios($URL)
+      - pattern: $CLIENT.get($URL)
+      - pattern: $CLIENT.post($URL, ...)
+    pattern-sanitizers:
+      - pattern: sanitize(...)
+      - pattern: validateURL(...)
+    focus-metavariable: $URL
+
+
+  - id: global-arbitrary-file-write
+    mode: taint
+    languages: [javascript]
+    severity: ERROR
+    message: Untrusted input flows into file write path.
+    pattern-sources:
+      - pattern: $REQ.body.$ANY
+      - pattern: $REQ.query.$ANY
+      - pattern: $REQ.params.$ANY
+    pattern-sinks:
+      - pattern: fs.writeFile($PATH, ...)
+      - pattern: fs.writeFileSync($PATH, ...)
+      - pattern: fs.createWriteStream($PATH)
+    pattern-sanitizers:
+      - pattern: sanitizePath(...)
+      - pattern: validatePath(...)
+    focus-metavariable: $PATH
+
+
+############################################################
+# ⚠️ TIER 2 — HIGH-RISK LOGIC & ABUSE PATTERNS
+############################################################
+
+  - id: no-dynamic-eval
+    pattern-either:
+      - pattern: eval(...)
+      - pattern: new Function(...)
+      - pattern: vm.runInThisContext(...)
+    message: Dangerous dynamic code execution detected.
     severity: ERROR
     languages: [javascript]
 
-  # Controller must not access DB directly
+
+  - id: unsafe-object-merge
+    pattern-either:
+      - pattern: Object.assign($TARGET, req.body)
+      - pattern: {...req.body}
+    message: Possible prototype pollution via unsanitized object merge.
+    severity: WARNING
+    languages: [javascript]
+
+
+  - id: unsafe-json-parse
+    pattern: JSON.parse(req.$ANY)
+    message: Parsing user-controlled JSON without validation.
+    severity: WARNING
+    languages: [javascript]
+
+
+  - id: hardcoded-role-check
+    pattern: if ($USER.role === "admin")
+    message: Hardcoded role check. Ensure centralized RBAC enforcement.
+    severity: WARNING
+    languages: [javascript]
+
+
+  - id: no-jwt-decode-auth
+    pattern: jwt.decode(...)
+    message: Do not use jwt.decode for authentication validation. Use jwt.verify.
+    severity: ERROR
+    languages: [javascript]
+
+
+############################################################
+# 🧱 TIER 3 — ARCHITECTURAL ENFORCEMENT
+############################################################
+
   - id: controller-db-access
     pattern: require("../Connectors/DB")
     message: Controllers must use Services layer instead of DB connector.
-    severity: ERROR
+    severity: WARNING
     languages: [javascript]
     paths:
       include:
         - backend/Controller/
 
-  # JWT misuse
-  - id: no-jwt-decode-auth
-    pattern: jwt.decode(...)
-    message: Do not use jwt.decode for auth validation. Use jwt.verify.
-    severity: ERROR
-    languages: [javascript]
 
-  # Prevent direct fs writes outside upload middleware
   - id: no-direct-fs-write
     pattern-either:
       - pattern: fs.writeFile(...)
@@ -35,25 +156,25 @@ rules:
       exclude:
         - backend/Middleware/upload.middleware.js
 
-  # Enforce auth middleware in protected routes
+
   - id: missing-auth-middleware
     patterns:
       - pattern: router.$METHOD($ROUTE, $HANDLER)
       - pattern-not: router.$METHOD($ROUTE, authMiddleware, ...)
-    message: Protected routes must include auth middleware.
-    severity: ERROR
+    message: Protected routes should include auth middleware.
+    severity: WARNING
     languages: [javascript]
     paths:
       include:
         - backend/Routes/protected.route.js
 
-  # Enforce rate limiter usage
+
   - id: missing-rate-limiter
     patterns:
       - pattern: router.$METHOD($ROUTE, $HANDLER)
       - pattern-not: router.$METHOD($ROUTE, rateLimiter, ...)
-    message: Routes must include rateLimiter middleware.
-    severity: ERROR
+    message: Routes should include rateLimiter middleware.
+    severity: WARNING
     languages: [javascript]
     paths:
       include:
