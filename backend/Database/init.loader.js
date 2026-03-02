@@ -227,7 +227,7 @@ export async function initializeDatabase(pool) {
           );
         } catch (err) {
           logger.error(`❌ Error executing ${file}: ${err.message}`);
-          process.exit(1);
+          throw err;
         }
         continue;
       }
@@ -243,7 +243,7 @@ export async function initializeDatabase(pool) {
       );
     } catch (err) {
       logger.error(`❌ Error executing ${file}: ${err.message}`);
-      process.exit(1);
+      throw err;
     }
   }
 

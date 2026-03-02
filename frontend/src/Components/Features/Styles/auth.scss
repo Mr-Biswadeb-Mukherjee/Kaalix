@@ -265,6 +265,15 @@
     }
   }
 
+  &__challenge-meta {
+    margin-top: -6px;
+    font-size: 0.7rem;
+    letter-spacing: 0.7px;
+    text-transform: uppercase;
+    color: rgba(255, 188, 188, 0.8);
+    text-align: center;
+  }
+
   &__lock-container {
     padding: 12px;
     border-radius: 12px;

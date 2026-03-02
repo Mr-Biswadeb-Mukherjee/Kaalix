@@ -19,6 +19,10 @@ const API = {
         method: 'GET',
         endpoint: `${API_BASE}/captcha`,
       },
+      captchaRefresh: {
+        method: 'POST',
+        endpoint: `${API_BASE}/captcha/refresh`,
+      },
       routeError: {
         method: 'GET',
         endpoint: `${API_BASE}/errors`,

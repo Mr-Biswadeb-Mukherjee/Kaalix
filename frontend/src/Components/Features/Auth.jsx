@@ -45,10 +45,15 @@ const Auth = ({ onAuthSuccess }) => {
   const [captchaImage, setCaptchaImage] = useState(null);
   const [lockInfo, setLockInfo] = useState(null);
   const [remainingTime, setRemainingTime] = useState(0);
+  const [challengeRemainingTime, setChallengeRemainingTime] = useState(0);
   const [authErrorPage, setAuthErrorPage] = useState(null);
   const lastErrorRef = useRef("");
+  const challengeExpiredNoticeRef = useRef(false);
 
   const authEndpoint = API.system.public.login.endpoint;
+  const captchaEndpoint = API.system.public.captcha.endpoint;
+  const captchaRefreshEndpoint = API.system.public.captchaRefresh.endpoint;
+  const formNonce = String(formData.formNonce || "");
 
   const fieldConfig = [
     {
@@ -79,38 +84,146 @@ const Auth = ({ onAuthSuccess }) => {
   ];
 
   const isFormDisabled =
-    loading || !formValid || !formData.captcha?.trim() || remainingTime > 0;
+    loading ||
+    !formValid ||
+    !formData.captcha?.trim() ||
+    remainingTime > 0 ||
+    challengeRemainingTime <= 0;
 
-  const fetchCaptcha = useCallback(async () => {
+  const handleError = useCallback((msg) => {
+    if (msg && lastErrorRef.current !== msg) {
+      addToast(msg, "error");
+      lastErrorRef.current = msg;
+    }
+  }, [addToast]);
+
+  const fetchInitialCaptcha = useCallback(async () => {
     try {
-      const res = await fetch(API.system.public.captcha.endpoint);
+      const res = await fetch(captchaEndpoint);
       const data = await parseApiResponse(res);
+      const ttlSeconds =
+        typeof data?.ttlSeconds === "number" && data.ttlSeconds > 0
+          ? data.ttlSeconds
+          : 60;
+      if (!data?.id || !data?.image || !data?.formNonce || !data?.captchaNonce) {
+        throw new Error("Captcha challenge payload is incomplete.");
+      }
       setAuthErrorPage(null);
       setCaptchaImage(data.image);
-      setFormData(prev => ({ ...prev, captchaId: data.id }));
+      challengeExpiredNoticeRef.current = false;
+      setChallengeRemainingTime(ttlSeconds * 1000);
+      setFormData(prev => ({
+        ...prev,
+        captcha: "",
+        captchaId: data.id,
+        formNonce: data.formNonce,
+        captchaNonce: data.captchaNonce,
+      }));
     } catch (err) {
+      setChallengeRemainingTime(0);
+      setFormData(prev => ({
+        ...prev,
+        captcha: "",
+        captchaId: "",
+        formNonce: "",
+        captchaNonce: "",
+      }));
       addToast(getBackendErrorMessage(err), "error");
       if (shouldRenderAuthErrorPage(err)) {
         setAuthErrorPage(getBackendErrorDisplay(err));
       }
     }
-  }, [addToast]);
+  }, [addToast, captchaEndpoint]);
 
   useEffect(() => {
     if (canvasRef.current) initBloodFlow(canvasRef.current);
-    fetchCaptcha();
-  }, [fetchCaptcha]);
+    fetchInitialCaptcha();
+  }, [fetchInitialCaptcha]);
+
+  const refreshCaptchaOnly = useCallback(async ({ showError = true } = {}) => {
+    if (!formNonce) {
+      if (showError) {
+        handleError("Form token missing. Refresh captcha to continue.");
+      }
+      return false;
+    }
+
+    if (challengeRemainingTime <= 0) {
+      if (showError) {
+        handleError("Login form token expired. Refresh captcha to continue.");
+      }
+      return false;
+    }
+
+    try {
+      const response = await fetch(captchaRefreshEndpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ formNonce }),
+      });
+
+      const data = await parseApiResponse(response);
+      const ttlSeconds =
+        typeof data?.ttlSeconds === "number" && data.ttlSeconds > 0
+          ? data.ttlSeconds
+          : 60;
+
+      if (!data?.id || !data?.image || !data?.captchaNonce) {
+        throw new Error("Captcha refresh payload is incomplete.");
+      }
+
+      setAuthErrorPage(null);
+      setCaptchaImage(data.image);
+      challengeExpiredNoticeRef.current = false;
+      setChallengeRemainingTime(ttlSeconds * 1000);
+      setFormData(prev => ({
+        ...prev,
+        captcha: "",
+        captchaId: data.id,
+        captchaNonce: data.captchaNonce,
+      }));
+      return true;
+    } catch (err) {
+      if (showError) {
+        handleError(getBackendErrorMessage(err));
+      }
+      if (shouldRenderAuthErrorPage(err)) {
+        setAuthErrorPage(getBackendErrorDisplay(err));
+      }
+      if (err?.code === "FORM_NONCE_EXPIRED") {
+        setChallengeRemainingTime(0);
+        setFormData(prev => ({
+          ...prev,
+          captcha: "",
+          captchaId: "",
+          captchaNonce: "",
+        }));
+      }
+      return false;
+    }
+  }, [
+    captchaRefreshEndpoint,
+    challengeRemainingTime,
+    formNonce,
+    handleError,
+  ]);
+
+  const handleCaptchaRefresh = useCallback(async () => {
+    if (formNonce && challengeRemainingTime > 0) {
+      const refreshed = await refreshCaptchaOnly();
+      if (refreshed) return;
+    }
+    await fetchInitialCaptcha();
+  }, [
+    challengeRemainingTime,
+    fetchInitialCaptcha,
+    formNonce,
+    refreshCaptchaOnly,
+  ]);
 
   const handleChange = e => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
-  };
-
-  const handleError = msg => {
-    if (msg && lastErrorRef.current !== msg) {
-      addToast(msg, "error");
-      lastErrorRef.current = msg;
-    }
   };
 
   const getFieldError = (fieldName, data) => {
@@ -169,8 +282,61 @@ const Auth = ({ onAuthSuccess }) => {
     return () => clearInterval(interval);
   }, [remainingTime]);
 
+  useEffect(() => {
+    if (!challengeRemainingTime || challengeRemainingTime <= 0) return;
+
+    const interval = setInterval(() => {
+      setChallengeRemainingTime(prev => {
+        if (prev <= 1000) {
+          clearInterval(interval);
+          return 0;
+        }
+        return prev - 1000;
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [challengeRemainingTime]);
+
+  useEffect(() => {
+    if (challengeRemainingTime > 0) return;
+
+    const hasChallenge = Boolean(formData.captchaId || formData.formNonce || formData.captchaNonce);
+    if (!hasChallenge || challengeExpiredNoticeRef.current) return;
+
+    challengeExpiredNoticeRef.current = true;
+    handleError("Login form challenge expired. Refresh captcha to continue.");
+    setFormData(prev => ({
+      ...prev,
+      captcha: "",
+      captchaId: "",
+      captchaNonce: "",
+    }));
+  }, [
+    challengeRemainingTime,
+    formData.captchaId,
+    formData.formNonce,
+    formData.captchaNonce,
+    handleError,
+  ]);
+
   const handleSubmit = async e => {
     e.preventDefault();
+
+    if (challengeRemainingTime <= 0) {
+      handleError("Login form challenge expired. Refresh captcha to continue.");
+      return;
+    }
+
+    if (!formData.formNonce) {
+      handleError("Form token missing. Refresh captcha to continue.");
+      return;
+    }
+
+    if (!formData.captchaId || !formData.formNonce || !formData.captchaNonce) {
+      handleError("Captcha verification required. Refresh captcha and try again.");
+      return;
+    }
 
     const failedField = fieldConfig.find(field => !validateForm(field.name, formData, false));
     if (failedField) {
@@ -208,8 +374,19 @@ const Auth = ({ onAuthSuccess }) => {
         return;
       }
       handleError(getBackendErrorMessage(err));
+      if (err?.code === "FORM_NONCE_EXPIRED") {
+        setChallengeRemainingTime(0);
+        setFormData(prev => ({
+          ...prev,
+          captcha: "",
+          captchaId: "",
+          captchaNonce: "",
+        }));
+        return;
+      }
+
       setFormData(prev => ({ ...prev, captcha: "" }));
-      fetchCaptcha();
+      await refreshCaptchaOnly({ showError: false });
     } finally {
       setLoading(false);
     }
@@ -261,14 +438,14 @@ const Auth = ({ onAuthSuccess }) => {
           }}
           onBlur={() => validateForm(name)}
           autoComplete={autoComplete}
-          disabled={loading || remainingTime > 0}
+          disabled={loading || remainingTime > 0 || challengeRemainingTime <= 0}
         />
         {toggle && (
           <button
             type="button"
             className="auth__toggle-password"
             onClick={() => setShowPassword(s => !s)}
-            disabled={loading || remainingTime > 0}
+            disabled={loading || remainingTime > 0 || challengeRemainingTime <= 0}
             aria-label={showPassword ? "Hide password" : "Show password"}
           >
             {showPassword ? <VisibilityOff /> : <Visibility />}
@@ -286,7 +463,7 @@ const Auth = ({ onAuthSuccess }) => {
             src={captchaImage}
             alt="Captcha"
             className="auth__captcha-image"
-            onClick={fetchCaptcha}
+            onClick={handleCaptchaRefresh}
             fallback={<div className="auth__captcha-fallback">Loading...</div>}
           />
         ) : (
@@ -296,12 +473,20 @@ const Auth = ({ onAuthSuccess }) => {
         <button
           type="button"
           className="auth__captcha-refresh"
-          onClick={fetchCaptcha}
+          onClick={handleCaptchaRefresh}
           aria-label="Refresh captcha"
           disabled={loading || remainingTime > 0}
         >
           <Refresh />
         </button>
+      </div>
+
+      <div className="auth__challenge-meta" role="status" aria-live="polite">
+        {challengeRemainingTime > 0 ? (
+          <span>Challenge expires in {formatTime(challengeRemainingTime)}</span>
+        ) : (
+          <span>Challenge expired. Refresh captcha.</span>
+        )}
       </div>
 
       {renderField(fieldConfig.find(f => f.name === "captcha"))}
@@ -321,7 +506,11 @@ const Auth = ({ onAuthSuccess }) => {
             actionLabel="Back to Login"
             onAction={() => {
               setAuthErrorPage(null);
-              fetchCaptcha();
+              if (formNonce && challengeRemainingTime > 0) {
+                handleCaptchaRefresh();
+                return;
+              }
+              fetchInitialCaptcha();
             }}
           />
         </div>

@@ -6,7 +6,7 @@ import {
   USER_ACCOUNT_STATUSES,
 } from "./user.service.js";
 
-import { verifyCaptcha, getStoredCaptcha } from "./captcha.service.js";
+import { verifyCaptchaChallenge } from "./captcha.service.js";
 import {
   BUSINESS_EMAIL_REQUIRED_MESSAGE,
   isPersonalEmail,
@@ -54,6 +54,8 @@ router.post("/", async (req, res) => {
     email,
     password,
     validateOnly,
+    formNonce,
+    captchaNonce,
     captchaId,
     captcha: captchaText
   } = req.body;
@@ -114,7 +116,21 @@ router.post("/", async (req, res) => {
 
   try {
     // 🔐 CAPTCHA validation
-    if (!captchaId || !captchaText) {
+    const normalizedFormNonce =
+      typeof formNonce === "string" ? formNonce.trim() : "";
+    const normalizedCaptchaNonce =
+      typeof captchaNonce === "string" ? captchaNonce.trim() : "";
+    const normalizedCaptchaId =
+      typeof captchaId === "string" ? captchaId.trim() : "";
+    const normalizedCaptchaText =
+      typeof captchaText === "string" ? captchaText.trim() : "";
+
+    if (
+      !normalizedFormNonce ||
+      !normalizedCaptchaNonce ||
+      !normalizedCaptchaId ||
+      !normalizedCaptchaText
+    ) {
       return res.status(400).json({
         success: false,
         message: "Captcha verification required.",
@@ -122,28 +138,19 @@ router.post("/", async (req, res) => {
       });
     }
 
-    const storedCaptcha = await getStoredCaptcha(captchaId);
-    const captchaValid = await verifyCaptcha(captchaId, captchaText);
+    const challengeResult = await verifyCaptchaChallenge({
+      formNonce: normalizedFormNonce,
+      captchaNonce: normalizedCaptchaNonce,
+      captchaId: normalizedCaptchaId,
+      userInput: normalizedCaptchaText,
+    });
 
-    if (!captchaValid) {
-      if (
-        typeof storedCaptcha === "string" &&
-        typeof captchaText === "string" &&
-        storedCaptcha.toLowerCase() === captchaText.toLowerCase()
-      ) {
-        return res.status(400).json({
-          success: false,
-          message: "Captcha verification failed due to case sensitivity.",
-          errors: [
-            "Captcha is case-sensitive. Please enter it exactly as shown.",
-          ],
-        });
-      }
-
+    if (!challengeResult.ok) {
       return res.status(400).json({
         success: false,
-        message: "Captcha verification failed.",
-        errors: ["Captcha verification failed. Please try again."],
+        code: challengeResult.code || "CAPTCHA_VERIFICATION_FAILED",
+        message: challengeResult.message || "Captcha verification failed.",
+        errors: [challengeResult.message || "Captcha verification failed."],
       });
     }
 
