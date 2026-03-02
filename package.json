@@ -49,6 +49,7 @@
     "@mui/icons-material": "^7.3.2",
     "@types/react": "^19.2.14",
     "@vitejs/plugin-react": "^5.1.4",
+    "@vitest/coverage-v8": "^4.0.18",
     "axios": "^1.13.5",
     "canvas": "^3.2.1",
     "captcha-canvas": "^3.4.0",
@@ -68,6 +69,7 @@
     "intl-tel-input": "^26.7.6",
     "jest": "^30.2.0",
     "jsdiff": "^1.1.1",
+    "jsdom": "^28.1.0",
     "libphonenumber-js": "^1.12.38",
     "lucide-react": "^0.575.0",
     "node-fetch": "^3.3.2",
@@ -85,6 +87,7 @@
     "uuid": "^13.0.0",
     "validator": "^13.15.26",
     "vite": "^7.3.1",
+    "vitest": "^4.0.18",
     "wait-on": "^9.0.4",
     "winston": "^3.19.0",
     "winston-transport": "^4.9.0"
