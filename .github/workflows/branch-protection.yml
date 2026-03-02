@@ -36,12 +36,17 @@ jobs:
           github-token: ${{ secrets.BRANCH_PROTECTION_TOKEN }}
           script: |
             const fs = require("node:fs");
+
             const path = ".github/branch-protection.json";
             const raw = fs.readFileSync(path, "utf8");
             const policy = JSON.parse(raw);
 
             const branch = policy.branch || "main";
             delete policy.branch;
+
+            // 🔐 Explicitly control admin bypass behavior
+            // Set to false if you want admins to be able to bypass protections
+            policy.enforce_admins = false;
 
             await github.rest.repos.updateBranchProtection({
               owner: context.repo.owner,
@@ -50,4 +55,6 @@ jobs:
               ...policy
             });
 
-            core.info(`Branch protection policy applied to ${context.repo.owner}/${context.repo.repo}@${branch}`);
+            core.info(
+              `Branch protection policy applied to ${context.repo.owner}/${context.repo.repo}@${branch}`
+            );
