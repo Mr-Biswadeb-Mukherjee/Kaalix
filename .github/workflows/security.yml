@@ -75,30 +75,26 @@ jobs:
           category: "/language:${{ matrix.language }}"
 
   semgrep:
-    name: Semgrep Security 
+    name: Semgrep Security
     runs-on: ubuntu-latest
     timeout-minutes: 20
-
-    permissions:
-      contents: read
-      security-events: write
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Run Semgrep (Non-Blocking)
-        uses: returntocorp/semgrep-action@v1
-        with:
-          config: |
-            p/default
-            .semgrep/custom-rules.yml
-        continue-on-error: true
+      - name: Run Semgrep CLI (Non-Blocking)
+        run: |
+          pip install semgrep
+          semgrep --config p/default \
+                  --config .semgrep/custom-rules.yml \
+                  --sarif --output semgrep.sarif \
+                  --error=false
 
       - name: Upload Semgrep Results
-        if: always()
         uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: semgrep.sarif
+        if: always()
 
   trivy:
     name: Trivy Dependency + Secret + IaC Scan
