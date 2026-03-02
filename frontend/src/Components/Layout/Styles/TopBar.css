@@ -120,6 +120,16 @@
   color: var(--text-color);
 }
 
+.topbar-status.session-status.critical {
+  border-color: #d97706;
+  box-shadow: 0 0 0 1px rgba(217, 119, 6, 0.35);
+}
+
+.topbar-status.session-status.critical .topbar-icon,
+.topbar-status.session-status.critical .topbar-text {
+  color: #d97706;
+}
+
 /*
 ==================================
          Top Bar Text

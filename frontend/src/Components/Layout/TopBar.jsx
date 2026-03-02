@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import {
   AccessTime as AccessTimeIcon,
+  TimerOutlined as TimerOutlinedIcon,
   LocationOn as LocationOnIcon,
   Brightness4 as Brightness4Icon,
   Forest as ForestIcon,
@@ -46,6 +47,42 @@ const formatRelativeTime = (rawValue) => {
   return diffDays > 0 ? `${diffDays}d ago` : `in ${Math.abs(diffDays)}d`;
 };
 
+const decodeTokenExpiryMs = (rawToken) => {
+  if (!rawToken || typeof rawToken !== 'string') return null;
+
+  const tokenParts = rawToken.split('.');
+  if (tokenParts.length !== 3) return null;
+
+  try {
+    const base64Url = tokenParts[1];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const padded = base64 + '='.repeat((4 - (base64.length % 4)) % 4);
+    const payload = JSON.parse(window.atob(padded));
+    const expSeconds = Number(payload?.exp);
+    if (!Number.isFinite(expSeconds) || expSeconds <= 0) return null;
+    return expSeconds * 1000;
+  } catch {
+    return null;
+  }
+};
+
+const formatSessionTime = (remainingMs) => {
+  if (!Number.isFinite(remainingMs)) return 'N/A';
+  if (remainingMs <= 0) return 'Expired';
+
+  const totalSeconds = Math.floor(remainingMs / 1000);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+
+  const mm = String(minutes).padStart(2, '0');
+  const ss = String(seconds).padStart(2, '0');
+  if (hours > 0) {
+    return `${String(hours).padStart(2, '0')}:${mm}:${ss}`;
+  }
+  return `${mm}:${ss}`;
+};
+
 const TopBar = ({ collapsed }) => {
   const [time, setTime] = useState(new Date().toLocaleTimeString());
   const [location, setLocation] = useState('Fetching...');
@@ -53,8 +90,11 @@ const TopBar = ({ collapsed }) => {
   const [dropdownVisible, setDropdownVisible] = useState(false);
   const [user, setUser] = useState({ username: 'Loading...', avatar: null });
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [sessionRemainingMs, setSessionRemainingMs] = useState(null);
+  const [sessionExpiryLabel, setSessionExpiryLabel] = useState('');
 
   const notificationRef = useRef(null);
+  const sessionExpiredHandledRef = useRef(false);
 
   const { addToast } = useToast();
   const { logout, onboardingRequired } = useAuth();
@@ -73,6 +113,61 @@ const TopBar = ({ collapsed }) => {
     const timer = setInterval(() => setTime(new Date().toLocaleTimeString()), 1000);
     return () => clearInterval(timer);
   }, []);
+
+  useEffect(() => {
+    if (!token) {
+      setSessionRemainingMs(null);
+      setSessionExpiryLabel('');
+      sessionExpiredHandledRef.current = false;
+      return;
+    }
+
+    sessionExpiredHandledRef.current = false;
+    const expiryMs = decodeTokenExpiryMs(token);
+    if (!expiryMs) {
+      setSessionRemainingMs(null);
+      setSessionExpiryLabel('');
+      return;
+    }
+
+    setSessionExpiryLabel(new Date(expiryMs).toLocaleTimeString());
+
+    const updateSessionRemaining = () => {
+      const nextRemaining = Math.max(0, expiryMs - Date.now());
+      setSessionRemainingMs(nextRemaining);
+    };
+
+    updateSessionRemaining();
+    const intervalId = setInterval(updateSessionRemaining, 1000);
+
+    return () => clearInterval(intervalId);
+  }, [token]);
+
+  useEffect(() => {
+    if (!token || !Number.isFinite(sessionRemainingMs) || sessionRemainingMs > 0) {
+      return;
+    }
+    if (sessionExpiredHandledRef.current) return;
+    sessionExpiredHandledRef.current = true;
+
+    const forceLogout = async () => {
+      try {
+        const result = await logout();
+        if (!result?.success) {
+          localStorage.removeItem('token');
+        }
+      } catch {
+        localStorage.removeItem('token');
+      } finally {
+        addToast('Session expired. Please log in again.', 'warning');
+        setTimeout(() => {
+          window.location.href = '/';
+        }, 1200);
+      }
+    };
+
+    void forceLogout();
+  }, [token, sessionRemainingMs, logout, addToast]);
 
   useEffect(() => {
     if (!token) return;
@@ -232,6 +327,11 @@ const TopBar = ({ collapsed }) => {
     }
   };
 
+  const isSessionCritical =
+    Number.isFinite(sessionRemainingMs) &&
+    sessionRemainingMs > 0 &&
+    sessionRemainingMs <= 60000;
+
   return (
     <div className={`topbar-container ${collapsed ? 'collapsed' : ''}`}>
       <div className="topbar-status theme-dropdown">
@@ -256,6 +356,14 @@ const TopBar = ({ collapsed }) => {
       <div className="topbar-status">
         <AccessTimeIcon className="topbar-icon" />
         <span className="topbar-text">{time}</span>
+      </div>
+
+      <div
+        className={`topbar-status session-status ${isSessionCritical ? 'critical' : ''}`}
+        title={sessionExpiryLabel ? `Token expires at ${sessionExpiryLabel}` : 'Token expiry unavailable'}
+      >
+        <TimerOutlinedIcon className="topbar-icon" />
+        <span className="topbar-text">Session: {formatSessionTime(sessionRemainingMs)}</span>
       </div>
 
       <div className="topbar-status">
