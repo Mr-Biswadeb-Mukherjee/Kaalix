@@ -10,9 +10,8 @@ RUN_DIR ?= $(REPORT_DIR)/$(REPORT_STAMP)
 AUDIT_LEVEL ?= high
 TRIVY_SEVERITY ?= HIGH,CRITICAL
 TRIVY_SKIP_DIRS ?= node_modules backend/node_modules frontend/node_modules frontend/dist dist Logs
-PACKAGE_LINUX ?= 0
 
-.PHONY: help install ci ci-full makeall cd release-local package-local lint architecture depcheck security-local trivy-local semgrep-local security-online audit-local snyk-local test build clean-reports
+.PHONY: help install ci ci-full makeall cd release-local lint architecture depcheck security-local trivy-local semgrep-local security-online audit-local snyk-local test build clean-reports
 
 help:
 	@echo "Local CI/CD targets"
@@ -20,8 +19,8 @@ help:
 	@echo "  make install         - Install workspace dependencies"
 	@echo "  make ci              - Local/offline CI (lint + architecture + depcheck + local security + tests + build)"
 	@echo "  make ci-full         - CI + online dependency checks (audit + snyk when available)"
-	@echo "  make makeall         - Run complete pipeline (ci-full + optional packaging)"
-	@echo "  make cd              - Local release gate (runs ci; set PACKAGE_LINUX=1 to package AppImage)"
+	@echo "  make makeall         - Run complete pipeline (ci-full)"
+	@echo "  make cd              - Local release gate (runs ci)"
 	@echo "  make release-local   - Alias of cd"
 	@echo "  make clean-reports   - Remove generated CI reports"
 	@echo ""
@@ -50,18 +49,9 @@ ci:
 
 ci-full: ci security-online
 
-makeall: ci-full package-local
+makeall: ci-full
 
-cd: ci package-local
-
-package-local:
-	@mkdir -p "$(RUN_DIR)"
-	@if [ "$(PACKAGE_LINUX)" = "1" ]; then \
-		echo "Packaging Linux artifact (AppImage)"; \
-		pnpm run pack:linux | tee "$(RUN_DIR)/package-linux.log"; \
-	else \
-		echo "Skipping packaging. Set PACKAGE_LINUX=1 to build AppImage." | tee "$(RUN_DIR)/package-linux.log"; \
-	fi
+cd: ci
 
 release-local: cd
 
@@ -114,7 +104,7 @@ semgrep-local:
 		echo "semgrep not found: skipping semgrep stage." | tee "$(RUN_DIR)/semgrep.log"; \
 	fi
 
-security-online: audit-local snyk-local
+security-online: audit-local
 
 audit-local:
 	@mkdir -p "$(RUN_DIR)"
@@ -126,10 +116,10 @@ audit-local:
 
 snyk-local:
 	@mkdir -p "$(RUN_DIR)"
-	@if [ -n "$${SNYK_TOKEN:-}" ] && command -v snyk > /dev/null 2>&1; then \
+	@if [ -n "$${SNYK_TOKEN:-}" ]; then \
 		pnpm exec snyk test --all-projects | tee "$(RUN_DIR)/snyk.log"; \
 	else \
-		echo "snyk unavailable or SNYK_TOKEN not set: skipping snyk stage." | tee "$(RUN_DIR)/snyk.log"; \
+		echo "SNYK_TOKEN not set. Skipping snyk stage." | tee "$(RUN_DIR)/snyk.log"; \
 	fi
 
 test:

@@ -23,7 +23,7 @@ export const getDomainFromWebsite = (website = "") => {
   const urlText = hasHttpScheme ? normalized : `https://${normalized}`;
 
   try {
-    const hostname = trimTrailingDots(new URL(urlText).hostname);
+    const hostname = trimTrailingDots(new globalThis.URL(urlText).hostname);
     if (!hostname) return "";
     return removeLeadingWww(hostname);
   } catch {

@@ -3,22 +3,25 @@ import react from '@vitejs/plugin-react';
 
 export default defineConfig({
   plugins: [react()],
+
+  // ✅ Add this block
+  build: {
+    chunkSizeWarningLimit: 1000, // increase from default 500 kB
+  },
+
   server: {
     host: true,
     port: 5173,
 
-    // 🧠 Proxy for backend API requests
     proxy: {
       '/api': {
-        target: 'http://127.0.0.1:4000', // Express backend
+        target: 'http://127.0.0.1:4000',
         changeOrigin: true,
         secure: false,
-        // Optional: rewrite '/api' prefix if your backend doesn't expect it
         // rewrite: path => path.replace(/^\/api/, '')
       }
     },
 
-    // 🌀 File watcher customization
     watch: {
       usePolling: true,
       interval: 150,

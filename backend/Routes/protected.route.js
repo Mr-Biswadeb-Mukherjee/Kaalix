@@ -132,7 +132,8 @@ router.post(
 );
 
 // -------------------- Error Handler --------------------
-router.use((err, req, res, _next) => {
+router.use((err, req, res, next) => {
+  void next;
   res.locals.errorReason = err?.message || "Protected route execution failed";
   res.locals.errorCode = err?.code || err?.name || "PROTECTED_ROUTE_ERROR";
   console.error("🚨 Router Error:", err);

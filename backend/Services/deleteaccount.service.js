@@ -51,7 +51,7 @@ const deleteacc = async (email, password) => {
         if (err?.code === "ENOENT") {
           // Avatar already missing; continue deleting the account.
         } else {
-          throw new Error(`Failed to delete avatar file: ${err.message}`);
+          throw new Error(`Failed to delete avatar file: ${err.message}`, { cause: err });
         }
       }
     }

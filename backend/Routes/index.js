@@ -50,7 +50,8 @@ app.use(publicRoutes);
 app.use(protectedRoutes);
 
 // 🔹 Global error handler
-app.use((err, req, res, _next) => {
+app.use((err, req, res, next) => {
+  void next;
   res.locals.errorReason = err?.message || "Unhandled server exception";
   res.locals.errorCode = err?.code || err?.name || "UNHANDLED_EXCEPTION";
   console.error("🔥 Global error caught:", err.stack || err);
