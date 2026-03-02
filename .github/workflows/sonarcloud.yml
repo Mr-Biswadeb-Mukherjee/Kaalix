@@ -2,8 +2,7 @@ name: Build
 
 on:
   push:
-    branches:
-      - main
+    branches: [ main ]
   pull_request:
     types: [opened, synchronize, reopened]
 
@@ -22,17 +21,16 @@ jobs:
           node-version: 20
           cache: 'pnpm'
 
-      - name: Setup pnpm
+      - name: Install pnpm
         uses: pnpm/action-setup@v4
         with:
           version: 9
-          run_install: false
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
       - name: Run tests with coverage
-        run: pnpm test -- --coverage
+        run: pnpm test
 
       - name: SonarQube Scan
         uses: SonarSource/sonarqube-scan-action@v6
