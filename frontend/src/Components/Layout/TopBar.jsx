@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   AccessTime as AccessTimeIcon,
   LocationOn as LocationOnIcon,
@@ -9,7 +9,9 @@ import {
   Bloodtype as BloodtypeIcon,
   AccountCircle as AccountCircleIcon,
   Logout as LogoutIcon,
-  Person as PersonIcon
+  Person as PersonIcon,
+  NotificationsNone as NotificationsNoneIcon,
+  DoneAll as DoneAllIcon,
 } from '@mui/icons-material';
 
 import SafeImage from '../UI/safeImage';
@@ -17,8 +19,32 @@ import API from '@amon/shared';
 import './Styles/TopBar.css';
 import { useToast } from '../UI/Toast';
 import { useAuth } from '../../Context/AuthContext';
+import { useRealtime } from '../../Context/RealtimeContext';
 import { getBrowserLocationLabel } from '../../Utils/browserLocation';
 import { getBackendErrorMessage, parseApiResponse } from '../../Utils/apiError';
+
+const formatRelativeTime = (rawValue) => {
+  if (!rawValue) return '';
+
+  const date = new Date(rawValue);
+  if (Number.isNaN(date.getTime())) return '';
+
+  const diffMs = Date.now() - date.getTime();
+  if (Math.abs(diffMs) < 60000) return 'Just now';
+
+  const diffMinutes = Math.floor(diffMs / 60000);
+  if (Math.abs(diffMinutes) < 60) {
+    return diffMinutes > 0 ? `${diffMinutes}m ago` : `in ${Math.abs(diffMinutes)}m`;
+  }
+
+  const diffHours = Math.floor(diffMinutes / 60);
+  if (Math.abs(diffHours) < 24) {
+    return diffHours > 0 ? `${diffHours}h ago` : `in ${Math.abs(diffHours)}h`;
+  }
+
+  const diffDays = Math.floor(diffHours / 24);
+  return diffDays > 0 ? `${diffDays}d ago` : `in ${Math.abs(diffDays)}d`;
+};
 
 const TopBar = ({ collapsed }) => {
   const [time, setTime] = useState(new Date().toLocaleTimeString());
@@ -26,18 +52,28 @@ const TopBar = ({ collapsed }) => {
   const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'light');
   const [dropdownVisible, setDropdownVisible] = useState(false);
   const [user, setUser] = useState({ username: 'Loading...', avatar: null });
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+
+  const notificationRef = useRef(null);
 
   const { addToast } = useToast();
   const { logout, onboardingRequired } = useAuth();
+  const {
+    notificationsLoading,
+    notifications,
+    unreadCount,
+    markNotificationRead,
+    markAllNotificationsRead,
+    requestNotificationsRefresh,
+  } = useRealtime();
+
   const token = localStorage.getItem('token');
 
-  // Update time every second
   useEffect(() => {
     const timer = setInterval(() => setTime(new Date().toLocaleTimeString()), 1000);
     return () => clearInterval(timer);
   }, []);
 
-  // Fetch user profile
   useEffect(() => {
     if (!token) return;
 
@@ -48,7 +84,7 @@ const TopBar = ({ collapsed }) => {
       .then((res) => parseApiResponse(res))
       .then((data) => {
         const avatarUrl = data.avatarUrl
-          ? `${data.avatarUrl}?t=${Date.now()}` // ✅ add timestamp cache buster
+          ? `${data.avatarUrl}?t=${Date.now()}`
           : null;
 
         setUser({
@@ -62,8 +98,6 @@ const TopBar = ({ collapsed }) => {
       });
   }, [token, addToast]);
 
-
-  // Fetch location
   useEffect(() => {
     if (!token) return;
     if (onboardingRequired) {
@@ -126,7 +160,27 @@ const TopBar = ({ collapsed }) => {
     };
   }, [token, onboardingRequired]);
 
-  // Apply theme
+  useEffect(() => {
+    if (!notificationsOpen) return;
+    void requestNotificationsRefresh();
+  }, [notificationsOpen, requestNotificationsRefresh]);
+
+  useEffect(() => {
+    if (!notificationsOpen) return;
+
+    const handleOutsideClick = (event) => {
+      if (!notificationRef.current) return;
+      if (!notificationRef.current.contains(event.target)) {
+        setNotificationsOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick);
+    };
+  }, [notificationsOpen]);
+
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
     localStorage.setItem('theme', theme);
@@ -164,9 +218,22 @@ const TopBar = ({ collapsed }) => {
     }
   };
 
+  const handleMarkAllRead = async () => {
+    const ok = await markAllNotificationsRead();
+    if (!ok) {
+      addToast('Failed to mark all notifications as read.', 'error');
+    }
+  };
+
+  const handleMarkOneRead = async (notificationId) => {
+    const ok = await markNotificationRead(notificationId);
+    if (!ok) {
+      addToast('Failed to update notification state.', 'error');
+    }
+  };
+
   return (
     <div className={`topbar-container ${collapsed ? 'collapsed' : ''}`}>
-      {/* Theme Dropdown */}
       <div className="topbar-status theme-dropdown">
         <div className="theme-selected">
           {getThemeIcon()}
@@ -186,19 +253,75 @@ const TopBar = ({ collapsed }) => {
         </div>
       </div>
 
-      {/* Time */}
       <div className="topbar-status">
         <AccessTimeIcon className="topbar-icon" />
         <span className="topbar-text">{time}</span>
       </div>
 
-      {/* Location */}
       <div className="topbar-status">
         <LocationOnIcon className="topbar-icon" />
         <span className="topbar-text">{location}</span>
       </div>
 
-      {/* User Profile Dropdown */}
+      <div className="topbar-status notification-dropdown" ref={notificationRef}>
+        <button
+          type="button"
+          className="notification-trigger"
+          onClick={() => setNotificationsOpen((prev) => !prev)}
+          aria-label="Toggle notifications"
+        >
+          <NotificationsNoneIcon className="topbar-icon" />
+          <span className="topbar-text">Notifications</span>
+          {unreadCount > 0 && (
+            <span className="notification-badge">{unreadCount > 99 ? '99+' : unreadCount}</span>
+          )}
+        </button>
+
+        {notificationsOpen && (
+          <div className="notification-dropdown-menu">
+            <div className="notification-header">
+              <strong>Notifications</strong>
+              <button
+                type="button"
+                className="notification-mark-all"
+                disabled={unreadCount === 0}
+                onClick={handleMarkAllRead}
+              >
+                <DoneAllIcon fontSize="small" />
+                Mark all read
+              </button>
+            </div>
+
+            <div className="notification-list">
+              {notificationsLoading ? (
+                <div className="notification-empty">Loading...</div>
+              ) : notifications.length === 0 ? (
+                <div className="notification-empty">No notifications yet.</div>
+              ) : (
+                notifications.map((item) => (
+                  <button
+                    type="button"
+                    key={item.notificationId}
+                    className={`notification-item ${item.isRead ? 'read' : 'unread'}`}
+                    onClick={() => {
+                      if (!item.isRead) {
+                        void handleMarkOneRead(item.notificationId);
+                      }
+                    }}
+                  >
+                    <div className="notification-item-top">
+                      <span className="notification-title">{item.title}</span>
+                      <span className="notification-time">{formatRelativeTime(item.createdAt)}</span>
+                    </div>
+                    <span className="notification-message">{item.message}</span>
+                  </button>
+                ))
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+
       <div
         className="topbar-status profile-dropdown"
         onMouseEnter={() => setDropdownVisible(true)}
@@ -209,7 +332,7 @@ const TopBar = ({ collapsed }) => {
             src={user.avatar}
             alt="Avatar"
             className="topbar-avatar"
-            fallback={<div className="avatar-placeholder" />} // optional fallback UI
+            fallback={<div className="avatar-placeholder" />}
           />
         ) : (
           <AccountCircleIcon className="topbar-icon" />

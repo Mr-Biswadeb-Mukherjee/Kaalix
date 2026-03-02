@@ -1,4 +1,5 @@
 import { MFAService } from "../Services/MFA.service.js";
+import { createNotificationSafely } from "../Services/notification.service.js";
 
 const asPromise = (value) => Promise.resolve(value);
 
@@ -23,6 +24,15 @@ export const ToggleMFA = async (req, res) => {
     }
 
     await asPromise(MFAService.disable(userId, method));
+    await createNotificationSafely({
+      userId,
+      actorUserId: userId,
+      type: "security.mfa_disabled",
+      severity: "warning",
+      title: "MFA Disabled",
+      message: `${method.toUpperCase()} multi-factor authentication was disabled.`,
+      metadata: { method },
+    });
     return res.status(200).json({ success: true, message: `${method} disabled` });
   } catch (err) {
     return res.status(400).json({ success: false, message: err.message });
@@ -39,6 +49,15 @@ export const VerifyMFA = async (req, res) => {
 
   try {
     await asPromise(MFAService.verify(userId, method, token));
+    await createNotificationSafely({
+      userId,
+      actorUserId: userId,
+      type: "security.mfa_enabled",
+      severity: "success",
+      title: "MFA Enabled",
+      message: `${method.toUpperCase()} multi-factor authentication is now enabled.`,
+      metadata: { method },
+    });
     return res.status(200).json({ success: true, message: "MFA verified and enabled" });
   } catch (err) {
     return res.status(400).json({ success: false, message: err.message });

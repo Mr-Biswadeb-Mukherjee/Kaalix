@@ -10,6 +10,10 @@ import {
   USER_ROLES,
   registerUser,
 } from "../Services/user.service.js";
+import {
+  createNotificationSafely,
+  createNotificationsForUsersSafely,
+} from "../Services/notification.service.js";
 import validator from "validator";
 
 const isSuperAdmin = (req) => req.user?.role === "sa";
@@ -56,12 +60,52 @@ export const UpdateOrganizationAdmins = async (req, res) => {
   }
 
   try {
-    await assignOrganizationAdmins({
+    const assignmentResult = await assignOrganizationAdmins({
       orgId,
       adminUserIds,
       assignedBy: req.user?.user_id,
     });
     const data = await fetchOrganizationAdminMatrix();
+    const updatedOrganization = data.organizations.find((org) => org.orgId === orgId);
+    const organizationLabel = updatedOrganization?.orgName || orgId;
+
+    if (Array.isArray(assignmentResult?.addedAdminUserIds) && assignmentResult.addedAdminUserIds.length > 0) {
+      await createNotificationsForUsersSafely({
+        userIds: assignmentResult.addedAdminUserIds,
+        actorUserId: req.user?.user_id,
+        type: "organization.assignment_added",
+        severity: "info",
+        title: "Organization Assignment Updated",
+        message: `You were assigned to organization ${organizationLabel}.`,
+        metadata: { orgId, orgName: updatedOrganization?.orgName || null },
+      });
+    }
+
+    if (Array.isArray(assignmentResult?.removedAdminUserIds) && assignmentResult.removedAdminUserIds.length > 0) {
+      await createNotificationsForUsersSafely({
+        userIds: assignmentResult.removedAdminUserIds,
+        actorUserId: req.user?.user_id,
+        type: "organization.assignment_removed",
+        severity: "warning",
+        title: "Organization Assignment Updated",
+        message: `You were removed from organization ${organizationLabel}.`,
+        metadata: { orgId, orgName: updatedOrganization?.orgName || null },
+      });
+    }
+
+    await createNotificationSafely({
+      userId: req.user?.user_id,
+      actorUserId: req.user?.user_id,
+      type: "organization.assignments_changed",
+      severity: "success",
+      title: "Organization Assignments Saved",
+      message: `Admin assignments for ${organizationLabel} were updated.`,
+      metadata: {
+        orgId,
+        addedCount: assignmentResult?.addedAdminUserIds?.length || 0,
+        removedCount: assignmentResult?.removedAdminUserIds?.length || 0,
+      },
+    });
 
     return res.status(200).json({
       success: true,
@@ -135,6 +179,30 @@ export const CreateManagedUser = async (req, res) => {
       adminUserId: createdUser.user_id,
       assignedBy: superAdminUserId,
     });
+    await createNotificationSafely({
+      userId: createdUser.user_id,
+      actorUserId: req.user?.user_id,
+      type: "account.created_by_super_admin",
+      severity: "info",
+      title: "Admin Account Provisioned",
+      message: `Your admin account was created and assigned to ${superAdminOrganization.orgName || "the organization"}.`,
+      metadata: {
+        orgId: superAdminOrganization.orgId,
+        orgName: superAdminOrganization.orgName || null,
+      },
+    });
+    await createNotificationSafely({
+      userId: req.user?.user_id,
+      actorUserId: req.user?.user_id,
+      type: "account.admin_created",
+      severity: "success",
+      title: "Managed User Created",
+      message: `Admin user ${createdUser.email} was created successfully.`,
+      metadata: {
+        managedUserId: createdUser.user_id,
+        orgId: superAdminOrganization.orgId,
+      },
+    });
 
     return res.status(201).json({
       success: true,
@@ -196,6 +264,30 @@ export const ManageAdminAccount = async (req, res) => {
         : result.action === "restore"
           ? "restored"
           : "unblocked";
+    await createNotificationSafely({
+      userId: result.adminUserId,
+      actorUserId: req.user?.user_id,
+      type: "account.status_changed",
+      severity: result.action === "delete" || result.action === "block" ? "warning" : "info",
+      title: "Account Status Updated",
+      message: `Your admin account was ${actionLabel} by super admin.`,
+      metadata: {
+        action: result.action,
+        accountStatus: result.accountStatus,
+      },
+    });
+    await createNotificationSafely({
+      userId: req.user?.user_id,
+      actorUserId: req.user?.user_id,
+      type: "account.status_changed",
+      severity: "success",
+      title: "Admin Account Updated",
+      message: `Admin ${result.email || result.adminUserId} was ${actionLabel} successfully.`,
+      metadata: {
+        action: result.action,
+        targetAdminUserId: result.adminUserId,
+      },
+    });
 
     return res.status(200).json({
       success: true,

@@ -17,6 +17,13 @@ import {
 } from "../Controller/OrgAdmin.controller.js";
 import { FetchProtectedSystemStatus } from "../Controller/System.controller.js";
 import { GetMFAStatus, ToggleMFA, VerifyMFA } from "../Controller/MFA.controller.js";
+import { FetchMonitoringSnapshot } from "../Controller/Monitoring.controller.js";
+import {
+  FetchNotifications,
+  FetchUnreadNotificationCount,
+  MarkAllNotificationsRead,
+  MarkNotificationRead,
+} from "../Controller/Notification.controller.js";
 import { upload, processAvatar, handleUploadErrors } from "../Middleware/upload.middleware.js";
 
 const router = express.Router();
@@ -106,6 +113,38 @@ router.post(
   API.system.protected.manageAdminAccount.endpoint,
   authMiddleware({ revoke: false }),
   ManageAdminAccount
+);
+
+// Monitoring snapshot
+router.get(
+  API.system.protected.monitoring.endpoint,
+  authMiddleware({ revoke: false }),
+  asyncHandler(FetchMonitoringSnapshot)
+);
+
+// Notifications
+router.get(
+  API.system.protected.notifications.endpoint,
+  authMiddleware({ revoke: false }),
+  asyncHandler(FetchNotifications)
+);
+
+router.get(
+  API.system.protected.notificationsUnreadCount.endpoint,
+  authMiddleware({ revoke: false }),
+  asyncHandler(FetchUnreadNotificationCount)
+);
+
+router.post(
+  API.system.protected.notificationsMarkRead.endpoint,
+  authMiddleware({ revoke: false }),
+  asyncHandler(MarkNotificationRead)
+);
+
+router.post(
+  API.system.protected.notificationsMarkAllRead.endpoint,
+  authMiddleware({ revoke: false }),
+  asyncHandler(MarkAllNotificationsRead)
 );
 
 // ===================== MFA Routes =====================

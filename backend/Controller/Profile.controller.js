@@ -8,6 +8,7 @@ import {
 } from "../Services/profile.service.js";
 import { getUserOnboardingState } from "../Services/user.service.js";
 import { maybeDeleteBootstrapCredentialsFile } from "../Utils/bootstrapCredentials.utils.js";
+import { createNotificationSafely } from "../Services/notification.service.js";
 
 import validator from "validator";
 import sanitizeHtml from "sanitize-html";
@@ -251,6 +252,14 @@ export const UpdateProfile = async (req, res) => {
     });
     const onboarding = await getUserOnboardingState(userId);
     maybeDeleteBootstrapCredentialsFile({ role: updatedProfile.role, onboarding });
+    await createNotificationSafely({
+      userId,
+      actorUserId: userId,
+      type: "profile.updated",
+      severity: "success",
+      title: "Profile Updated",
+      message: "Your profile details were updated.",
+    });
 
     res.json(buildProfileResponse(req, updatedProfile, onboarding));
   } catch (err) {
@@ -295,6 +304,14 @@ export const UpdateLocationConsent = async (req, res) => {
     const locationConsent = await updateLocationSharingConsent(userId, req.body.allow);
     const onboarding = await getUserOnboardingState(userId);
     maybeDeleteBootstrapCredentialsFile({ role: req.user?.role, onboarding });
+    await createNotificationSafely({
+      userId,
+      actorUserId: userId,
+      type: "security.location_consent_enabled",
+      severity: "info",
+      title: "Location Sharing Enabled",
+      message: "Location sharing consent has been enabled for your account.",
+    });
     return res.status(200).json({ success: true, locationConsent, onboarding });
   } catch (err) {
     console.error("Error in UpdateLocationConsent:", err);
@@ -357,6 +374,14 @@ export const UpdateAvatar = async (req, res) => {
 
     // ✅ Update DB using service
     const updatedUser = await updateProfileAvatar(userId, req.processedAvatarPath);
+    await createNotificationSafely({
+      userId,
+      actorUserId: userId,
+      type: "profile.avatar_updated",
+      severity: "success",
+      title: "Avatar Updated",
+      message: "Your profile avatar was updated.",
+    });
 
     return res.json({
       message: "Avatar updated successfully",

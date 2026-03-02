@@ -1,95 +1,55 @@
-import { useEffect, useState } from 'react';
 import './Styles/statusBar.css';
 
-import DnsIcon from '@mui/icons-material/Dns'; // OS
-import MemoryIcon from '@mui/icons-material/Memory'; // RAM
-import DeveloperBoardIcon from '@mui/icons-material/DeveloperBoard'; // CPU
-import SwapHorizIcon from '@mui/icons-material/SwapHoriz'; // Swap
-import GraphicEqIcon from '@mui/icons-material/GraphicEq'; // GPU
-import PublicIcon from '@mui/icons-material/Public'; // IP
-import LockIcon from '@mui/icons-material/Lock'
-import API from '@amon/shared';
-import { getBackendErrorMessage, parseApiResponse } from '../../Utils/apiError';
+import DnsIcon from '@mui/icons-material/Dns';
+import MemoryIcon from '@mui/icons-material/Memory';
+import DeveloperBoardIcon from '@mui/icons-material/DeveloperBoard';
+import SwapHorizIcon from '@mui/icons-material/SwapHoriz';
+import GraphicEqIcon from '@mui/icons-material/GraphicEq';
+import PublicIcon from '@mui/icons-material/Public';
+import LockIcon from '@mui/icons-material/Lock';
+import { useRealtime } from '../../Context/RealtimeContext';
 
 const StatusBar = ({ collapsed }) => {
-  const [stats, setStats] = useState({});
-  const [error, setError] = useState(null);
+  const { stats } = useRealtime();
 
-  useEffect(() => {
-    const fetchStats = async () => {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        setError('401 UNAUTHORIZED: Missing auth token');
-        return;
-      }
-
-      try {
-        const response = await fetch(API.system.protected.status.endpoint, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
-          },
-          body: JSON.stringify({}),
-        });
-
-        const data = await parseApiResponse(response);
-        setStats(data.stats);   // ✅ FIX: only use the "stats" field
-        setError(null);
-      } catch (err) {
-        if (err?.status === 401 || err?.status === 403) {
-          localStorage.removeItem('token');
-        }
-        setError(getBackendErrorMessage(err));
-      }
-    };
-
-    fetchStats();
-    const interval = setInterval(fetchStats, 2000); // refresh every 2s
-
-    return () => clearInterval(interval);
-  }, []);
+  const resolvedStats = stats || {};
 
   return (
     <div className={`status-bar ${collapsed ? 'collapsed' : ''}`}>
       <div className="status-item">
         <DnsIcon style={{ fontSize: 18, marginRight: 6 }} />
-        OS: {error ? 'Error' : stats.os}
+        OS: {resolvedStats.os || 'N/A'}
       </div>
 
       <div className="status-item">
         <DeveloperBoardIcon style={{ fontSize: 18, marginRight: 6 }} />
-        CPU: {error ? 'Error' : stats.cpu}
+        CPU: {resolvedStats.cpu || 'N/A'}
       </div>
 
       <div className="status-item">
         <MemoryIcon style={{ fontSize: 18, marginRight: 6 }} />
-        RAM: {error ? 'Error' : stats.ram}
+        RAM: {resolvedStats.ram || 'N/A'}
       </div>
 
       <div className="status-item">
         <SwapHorizIcon style={{ fontSize: 18, marginRight: 6 }} />
-        Swap: {error ? 'Error' : stats.swap}
+        Swap: {resolvedStats.swap || 'N/A'}
       </div>
 
       <div className="status-item">
         <GraphicEqIcon style={{ fontSize: 18, marginRight: 6 }} />
-        GPU: {error ? 'Error' : stats.gpu}
+        GPU: {resolvedStats.gpu || 'N/A'}
       </div>
 
       <div className="status-item">
         <PublicIcon style={{ fontSize: 18, marginRight: 6 }} />
-        IP: {error ? 'Error' : stats.publicIP}
+        IP: {resolvedStats.publicIP || 'N/A'}
       </div>
+
       <div className="status-item">
         <LockIcon style={{ fontSize: 18, marginRight: 6 }} />
-        Private IP: {error ? 'Error' : stats.privateIP}
+        Private IP: {resolvedStats.privateIP || 'N/A'}
       </div>
-      {error && (
-        <div className="status-item">
-          Error: {error}
-        </div>
-      )}
     </div>
   );
 };

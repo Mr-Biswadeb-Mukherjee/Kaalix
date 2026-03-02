@@ -1,10 +1,12 @@
 import { fileURLToPath } from "url";
 import path from "node:path";
+import http from "node:http";
 import express from "express";
 import app from "./Routes/index.js";  
 import { getDatabase } from "./Connectors/DB.js";
 import { server } from "./Confs/config.js";
 import { startAdminSoftDeletePurgeJob } from "./Services/adminLifecycle.service.js";
+import { initializeRealtimeGateway } from "./Realtime/realtime.gateway.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -45,9 +47,11 @@ async function waitForDatabaseReady() {
 async function startServer() {
   await waitForDatabaseReady();
   startAdminSoftDeletePurgeJob();
-  app.listen(PORT, () => {
+  const httpServer = http.createServer(app);
+  initializeRealtimeGateway(httpServer);
+  httpServer.listen(PORT, () => {
     console.log(
-      `🟢 Server running in ${NODE_ENV} mode at http://localhost:${PORT}`
+      `🟢 Server running in ${NODE_ENV} mode at http://localhost:${PORT} (realtime enabled)`
     );
   });
 }

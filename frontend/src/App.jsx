@@ -5,6 +5,7 @@ import Auth from './Components/Features/Auth';
 import { ToastProvider } from './Components/UI/Toast';
 import * as Pages from './pages';
 import { AuthProvider, useAuth } from './Context/AuthContext';
+import { RealtimeProvider } from './Context/RealtimeContext';
 import ProtectedRoute from './Components/Features/ProtectedRoute';
 import ServerRouteError from './Components/Features/ServerRouteError';
 
@@ -109,7 +110,9 @@ function App() {
     <ToastProvider>
       <Router>
         <AuthProvider>
-          <AppRoutes />
+          <RealtimeProvider>
+            <AppRoutes />
+          </RealtimeProvider>
         </AuthProvider>
       </Router>
     </ToastProvider>

@@ -18,6 +18,7 @@ let cachedPublicIP = 'N/A';
 let cachedLocation = 'N/A';
 let lastIPFetch = 0;
 let networkWasDown = false;
+const STATS_REFRESH_MS = 1000;
 
 // Get private IPv4 address
 function getPrivateIP() {
@@ -137,8 +138,8 @@ async function probeSystemStats() {
   }
 }
 
-// Refresh system stats every 5 seconds
-setInterval(probeSystemStats, 5000);
+// Refresh system stats continuously for realtime stream consumers.
+setInterval(probeSystemStats, STATS_REFRESH_MS);
 
 // Run immediately at startup
 probeSystemStats();

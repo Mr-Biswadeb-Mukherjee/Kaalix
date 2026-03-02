@@ -5,6 +5,10 @@ import {
   updateFailedAttempts,
   USER_ACCOUNT_STATUSES,
 } from "./user.service.js";
+import {
+  NOTIFICATION_RBAC_SCOPES,
+  createRbacNotificationSafely,
+} from "./notification.service.js";
 
 import { verifyCaptchaChallenge } from "./captcha.service.js";
 import {
@@ -46,6 +50,37 @@ const formatRestoreDeadline = (value) => {
   if (Number.isNaN(parsed.getTime())) return null;
   return parsed.toISOString();
 };
+
+const normalizeText = (value) =>
+  typeof value === "string" ? value.trim() : "";
+
+const resolveLoginActorLabel = (user) => {
+  const fullName = normalizeText(user?.fullName);
+  const username = normalizeText(user?.username);
+  const email = normalizeText(user?.email);
+  const userId = normalizeText(user?.user_id);
+
+  if (fullName && email) return `${fullName} (${email})`;
+  if (username && email && username.toLowerCase() !== email.toLowerCase()) {
+    return `${username} (${email})`;
+  }
+  if (email) return email;
+  if (fullName) return fullName;
+  if (username) return username;
+  if (userId) return `ID ${userId}`;
+  return "unknown user";
+};
+
+const normalizeRoleLabel = (role) => {
+  const normalizedRole = normalizeText(role).toLowerCase();
+  if (normalizedRole === "admin") return "Admin";
+  if (normalizedRole === "sa" || normalizedRole === "super_admin") {
+    return "Super Admin";
+  }
+  return "User";
+};
+
+const isAdminRole = (role) => normalizeText(role).toLowerCase() === "admin";
 
 // 🚪 POST /auth  → LOGIN ONLY
 router.post("/", async (req, res) => {
@@ -276,6 +311,57 @@ router.post("/", async (req, res) => {
       role,
       onboarding_required: onboarding.required,
     });
+    const loginNotificationMetadata = {
+      ip: req.ip || null,
+      userAgent: req.get("user-agent") || null,
+      actorUserId: user.user_id || null,
+      actorUsername: user.username || null,
+      actorEmail: user.email || null,
+      actorFullName: user.fullName || null,
+      actorRole: role,
+    };
+
+    if (isAdminRole(role)) {
+      await Promise.all([
+        createRbacNotificationSafely({
+          actorUserId: user.user_id,
+          rbacScope: NOTIFICATION_RBAC_SCOPES.SELF,
+          type: "auth.login_success",
+          severity: "info",
+          title: "New Login",
+          message: "You logged in.",
+          metadata: {
+            ...loginNotificationMetadata,
+            audience: "self",
+          },
+        }),
+        createRbacNotificationSafely({
+          actorUserId: user.user_id,
+          rbacScope: NOTIFICATION_RBAC_SCOPES.SUPER_ADMINS_ONLY,
+          type: "auth.login_success",
+          severity: "info",
+          title: "New Login",
+          message: `${normalizeRoleLabel(role)} ${resolveLoginActorLabel(user)} logged in.`,
+          metadata: {
+            ...loginNotificationMetadata,
+            audience: "super_admins",
+          },
+        }),
+      ]);
+    } else {
+      await createRbacNotificationSafely({
+        actorUserId: user.user_id,
+        rbacScope: NOTIFICATION_RBAC_SCOPES.SELF,
+        type: "auth.login_success",
+        severity: "info",
+        title: "New Login",
+        message: "You logged in.",
+        metadata: {
+          ...loginNotificationMetadata,
+          audience: "self",
+        },
+      });
+    }
 
     return res.json({
       success: true,

@@ -98,7 +98,7 @@ const MainLayout = () => {
           height: '100vh',
         }}
       >
-        <TopBar />
+        <TopBar collapsed={collapsed} />
 
         <Box sx={{ display: 'flex', flexGrow: 1, mt: `${topbarHeight}px` }}>
           <Sidebar collapsed={collapsed} setCollapsed={setCollapsed} />
@@ -115,8 +115,6 @@ const MainLayout = () => {
             <Outlet />
           </Box>
         </Box>
-
-        <TopBar collapsed={collapsed} />
         <StatusBar collapsed={collapsed} />
       </Box>
 

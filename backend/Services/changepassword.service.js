@@ -2,6 +2,7 @@ import bcrypt from "bcrypt";
 import { getDatabase } from "../Connectors/DB.js";
 import { findUserById, getUserOnboardingState } from "./user.service.js";
 import { maybeDeleteBootstrapCredentialsFile } from "../Utils/bootstrapCredentials.utils.js";
+import { createNotificationSafely } from "./notification.service.js";
 
 /**
  * Service: Update user password
@@ -63,6 +64,14 @@ export const ChangePassword = async (req, res) => {
 
     const onboarding = await getUserOnboardingState(userId);
     maybeDeleteBootstrapCredentialsFile({ role: user.role, onboarding });
+    await createNotificationSafely({
+      userId,
+      actorUserId: userId,
+      type: "security.password_changed",
+      severity: "success",
+      title: "Password Updated",
+      message: "Your account password was changed successfully.",
+    });
 
     return res.json({
       message: "Password changed successfully",

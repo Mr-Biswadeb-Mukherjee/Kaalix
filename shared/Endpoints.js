@@ -120,6 +120,30 @@ const API = {
         method: 'POST',
         endpoint: `${API_BASE}/managed-users/account-status`,
       },
+      notifications: {
+        method: 'GET',
+        endpoint: `${API_BASE}/notifications`,
+      },
+      notificationsUnreadCount: {
+        method: 'GET',
+        endpoint: `${API_BASE}/notifications/unread-count`,
+      },
+      notificationsMarkRead: {
+        method: 'POST',
+        endpoint: `${API_BASE}/notifications/read`,
+      },
+      notificationsMarkAllRead: {
+        method: 'POST',
+        endpoint: `${API_BASE}/notifications/read-all`,
+      },
+      realtime: {
+        method: 'GET',
+        endpoint: `${API_BASE}/realtime`,
+      },
+      monitoring: {
+        method: 'GET',
+        endpoint: `${API_BASE}/monitoring`,
+      },
     },
   },
 };
