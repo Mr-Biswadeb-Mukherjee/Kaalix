@@ -9,6 +9,7 @@ import GraphicEqIcon from '@mui/icons-material/GraphicEq'; // GPU
 import PublicIcon from '@mui/icons-material/Public'; // IP
 import LockIcon from '@mui/icons-material/Lock'
 import API from '@amon/shared';
+import { getBackendErrorMessage, parseApiResponse } from '../../Utils/apiError';
 
 const StatusBar = ({ collapsed }) => {
   const [stats, setStats] = useState({});
@@ -18,7 +19,7 @@ const StatusBar = ({ collapsed }) => {
     const fetchStats = async () => {
       const token = localStorage.getItem('token');
       if (!token) {
-        setError('No auth token');
+        setError('401 UNAUTHORIZED: Missing auth token');
         return;
       }
 
@@ -32,20 +33,14 @@ const StatusBar = ({ collapsed }) => {
           body: JSON.stringify({}),
         });
 
-        if (response.status === 401 || response.status === 403) {
-          // optional: clear token + redirect to login
-          localStorage.removeItem('token');
-          setError('Unauthorized');
-          return;
-        }
-
-        if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
-
-        const data = await response.json();
+        const data = await parseApiResponse(response);
         setStats(data.stats);   // ✅ FIX: only use the "stats" field
         setError(null);
-      } catch {
-        setError('Unable to fetch stats');
+      } catch (err) {
+        if (err?.status === 401 || err?.status === 403) {
+          localStorage.removeItem('token');
+        }
+        setError(getBackendErrorMessage(err));
       }
     };
 
@@ -90,6 +85,11 @@ const StatusBar = ({ collapsed }) => {
         <LockIcon style={{ fontSize: 18, marginRight: 6 }} />
         Private IP: {error ? 'Error' : stats.privateIP}
       </div>
+      {error && (
+        <div className="status-item">
+          Error: {error}
+        </div>
+      )}
     </div>
   );
 };

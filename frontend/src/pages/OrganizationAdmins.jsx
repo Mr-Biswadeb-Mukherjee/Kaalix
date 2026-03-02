@@ -3,6 +3,7 @@ import API from "@amon/shared";
 import { useAuth } from "../Context/AuthContext";
 import { useToast } from "../Components/UI/Toast";
 import { getDomainFromEmail, getDomainFromWebsite } from "../Utils/domainUtils";
+import { getBackendErrorMessage, parseApiResponse } from "../Utils/apiError";
 import "./Styles/OrganizationAdmins.css";
 
 const DAY_IN_MS = 24 * 60 * 60 * 1000;
@@ -87,11 +88,12 @@ const getSoftDeleteDeadlineLabel = (admin) => {
 };
 
 const OrganizationAdmins = () => {
-  const { isSuperAdmin, loading: authLoading } = useAuth();
+  const { loading: authLoading } = useAuth();
   const { addToast } = useToast();
   const token = localStorage.getItem("token");
 
   const [loading, setLoading] = useState(true);
+  const [accessError, setAccessError] = useState("");
   const [saving, setSaving] = useState(false);
   const [organizations, setOrganizations] = useState([]);
   const [superAdminOrganization, setSuperAdminOrganization] = useState(null);
@@ -133,6 +135,7 @@ const OrganizationAdmins = () => {
     if (!token) return;
 
     setLoading(true);
+    setAccessError("");
     try {
       const res = await fetch(API.system.protected.organizationAdmins.endpoint, {
         method: "GET",
@@ -142,25 +145,23 @@ const OrganizationAdmins = () => {
         },
       });
 
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok || !data?.success) {
-        throw new Error(data?.message || "Failed to load organization admin data.");
-      }
+      const data = await parseApiResponse(res, { requireSuccess: true });
       applyDirectoryPayload(data, { preferredOrgId, syncSelection: true });
     } catch (err) {
-      addToast(err.message || "Failed to load organization admin data.", "error");
+      const errorMessage = getBackendErrorMessage(err);
+      setAccessError(errorMessage);
+      addToast(errorMessage, "error");
     } finally {
       setLoading(false);
     }
   }, [addToast, token, applyDirectoryPayload]);
 
   useEffect(() => {
-    if (authLoading || !isSuperAdmin) {
-      setLoading(false);
+    if (authLoading) {
       return;
     }
     loadDirectory();
-  }, [authLoading, isSuperAdmin, loadDirectory]);
+  }, [authLoading, loadDirectory]);
 
   const selectedOrganization = useMemo(
     () => organizations.find((org) => org.orgId === selectedOrgId) || null,
@@ -245,14 +246,11 @@ const OrganizationAdmins = () => {
         }),
       });
 
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok || !data?.success) {
-        throw new Error(data?.message || "Failed to update organization admins.");
-      }
+      const data = await parseApiResponse(res, { requireSuccess: true });
       applyDirectoryPayload(data);
     } catch (err) {
       setAssignments((prev) => ({ ...prev, [orgId]: current }));
-      addToast(err.message || "Failed to update organization admins.", "error");
+      addToast(getBackendErrorMessage(err), "error");
     } finally {
       setSaving(false);
     }
@@ -306,10 +304,7 @@ const OrganizationAdmins = () => {
         }),
       });
 
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok || !data?.success) {
-        throw new Error(data?.message || "Failed to create managed user.");
-      }
+      const data = await parseApiResponse(res, { requireSuccess: true });
 
       setCreateForm((prev) => ({ ...prev, email: "", password: "" }));
       const assignedOrgName =
@@ -320,7 +315,7 @@ const OrganizationAdmins = () => {
       );
       await loadDirectory(data?.assignedOrg?.orgId || "");
     } catch (err) {
-      addToast(err.message || "Failed to create managed user.", "error");
+      addToast(getBackendErrorMessage(err), "error");
     } finally {
       setCreatingUser(false);
     }
@@ -365,10 +360,7 @@ const OrganizationAdmins = () => {
         }),
       });
 
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok || !data?.success) {
-        throw new Error(data?.message || `Failed to ${actionLabel} admin account.`);
-      }
+      const data = await parseApiResponse(res, { requireSuccess: true });
       applyDirectoryPayload(data);
       const fallbackMessage =
         action === "delete"
@@ -378,24 +370,13 @@ const OrganizationAdmins = () => {
             : `Admin ${actionLabel}ed successfully.`;
       addToast(data.message || fallbackMessage, "success");
     } catch (err) {
-      addToast(err.message || `Failed to ${actionLabel} admin account.`, "error");
+      addToast(getBackendErrorMessage(err), "error");
     } finally {
       setAdminActionKey("");
     }
   };
 
   if (authLoading) return null;
-
-  if (!isSuperAdmin) {
-    return (
-      <section className="org-admins-page">
-        <article className="org-admins-card org-admins-empty-state">
-          <h1>Organization Admin Console</h1>
-          <p>This page is available only to the super admin account.</p>
-        </article>
-      </section>
-    );
-  }
 
   return (
     <section className="org-admins-page">
@@ -588,7 +569,9 @@ const OrganizationAdmins = () => {
             </article>
           </div>
 
-          {loading ? (
+          {accessError ? (
+            <p className="org-admins-message">{accessError}</p>
+          ) : loading ? (
             <p className="org-admins-message">Loading organization and admin data...</p>
           ) : admins.length === 0 ? (
             <p className="org-admins-message">No admin users found.</p>

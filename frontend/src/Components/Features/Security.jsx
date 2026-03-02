@@ -5,6 +5,7 @@ import API from '@amon/shared';
 import Modal from '../UI/Modal';
 import { Visibility, VisibilityOff } from "@mui/icons-material";
 import MFA from "./MFA"
+import { getBackendErrorMessage, parseApiResponse } from '../../Utils/apiError';
 
 const Security = ({ onboarding, onOnboardingUpdate }) => {
   const { addToast } = useToast();
@@ -44,8 +45,7 @@ const Security = ({ onboarding, onOnboardingUpdate }) => {
         },
         body: JSON.stringify({ oldPassword, newPassword }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Failed to change password');
+      const data = await parseApiResponse(res);
 
       notify.success('Password changed successfully!');
       if (data?.onboarding && typeof onOnboardingUpdate === "function") {
@@ -56,7 +56,7 @@ const Security = ({ onboarding, onOnboardingUpdate }) => {
       setNewPassword('');
       setConfirmPassword('');
     } catch (err) {
-      notify.error(err.message);
+      notify.error(getBackendErrorMessage(err));
     } finally {
       setLoading(false);
     }

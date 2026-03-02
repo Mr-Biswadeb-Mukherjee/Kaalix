@@ -6,6 +6,7 @@ import LinkIcon from "@mui/icons-material/Link";
 import Cropper from "react-easy-crop";
 import { useToast } from "../Components/UI/Toast";
 import API from "@amon/shared";
+import { getBackendErrorMessage, parseApiResponse } from "../Utils/apiError";
 
 const ProfileAvatarModal = ({
   isModalOpen,
@@ -226,8 +227,7 @@ const ProfileAvatarModal = ({
                         body: formData
                       });
 
-                      if (!res.ok) throw new Error("Upload failed");
-                      const data = await res.json();
+                      const data = await parseApiResponse(res);
 
                       addToast("Profile picture updated successfully!", "success");
 
@@ -237,7 +237,7 @@ const ProfileAvatarModal = ({
                       }));
                       setAvatarPreview(`${data.avatarUrl}?t=${Date.now()}`);
                     } catch (err) {
-                      addToast(err.message || "Failed to upload avatar", "error");
+                      addToast(getBackendErrorMessage(err), "error");
                     }
 
                     URL.revokeObjectURL(fileUrl);

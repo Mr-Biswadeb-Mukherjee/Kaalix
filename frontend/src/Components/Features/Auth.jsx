@@ -18,7 +18,21 @@ import {
   isPersonalEmail,
   isValidEmailFormat,
 } from "../../Utils/businessEmailPolicy";
+import {
+  getBackendErrorDisplay,
+  getBackendErrorMessage,
+  parseApiResponse,
+} from "../../Utils/apiError";
+import RouteError from "./RouteError";
 import "./Styles/auth.scss";
+
+const PAGE_LEVEL_LOGIN_ERROR_STATUSES = new Set([429]);
+
+const shouldRenderAuthErrorPage = (err) => {
+  const status = typeof err?.status === "number" ? err.status : null;
+  if (!status) return false;
+  return status >= 500 || PAGE_LEVEL_LOGIN_ERROR_STATUSES.has(status);
+};
 
 const Auth = ({ onAuthSuccess }) => {
   const canvasRef = useRef(null);
@@ -31,6 +45,7 @@ const Auth = ({ onAuthSuccess }) => {
   const [captchaImage, setCaptchaImage] = useState(null);
   const [lockInfo, setLockInfo] = useState(null);
   const [remainingTime, setRemainingTime] = useState(0);
+  const [authErrorPage, setAuthErrorPage] = useState(null);
   const lastErrorRef = useRef("");
 
   const authEndpoint = API.system.public.login.endpoint;
@@ -69,11 +84,15 @@ const Auth = ({ onAuthSuccess }) => {
   const fetchCaptcha = useCallback(async () => {
     try {
       const res = await fetch(API.system.public.captcha.endpoint);
-      const data = await res.json();
+      const data = await parseApiResponse(res);
+      setAuthErrorPage(null);
       setCaptchaImage(data.image);
       setFormData(prev => ({ ...prev, captchaId: data.id }));
-    } catch {
-      addToast("Error loading CAPTCHA.", "error");
+    } catch (err) {
+      addToast(getBackendErrorMessage(err), "error");
+      if (shouldRenderAuthErrorPage(err)) {
+        setAuthErrorPage(getBackendErrorDisplay(err));
+      }
     }
   }, [addToast]);
 
@@ -160,6 +179,7 @@ const Auth = ({ onAuthSuccess }) => {
     }
 
     setLoading(true);
+    setAuthErrorPage(null);
 
     try {
       const response = await fetch(authEndpoint, {
@@ -171,28 +191,24 @@ const Auth = ({ onAuthSuccess }) => {
         })
       });
 
-      const data = await response.json();
-
-      if (!response.ok || !data.success) {
-        handleError(data.message || "Authentication failed.");
-
-        if (data.lock_info) {
-          setLockInfo(data.lock_info);
-          setRemainingTime(data.lock_info.remaining_ms);
-        }
-
-        setFormData({});
-        fetchCaptcha();
-        return;
-      }
+      const data = await parseApiResponse(response, { requireSuccess: true });
 
       addToast(`Welcome back, ${data.user.fullName || formData.email}.`, "success");
 
       localStorage.setItem("token", data.token);
       onAuthSuccess?.(data);
-    } catch {
-      handleError("Server error. Please try again later.");
-      setFormData({});
+    } catch (err) {
+      const hasBackendStatus = typeof err?.status === "number";
+      if (err?.data?.lock_info) {
+        setLockInfo(err.data.lock_info);
+        setRemainingTime(err.data.lock_info.remaining_ms);
+      }
+      if (hasBackendStatus && shouldRenderAuthErrorPage(err)) {
+        setAuthErrorPage(getBackendErrorDisplay(err));
+        return;
+      }
+      handleError(getBackendErrorMessage(err));
+      setFormData(prev => ({ ...prev, captcha: "" }));
       fetchCaptcha();
     } finally {
       setLoading(false);
@@ -291,6 +307,27 @@ const Auth = ({ onAuthSuccess }) => {
       {renderField(fieldConfig.find(f => f.name === "captcha"))}
     </>
   );
+
+  if (authErrorPage) {
+    return (
+      <div className="auth">
+        <canvas ref={canvasRef} className="auth__canvas" />
+        <div className="auth__container">
+          <RouteError
+            status={authErrorPage.status}
+            code={authErrorPage.code}
+            title={authErrorPage.title}
+            message={authErrorPage.message}
+            actionLabel="Back to Login"
+            onAction={() => {
+              setAuthErrorPage(null);
+              fetchCaptcha();
+            }}
+          />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="auth">

@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import './Styles/Logs.css';
+import { getBackendErrorMessage, parseApiResponse } from '../Utils/apiError';
 
 const Logs = () => {
   const [logsEnabled, setLogsEnabled] = useState(false);
@@ -16,11 +17,11 @@ const Logs = () => {
     const fetchStatus = async () => {
       try {
         const res = await fetch('/api/logging/status');
-        const data = await res.json();
+        const data = await parseApiResponse(res);
         setLogsEnabled(data.enabled);
         setRequestError("");
-      } catch {
-        setRequestError("Failed to fetch logging status.");
+      } catch (err) {
+        setRequestError(getBackendErrorMessage(err));
       }
     };
     fetchStatus();
@@ -35,14 +36,11 @@ const Logs = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ enabled: !logsEnabled })
       });
-      if (res.ok) {
-        setLogsEnabled(!logsEnabled);
-        setRequestError("");
-      } else {
-        setRequestError("Failed to toggle logging.");
-      }
-    } catch {
-      setRequestError("Failed to toggle logging.");
+      await parseApiResponse(res);
+      setLogsEnabled(!logsEnabled);
+      setRequestError("");
+    } catch (err) {
+      setRequestError(getBackendErrorMessage(err));
     } finally {
       setIsPending(false);
     }

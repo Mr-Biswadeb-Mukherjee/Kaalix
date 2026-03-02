@@ -8,3 +8,4 @@ export { default as Documentation } from './Docs';
 export { default as Logs } from './Logs';
 export { default as Profile } from './Profile';
 export { default as OrganizationAdmins } from './OrganizationAdmins';
+export { default as RouteErrorPage } from './RouteErrorPage';

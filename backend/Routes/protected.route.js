@@ -137,7 +137,30 @@ router.use((err, req, res, next) => {
   res.locals.errorReason = err?.message || "Protected route execution failed";
   res.locals.errorCode = err?.code || err?.name || "PROTECTED_ROUTE_ERROR";
   console.error("🚨 Router Error:", err);
-  return res.status(500).json({ success: false, message: "Internal Server Error" });
+  const status =
+    Number.isInteger(err?.status) && err.status >= 400 && err.status <= 599
+      ? err.status
+      : Number.isInteger(err?.statusCode) && err.statusCode >= 400 && err.statusCode <= 599
+        ? err.statusCode
+        : 500;
+  return res.status(status).json({
+    title:
+      typeof err?.title === "string" && err.title.trim()
+        ? err.title
+        : status === 500
+          ? "Server error"
+          : "Request failed",
+    message:
+      typeof err?.message === "string" && err.message.trim()
+        ? err.message
+        : "Internal Server Error",
+    code:
+      typeof err?.code === "string" && err.code.trim()
+        ? err.code
+        : status === 500
+          ? "PROTECTED_ROUTE_ERROR"
+          : `HTTP_${status}_ERROR`,
+  });
 });
 
 export default router;

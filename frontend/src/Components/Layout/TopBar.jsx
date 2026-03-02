@@ -18,6 +18,7 @@ import './Styles/TopBar.css';
 import { useToast } from '../UI/Toast';
 import { useAuth } from '../../Context/AuthContext';
 import { getBrowserLocationLabel } from '../../Utils/browserLocation';
+import { getBackendErrorMessage, parseApiResponse } from '../../Utils/apiError';
 
 const TopBar = ({ collapsed }) => {
   const [time, setTime] = useState(new Date().toLocaleTimeString());
@@ -44,10 +45,7 @@ const TopBar = ({ collapsed }) => {
       method: 'GET',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
     })
-      .then((res) => {
-        if (!res.ok) throw new Error('Failed to fetch profile');
-        return res.json();
-      })
+      .then((res) => parseApiResponse(res))
       .then((data) => {
         const avatarUrl = data.avatarUrl
           ? `${data.avatarUrl}?t=${Date.now()}` // ✅ add timestamp cache buster
@@ -58,9 +56,9 @@ const TopBar = ({ collapsed }) => {
           avatar: avatarUrl,
         });
       })
-      .catch(() => {
+      .catch((err) => {
         setUser({ username: 'Unknown User', avatar: null });
-        addToast('Failed to load profile info', 'error');
+        addToast(getBackendErrorMessage(err), 'error');
       });
   }, [token, addToast]);
 
@@ -99,8 +97,7 @@ const TopBar = ({ collapsed }) => {
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         });
 
-        if (!res.ok) throw new Error('Failed to fetch location');
-        const data = await res.json();
+        const data = await parseApiResponse(res);
         if (!isMounted) return;
         setLocation(resolveLocationText(data));
       } catch {
@@ -149,13 +146,7 @@ const TopBar = ({ collapsed }) => {
 
   const handleLogout = async () => {
     if (!token) {
-      addToast('You are already logged out.', 'warning');
       window.location.href = '/';
-      return;
-    }
-
-    if (onboardingRequired) {
-      addToast('Complete profile update and password change before logout.', 'warning');
       return;
     }
 
@@ -167,9 +158,9 @@ const TopBar = ({ collapsed }) => {
         return;
       }
 
-      addToast(result?.message || 'Logout failed.', result?.blocked ? 'warning' : 'error');
-    } catch {
-      addToast('Network error during logout. Please try again.', 'error');
+      addToast(result?.message, result?.blocked ? 'warning' : 'error');
+    } catch (err) {
+      addToast(getBackendErrorMessage(err), 'error');
     }
   };
 

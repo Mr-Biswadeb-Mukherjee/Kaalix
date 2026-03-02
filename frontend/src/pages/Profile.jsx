@@ -17,6 +17,7 @@ import {
   isPersonalEmail,
   isValidEmailFormat,
 } from "../Utils/businessEmailPolicy";
+import { getBackendErrorMessage, parseApiResponse } from "../Utils/apiError";
 
 const Profile = () => {
   const { addToast } = useToast();
@@ -86,8 +87,7 @@ const Profile = () => {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }
       });
-      if (!res.ok) throw new Error("Failed to fetch location");
-      const data = await res.json();
+      const data = await parseApiResponse(res);
       const browserLocation = await getBrowserLocationLabel();
       const loc = browserLocation || data?.stats?.location || "Unknown Location";
       const isLocationAllowed = data?.stats?.locationSharingEnabled === true;
@@ -116,18 +116,16 @@ const Profile = () => {
   useEffect(() => {
     if (!token) return;
 
-    fetch(API.system.protected.getprofile.endpoint, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`
-      }
-    })
-      .then((res) => {
-        if (!res.ok) throw new Error("Failed to fetch profile");
-        return res.json();
-      })
-      .then((data) => {
+    const fetchProfile = async () => {
+      try {
+        const res = await fetch(API.system.protected.getprofile.endpoint, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`
+          }
+        });
+        const data = await parseApiResponse(res);
         const profile = {
           fullName: data.fullName || "",
           email: data.email || "",
@@ -149,8 +147,12 @@ const Profile = () => {
         if (data?.onboarding) {
           updateOnboarding(data.onboarding);
         }
-      })
-      .catch(() => addToast("Failed to load profile info", "error"));
+      } catch (err) {
+        addToast(getBackendErrorMessage(err), "error");
+      }
+    };
+
+    fetchProfile();
   }, [token, addToast, updateOnboarding, applyProfileSnapshot]);
 
   // Fetch location once
@@ -240,11 +242,7 @@ const Profile = () => {
           websiteUrl: userInfo.websiteUrl
         })
       });
-      const data = await res.json();
-      if (!res.ok) {
-        addToast(data.message || "Something went wrong", "error");
-        return;
-      }
+      const data = await parseApiResponse(res);
 
       addToast("Profile information updated successfully!", "success");
 
@@ -271,13 +269,12 @@ const Profile = () => {
       setIsPersonalEditing(false);
       setPhoneEdited(false);
     } catch (err) {
-      addToast(err.message || "Failed to save changes", "error");
+      addToast(getBackendErrorMessage(err), "error");
     }
   };
 
   const handleSaveOrg = async () => {
     if (!canEditOrganization) {
-      addToast("Only super admin can edit organization details.", "error");
       return;
     }
     if (!hasOrgChanges) return;
@@ -303,11 +300,7 @@ const Profile = () => {
           orgEmail: userInfo.orgEmail
         })
       });
-      const data = await res.json();
-      if (!res.ok) {
-        addToast(data.message || "Something went wrong", "error");
-        return;
-      }
+      const data = await parseApiResponse(res);
 
       addToast("Organization updated successfully!", "success");
 
@@ -335,7 +328,7 @@ const Profile = () => {
       }
       setIsOrgEditing(false);
     } catch (err) {
-      addToast(err.message || "Failed to save organization", "error");
+      addToast(getBackendErrorMessage(err), "error");
     }
   };
 
@@ -368,11 +361,7 @@ const Profile = () => {
         }),
       });
 
-      const data = await res.json();
-      if (!res.ok) {
-        addToast(data.message || "Failed to update exact device location.", "error");
-        return false;
-      }
+      const data = await parseApiResponse(res);
 
       if (data?.onboarding) {
         updateOnboarding(data.onboarding);
@@ -394,7 +383,7 @@ const Profile = () => {
         }
       }
 
-      addToast(err.message || "Failed to capture exact location.", "error");
+      addToast(getBackendErrorMessage(err), "error");
       return false;
     }
   };
@@ -412,12 +401,7 @@ const Profile = () => {
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ allow: true })
       });
-      const data = await res.json();
-
-      if (!res.ok) {
-        addToast(data.message || "Failed to update location sharing", "error");
-        return;
-      }
+      const data = await parseApiResponse(res);
 
       if (data?.onboarding) {
         updateOnboarding(data.onboarding);
@@ -431,7 +415,7 @@ const Profile = () => {
       addToast("Exact device location updated.", "success");
       await fetchLocationStats();
     } catch (err) {
-      addToast(err.message || "Failed to update location sharing", "error");
+      addToast(getBackendErrorMessage(err), "error");
     } finally {
       setIsLocationConsentSaving(false);
     }

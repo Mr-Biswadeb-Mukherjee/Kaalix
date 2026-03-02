@@ -1,6 +1,7 @@
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useState, useEffect, useCallback } from "react";
 import API from "@amon/shared"; // Shared backend/frontend API map
+import { getBackendErrorMessage, parseApiResponse } from "../Utils/apiError";
  
 const AuthContext = createContext();
 const defaultOnboardingState = Object.freeze({
@@ -74,10 +75,7 @@ export const AuthProvider = ({ children }) => {
         Authorization: `Bearer ${token}`,
       },
     })
-      .then((res) => {
-        if (!res.ok) throw new Error("Token invalid");
-        return res.json();
-      })
+      .then((res) => parseApiResponse(res))
       .then((data) => {
         setIsAuthenticated(true);
         setOnboarding(normalizeOnboarding(data?.onboarding));
@@ -134,33 +132,26 @@ export const AuthProvider = ({ children }) => {
         },
       });
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        if (response.status === 423 && errorData?.onboarding) {
-          const nextOnboarding = normalizeOnboarding(errorData.onboarding);
-          setOnboarding((prev) =>
-            isSameOnboarding(prev, nextOnboarding) ? prev : nextOnboarding
-          );
-          return {
-            success: false,
-            blocked: true,
-            message: errorData.message || "Complete required setup before logging out.",
-          };
-        }
-        return {
-          success: false,
-          blocked: false,
-          message: errorData.message || response.statusText || "Logout failed.",
-        };
-      }
+      await parseApiResponse(response);
 
       clearSession();
       return { success: true, blocked: false };
     } catch (err) {
+      if (err?.status === 423 && err?.data?.onboarding) {
+        const nextOnboarding = normalizeOnboarding(err.data.onboarding);
+        setOnboarding((prev) =>
+          isSameOnboarding(prev, nextOnboarding) ? prev : nextOnboarding
+        );
+        return {
+          success: false,
+          blocked: true,
+          message: getBackendErrorMessage(err),
+        };
+      }
       return {
         success: false,
         blocked: false,
-        message: err.message || "Network error during logout.",
+        message: getBackendErrorMessage(err),
       };
     }
   }, [clearSession]);

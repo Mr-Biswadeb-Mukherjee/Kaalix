@@ -4,6 +4,7 @@ import "./Styles/MFA.css";
 import API from "@amon/shared";
 import { useToast } from "../UI/Toast";
 import SafeImage from '../UI/safeImage';
+import { getBackendErrorMessage, parseApiResponse } from "../../Utils/apiError";
 
 const MFA = () => {
   const { addToast } = useToast();
@@ -33,12 +34,12 @@ const MFA = () => {
         const res = await fetch(`${API.system.protected.MFA.endpoint}/status`, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        const data = await res.json();
+        const data = await parseApiResponse(res);
         if (res.ok && data.status) {
           setMfaMethods((prev) => ({ ...prev, ...data.status }));
         }
       } catch (err) {
-        addToast(err?.message || "Failed to fetch MFA status.", "error");
+        addToast(getBackendErrorMessage(err), "error");
       }
     };
     fetchStatus();
@@ -67,12 +68,7 @@ const MFA = () => {
         body: JSON.stringify({ method, action }),
       });
 
-      if (!res.ok) {
-        const errData = await res.json();
-        throw new Error(errData.message || "Failed to update MFA");
-      }
-
-      const data = await res.json();
+      const data = await parseApiResponse(res);
 
       if (data.qrBlob) {
         const blob = new Blob([new Uint8Array(data.qrBlob.data)], { type: "image/png" });
@@ -82,7 +78,7 @@ const MFA = () => {
         setActiveMethod(method); // open OTP verification modal
       }
     } catch (err) {
-      notify.error(err?.message || "MFA update failed.");
+      notify.error(getBackendErrorMessage(err));
     } finally {
       setLoading(false);
     }
@@ -104,8 +100,7 @@ const MFA = () => {
         body: JSON.stringify({ method: activeMethod, token: otp }),
       });
 
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || "OTP verification failed");
+      await parseApiResponse(res);
 
       setMfaMethods((prev) => ({ ...prev, [activeMethod]: "enabled" }));
       notify.success("MFA verified and enabled successfully");
@@ -118,7 +113,7 @@ const MFA = () => {
       setQrCodeUrl(null);
       setOtp("");
     } catch (err) {
-      notify.error(err?.message || "OTP verification failed.");
+      notify.error(getBackendErrorMessage(err));
     } finally {
       setVerifying(false);
     }
@@ -141,13 +136,12 @@ const MFA = () => {
         body: JSON.stringify({ method, action: "disable" }),
       });
 
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || "Failed to disable MFA");
+      await parseApiResponse(res);
 
       setMfaMethods((prev) => ({ ...prev, [method]: "disabled" }));
       notify.success(`${method.replace("_", " ")} disabled successfully`);
     } catch (err) {
-      notify.error(err?.message || "Failed to disable MFA.");
+      notify.error(getBackendErrorMessage(err));
     } finally {
       setLoading(false);
       setConfirmDisableMethod(null); // close confirmation modal
