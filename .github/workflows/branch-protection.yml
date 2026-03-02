@@ -35,7 +35,7 @@ jobs:
         with:
           github-token: ${{ secrets.BRANCH_PROTECTION_TOKEN }}
           script: |
-            const fs = require("fs");
+            const fs = require("node:fs");
             const path = ".github/branch-protection.json";
             const raw = fs.readFileSync(path, "utf8");
             const policy = JSON.parse(raw);

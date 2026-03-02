@@ -1,8 +1,8 @@
 import { findUserByEmail } from "./user.service.js";
 import { getDatabase } from "../Connectors/DB.js";
 import bcrypt from "bcrypt";
-import path from "path";
-import { promises as fs } from "fs";
+import path from "node:path";
+import { promises as fs } from "node:fs";
 import { fileURLToPath } from "url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));

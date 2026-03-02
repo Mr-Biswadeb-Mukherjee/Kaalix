@@ -1,5 +1,5 @@
 import jwt from 'jsonwebtoken';
-import crypto from 'crypto';
+import crypto from 'node:crypto';
 import { getOrInitRedisClient } from '../Connectors/Redis.js';
 
 const JWT_SECRET_PREFIX = 'jwt:secret:';

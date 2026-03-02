@@ -1,5 +1,5 @@
 import { fileURLToPath } from "url";
-import path from "path";
+import path from "node:path";
 import express from "express";
 import app from "./Routes/index.js";  
 import { getDatabase } from "./Connectors/DB.js";

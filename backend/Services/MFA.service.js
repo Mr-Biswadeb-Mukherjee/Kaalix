@@ -2,7 +2,7 @@
 import { getDatabase } from "../Connectors/DB.js";
 import { generateQRCodeDataUrl } from "./MFA/QRCode.MFA.js";
 import speakeasy from "speakeasy";
-import crypto from "crypto";
+import crypto from "node:crypto";
 
 // Temporary in-memory store (use Redis in production)
 const tempSecrets = new Map();

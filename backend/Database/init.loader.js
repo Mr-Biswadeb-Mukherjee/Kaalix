@@ -1,8 +1,8 @@
 // backend/Database/init.loader.js
-import fs from "fs";
+import fs from "node:fs";
 import os from "os";
-import path from "path";
-import crypto from "crypto";
+import path from "node:path";
+import crypto from "node:crypto";
 import bcrypt from "bcrypt";
 import { v4 as uuidv4 } from "uuid";
 import { fileURLToPath } from "url";

@@ -1,4 +1,4 @@
-import crypto from "crypto";
+import crypto from "node:crypto";
 import { LoggerContainer } from "../Logger/Logger.js";
 
 const monitorLogger = LoggerContainer.get("EndpointMonitor", {

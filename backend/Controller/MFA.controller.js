@@ -1,8 +1,10 @@
 import { MFAService } from "../Services/MFA.service.js";
 
+const asPromise = (value) => Promise.resolve(value);
+
 export const GetMFAStatus = async (req, res) => {
   const userId = req.user.user_id;
-  const status = await MFAService.getStatus(userId);
+  const status = await asPromise(MFAService.getStatus(userId));
   return res.status(200).json({ success: true, status });
 };
 
@@ -16,11 +18,11 @@ export const ToggleMFA = async (req, res) => {
 
   try {
     if (action === "setup") {
-      const result = await MFAService.toggle(userId, method);
+      const result = await asPromise(MFAService.toggle(userId, method));
       return res.status(200).json({ success: true, ...result });
     }
 
-    await MFAService.disable(userId, method);
+    await asPromise(MFAService.disable(userId, method));
     return res.status(200).json({ success: true, message: `${method} disabled` });
   } catch (err) {
     return res.status(400).json({ success: false, message: err.message });
@@ -36,7 +38,7 @@ export const VerifyMFA = async (req, res) => {
   }
 
   try {
-    await MFAService.verify(userId, method, token);
+    await asPromise(MFAService.verify(userId, method, token));
     return res.status(200).json({ success: true, message: "MFA verified and enabled" });
   } catch (err) {
     return res.status(400).json({ success: false, message: err.message });

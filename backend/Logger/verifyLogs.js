@@ -1,7 +1,7 @@
-import fs from "fs";
-import path from "path";
+import fs from "node:fs";
+import path from "node:path";
 import readline from "readline";
-import crypto from "crypto";
+import crypto from "node:crypto";
 import chalk from "chalk";
 
 const HMAC_KEY = process.env.LOGGER_HMAC_KEY || null;
