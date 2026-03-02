@@ -7,7 +7,9 @@
   "scripts": {
     "dev": "nodemon app.js",
     "start": "node app.js",
-    "clean": "rm -rf node_modules package-lock.json && npm install"
+    "clean": "rm -rf node_modules package-lock.json && npm install",
+    "lint": "eslint .",
+    "test": "vitest"
   },
   "keywords": [
     "system",

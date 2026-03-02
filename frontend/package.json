@@ -8,6 +8,8 @@
     "dev": "vite --host",
     "build": "vite build",
     "preview": "vite preview",
+    "lint": "eslint .",
+    "test": "vitest",
     "clean": "rm -rf node_modules package-lock.json dist && npm install"
   },
   "keywords": [

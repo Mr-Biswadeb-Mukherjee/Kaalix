@@ -18,7 +18,10 @@
     "audit:all": "pnpm exec snyk test --all-projects",
     "audit:backend": "pnpm exec snyk test --file=backend/package.json",
     "audit:frontend": "pnpm exec snyk test --file=frontend/package.json",
-    "audit:shared": "pnpm exec snyk test --file=shared/package.json"
+    "audit:shared": "pnpm exec snyk test --file=shared/package.json",
+    "lint": "pnpm -r lint",
+    "test": "pnpm -r test",
+    "ci:test": "pnpm -r test -- --coverage"
   },
   "repository": {
     "type": "git",
