@@ -9,3 +9,4 @@ export { default as Logs } from './Logs';
 export { default as Profile } from './Profile';
 export { default as OrganizationAdmins } from './OrganizationAdmins';
 export { default as RouteErrorPage } from './RouteErrorPage';
+export { default as MobileBlockedPage } from './MobileBlockedPage';

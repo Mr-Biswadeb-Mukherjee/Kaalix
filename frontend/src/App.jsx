@@ -1,5 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import MainLayout from './Layout/MainLayout';
 import Auth from './Components/Features/Auth';
 import { ToastProvider } from './Components/UI/Toast';
@@ -8,6 +8,7 @@ import { AuthProvider, useAuth } from './Context/AuthContext';
 import { RealtimeProvider } from './Context/RealtimeContext';
 import ProtectedRoute from './Components/Features/ProtectedRoute';
 import ServerRouteError from './Components/Features/ServerRouteError';
+import { isMobileDevice } from './Utils/mobileDevice';
 
 // === Route Wrapper to Dynamically Set Page Title ===
 function RouteWrapper({ title, children }) {
@@ -69,6 +70,14 @@ function AppRoutes() {
           </RouteWrapper>
         }
       />
+      <Route
+        path="/mobile-blocked"
+        element={
+          <RouteWrapper title="Access Restricted | Kaalix">
+            <Pages.MobileBlockedPage source="server-policy" />
+          </RouteWrapper>
+        }
+      />
 
       {/* Protected Routes inside MainLayout */}
       <Route path="/" element={<MainLayout />}>
@@ -106,6 +115,23 @@ function AppRoutes() {
 
 // === Root App Component ===
 function App() {
+  const [mobileBlocked, setMobileBlocked] = useState(() => isMobileDevice());
+
+  useEffect(() => {
+    const evaluate = () => setMobileBlocked(isMobileDevice());
+    evaluate();
+    window.addEventListener('resize', evaluate);
+    window.addEventListener('orientationchange', evaluate);
+    return () => {
+      window.removeEventListener('resize', evaluate);
+      window.removeEventListener('orientationchange', evaluate);
+    };
+  }, []);
+
+  if (mobileBlocked) {
+    return <Pages.MobileBlockedPage source="frontend-guard" />;
+  }
+
   return (
     <ToastProvider>
       <Router>

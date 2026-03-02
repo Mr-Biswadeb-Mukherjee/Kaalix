@@ -13,6 +13,7 @@ import publicRoutes from "./public.route.js";
 import protectedRoutes from "./protected.route.js";
 import Ratelimiter from "../Utils/ratelimiter.utils.js";
 import requestLogger from "../Middleware/APILogger.middleware.js"; // <-- our global logger middleware
+import mobileBlockMiddleware from "../Middleware/mobileBlock.middleware.js";
 import {
   defaultErrorCode,
   defaultErrorMessage,
@@ -67,6 +68,9 @@ app.use((req, res, next) => {
 
 // 🔹 Mount logger globally before all routes
 app.use(requestLogger);
+
+// Enforce desktop-only access policy at the server edge.
+app.use(mobileBlockMiddleware);
 
 // Inject JWT helpers into res
 app.use((req, res, next) => {

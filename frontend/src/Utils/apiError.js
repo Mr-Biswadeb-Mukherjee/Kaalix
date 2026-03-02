@@ -2,6 +2,8 @@ const defaultCodeForStatus = (status) =>
   Number.isInteger(status) ? `HTTP_${status}_ERROR` : "HTTP_ERROR";
 
 const defaultTitle = () => "Request failed";
+const MOBILE_DEVICE_BLOCKED_CODE = "MOBILE_DEVICE_BLOCKED";
+const MOBILE_BLOCKED_PATH = "/mobile-blocked";
 
 const defaultMessageForStatus = (statusText = "") =>
   statusText && statusText.trim() ? statusText : "Request failed.";
@@ -63,6 +65,13 @@ const readJsonSafe = async (response) => {
   }
 };
 
+const routeToMobileBlockedPage = (payload = {}) => {
+  const code = typeof payload?.code === "string" ? payload.code.trim() : "";
+  if (code !== MOBILE_DEVICE_BLOCKED_CODE || typeof window === "undefined") return;
+  if (window.location.pathname === MOBILE_BLOCKED_PATH) return;
+  window.location.replace(MOBILE_BLOCKED_PATH);
+};
+
 const toBackendError = (response, payload = {}) => {
   const status = response.status;
   const code =
@@ -92,10 +101,12 @@ export const parseApiResponse = async (response, options = {}) => {
   const requireSuccess = options.requireSuccess === true;
 
   if (!response.ok) {
+    routeToMobileBlockedPage(payload);
     throw toBackendError(response, payload);
   }
 
   if (requireSuccess && payload?.success === false) {
+    routeToMobileBlockedPage(payload);
     throw toBackendError(response, payload);
   }
 
