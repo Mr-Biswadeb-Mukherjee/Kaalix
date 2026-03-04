@@ -15,7 +15,11 @@ import {
   ManageAdminAccount,
   UpdateOrganizationAdmins,
 } from "../Controller/OrgAdmin.controller.js";
-import { FetchProtectedSystemStatus } from "../Controller/System.controller.js";
+import {
+  CheckIntelConnectivity,
+  FetchProtectedSystemStatus,
+  SearchIntelGraph,
+} from "../Controller/System.controller.js";
 import { GetMFAStatus, ToggleMFA, VerifyMFA } from "../Controller/MFA.controller.js";
 import { FetchMonitoringSnapshot } from "../Controller/Monitoring.controller.js";
 import {
@@ -39,6 +43,18 @@ router.post(
   API.system.protected.status.endpoint,
   authMiddleware({ revoke: false }),
   asyncHandler(FetchProtectedSystemStatus)
+);
+
+router.get(
+  API.system.protected.intelConnectivity.endpoint,
+  authMiddleware({ revoke: false }),
+  asyncHandler(CheckIntelConnectivity)
+);
+
+router.post(
+  API.system.protected.intelSearch.endpoint,
+  authMiddleware({ revoke: false }),
+  asyncHandler(SearchIntelGraph)
 );
 
 // Change password

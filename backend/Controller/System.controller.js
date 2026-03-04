@@ -1,4 +1,6 @@
 import getSystemStats from "../Services/status.service.js";
+import { checkIntelInternetConnectivity } from "../Services/intelConnectivity.service.js";
+import { buildPublicIntelGraph } from "../Services/intelSearch.service.js";
 import { getLocationSharingState } from "../Services/profile.service.js";
 
 const FALLBACK_LOCATION_TEXT = "Unknown Location";
@@ -44,4 +46,44 @@ export const FetchProtectedSystemStatus = async (req, res) => {
   };
 
   return res.status(200).json({ success: true, stats });
+};
+
+export const CheckIntelConnectivity = async (req, res) => {
+  const result = await checkIntelInternetConnectivity();
+
+  return res.status(200).json({
+    success: true,
+    connected: result.connected,
+    checks: result.checks,
+    checkedAt: result.checkedAt,
+    latencyMs: result.latencyMs,
+    failureReasons: result.failureReasons,
+    message: result.connected
+      ? "KaaliX Intelligence internet connectivity verified."
+      : "KaaliX Intelligence could not reach the internet from the backend.",
+  });
+};
+
+export const SearchIntelGraph = async (req, res) => {
+  try {
+    const query = typeof req.body?.query === "string" ? req.body.query : "";
+    const intel = await buildPublicIntelGraph(query);
+
+    return res.status(200).json({
+      success: true,
+      message: "KaaliX Intelligence graph built from public data sources.",
+      ...intel,
+    });
+  } catch (err) {
+    console.error("Error in SearchIntelGraph:", err);
+    const status =
+      Number.isInteger(err?.status) && err.status >= 400 && err.status <= 599 ? err.status : 500;
+    const code =
+      typeof err?.code === "string" && err.code.trim() ? err.code.trim() : "INTEL_SEARCH_FAILED";
+    return res.status(status).json({
+      success: false,
+      message: err?.message || "Failed to build KaaliX Intelligence graph.",
+      code,
+    });
+  }
 };

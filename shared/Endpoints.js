@@ -144,6 +144,14 @@ const API = {
         method: 'GET',
         endpoint: `${API_BASE}/monitoring`,
       },
+      intelConnectivity: {
+        method: 'GET',
+        endpoint: `${API_BASE}/intel/connectivity`,
+      },
+      intelSearch: {
+        method: 'POST',
+        endpoint: `${API_BASE}/intel/search`,
+      },
       loginHistory: {
         method: 'GET',
         endpoint: `${API_BASE}/login-history`,

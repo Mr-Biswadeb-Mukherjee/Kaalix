@@ -1,7 +1,7 @@
 # CODING STANDARDS
 
 ## Version
-- Version: 1.0.0
+- Version: 1.0.1
 - Effective Date: 2026-03-01
 
 ## Scope
@@ -11,6 +11,8 @@
 
 ## Rules
 - Code MUST use ESM syntax (`import`/`export`) consistently across packages.
+- Each code file must not go beyond 250 Lines of code.
+- If any code file goes beyond 250 LOC then break it into required modules for portability & and proper maintaing of codebase in future.
 - Functions handling external input MUST validate and sanitize data before use.
 - Route files MUST stay thin and MUST NOT contain business logic.
 - Controller files MUST orchestrate request/response only and MUST NOT execute raw SQL.
