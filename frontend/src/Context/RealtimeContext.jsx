@@ -9,16 +9,83 @@ const RealtimeContext = createContext({
   stats: null,
   monitoring: null,
   notifications: [],
+  intelligenceNotifications: [],
+  regularNotifications: [],
   unreadCount: 0,
+  unreadCounts: { all: 0, intelligence: 0, regular: 0 },
   notificationsLoading: false,
   markNotificationRead: async () => {},
   markAllNotificationsRead: async () => {},
   requestNotificationsRefresh: async () => {},
 });
 
+const INTELLIGENCE_SEVERITIES = new Set(["warning", "critical"]);
+
 const getToken = () => {
   const token = localStorage.getItem("token");
   return typeof token === "string" ? token.trim() : "";
+};
+
+const normalizeNotificationList = (value) => (Array.isArray(value) ? value : []);
+
+const isIntelligenceNotification = (notification) => {
+  const severity =
+    typeof notification?.severity === "string"
+      ? notification.severity.trim().toLowerCase()
+      : "";
+  return INTELLIGENCE_SEVERITIES.has(severity);
+};
+
+const normalizeUnreadValue = (value, fallback = 0) => {
+  const normalized = Number(value);
+  if (Number.isFinite(normalized) && normalized >= 0) {
+    return normalized;
+  }
+
+  const fallbackValue = Number(fallback);
+  if (Number.isFinite(fallbackValue) && fallbackValue >= 0) {
+    return fallbackValue;
+  }
+
+  return 0;
+};
+
+const resolveNotificationState = (payload) => {
+  const notifications = normalizeNotificationList(payload?.notifications);
+  const hasExplicitBuckets =
+    Array.isArray(payload?.intelligenceNotifications) ||
+    Array.isArray(payload?.regularNotifications);
+
+  const intelligenceNotifications = hasExplicitBuckets
+    ? normalizeNotificationList(payload?.intelligenceNotifications)
+    : notifications.filter(isIntelligenceNotification);
+  const regularNotifications = hasExplicitBuckets
+    ? normalizeNotificationList(payload?.regularNotifications)
+    : notifications.filter((item) => !isIntelligenceNotification(item));
+
+  const fallbackUnreadIntelligence = intelligenceNotifications.filter((item) => !item?.isRead).length;
+  const fallbackUnreadRegular = regularNotifications.filter((item) => !item?.isRead).length;
+  const fallbackUnreadAll = notifications.filter((item) => !item?.isRead).length;
+  const rawUnreadCounts =
+    payload?.unreadCounts && typeof payload.unreadCounts === "object"
+      ? payload.unreadCounts
+      : {};
+  const unreadCount = normalizeUnreadValue(
+    payload?.unreadCount,
+    normalizeUnreadValue(rawUnreadCounts.all, fallbackUnreadAll)
+  );
+
+  return {
+    notifications,
+    intelligenceNotifications,
+    regularNotifications,
+    unreadCount,
+    unreadCounts: {
+      all: normalizeUnreadValue(rawUnreadCounts.all, unreadCount),
+      intelligence: normalizeUnreadValue(rawUnreadCounts.intelligence, fallbackUnreadIntelligence),
+      regular: normalizeUnreadValue(rawUnreadCounts.regular, fallbackUnreadRegular),
+    },
+  };
 };
 
 const clampReconnectDelay = (attempt) => {
@@ -50,7 +117,14 @@ export const RealtimeProvider = ({ children }) => {
   const [stats, setStats] = useState(null);
   const [monitoring, setMonitoring] = useState(null);
   const [notifications, setNotifications] = useState([]);
+  const [intelligenceNotifications, setIntelligenceNotifications] = useState([]);
+  const [regularNotifications, setRegularNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [unreadCounts, setUnreadCounts] = useState({
+    all: 0,
+    intelligence: 0,
+    regular: 0,
+  });
   const [notificationsLoading, setNotificationsLoading] = useState(false);
 
   const wsRef = useRef(null);
@@ -76,6 +150,15 @@ export const RealtimeProvider = ({ children }) => {
         // ignore close errors
       }
     }
+  }, []);
+
+  const applyNotificationPayload = useCallback((payload) => {
+    const next = resolveNotificationState(payload);
+    setNotifications(next.notifications);
+    setIntelligenceNotifications(next.intelligenceNotifications);
+    setRegularNotifications(next.regularNotifications);
+    setUnreadCount(next.unreadCount);
+    setUnreadCounts(next.unreadCounts);
   }, []);
 
   const fetchStatusFallback = useCallback(async () => {
@@ -107,7 +190,10 @@ export const RealtimeProvider = ({ children }) => {
     const token = getToken();
     if (!token) {
       setNotifications([]);
+      setIntelligenceNotifications([]);
+      setRegularNotifications([]);
       setUnreadCount(0);
+      setUnreadCounts({ all: 0, intelligence: 0, regular: 0 });
       return;
     }
 
@@ -123,14 +209,13 @@ export const RealtimeProvider = ({ children }) => {
       });
 
       const data = await parseApiResponse(response, { requireSuccess: true });
-      setNotifications(Array.isArray(data?.notifications) ? data.notifications : []);
-      setUnreadCount(Number(data?.unreadCount) || 0);
+      applyNotificationPayload(data);
     } catch {
       // fallback is best-effort only
     } finally {
       setNotificationsLoading(false);
     }
-  }, []);
+  }, [applyNotificationPayload]);
 
   const fetchMonitoringFallback = useCallback(async () => {
     const token = getToken();
@@ -199,8 +284,7 @@ export const RealtimeProvider = ({ children }) => {
           if (payload.monitoring && typeof payload.monitoring === "object") {
             setMonitoring(payload.monitoring);
           }
-          setNotifications(Array.isArray(payload.notifications) ? payload.notifications : []);
-          setUnreadCount(Number(payload.unreadCount) || 0);
+          applyNotificationPayload(payload);
           setNotificationsLoading(false);
           break;
         }
@@ -214,8 +298,7 @@ export const RealtimeProvider = ({ children }) => {
           break;
         }
         case "notifications.snapshot": {
-          setNotifications(Array.isArray(payload.notifications) ? payload.notifications : []);
-          setUnreadCount(Number(payload.unreadCount) || 0);
+          applyNotificationPayload(payload);
           setNotificationsLoading(false);
           break;
         }
@@ -244,7 +327,7 @@ export const RealtimeProvider = ({ children }) => {
         connectSocket();
       }, delay);
     };
-  }, [clearReconnectTimer, closeSocket]);
+  }, [applyNotificationPayload, clearReconnectTimer, closeSocket]);
 
   const requestNotificationsRefresh = useCallback(async () => {
     const socket = wsRef.current;
@@ -280,7 +363,22 @@ export const RealtimeProvider = ({ children }) => {
           item.notificationId === normalizedId ? { ...item, isRead: true } : item
         )
       );
-      setUnreadCount(Number(data?.unreadCount) || 0);
+      setIntelligenceNotifications((prev) =>
+        prev.map((item) =>
+          item.notificationId === normalizedId ? { ...item, isRead: true } : item
+        )
+      );
+      setRegularNotifications((prev) =>
+        prev.map((item) =>
+          item.notificationId === normalizedId ? { ...item, isRead: true } : item
+        )
+      );
+      setUnreadCount(normalizeUnreadValue(data?.unreadCount, 0));
+      setUnreadCounts((prev) => ({
+        all: normalizeUnreadValue(data?.unreadCounts?.all, normalizeUnreadValue(data?.unreadCount, prev.all)),
+        intelligence: normalizeUnreadValue(data?.unreadCounts?.intelligence, prev.intelligence),
+        regular: normalizeUnreadValue(data?.unreadCounts?.regular, prev.regular),
+      }));
       return true;
     } catch {
       return false;
@@ -302,7 +400,10 @@ export const RealtimeProvider = ({ children }) => {
 
       await parseApiResponse(response, { requireSuccess: true });
       setNotifications((prev) => prev.map((item) => ({ ...item, isRead: true })));
+      setIntelligenceNotifications((prev) => prev.map((item) => ({ ...item, isRead: true })));
+      setRegularNotifications((prev) => prev.map((item) => ({ ...item, isRead: true })));
       setUnreadCount(0);
+      setUnreadCounts({ all: 0, intelligence: 0, regular: 0 });
       return true;
     } catch {
       return false;
@@ -323,7 +424,10 @@ export const RealtimeProvider = ({ children }) => {
       setStats(null);
       setMonitoring(null);
       setNotifications([]);
+      setIntelligenceNotifications([]);
+      setRegularNotifications([]);
       setUnreadCount(0);
+      setUnreadCounts({ all: 0, intelligence: 0, regular: 0 });
       setNotificationsLoading(false);
       return () => {};
     }
@@ -379,7 +483,10 @@ export const RealtimeProvider = ({ children }) => {
       stats,
       monitoring,
       notifications,
+      intelligenceNotifications,
+      regularNotifications,
       unreadCount,
+      unreadCounts,
       notificationsLoading,
       markNotificationRead,
       markAllNotificationsRead,
@@ -390,7 +497,10 @@ export const RealtimeProvider = ({ children }) => {
       stats,
       monitoring,
       notifications,
+      intelligenceNotifications,
+      regularNotifications,
       unreadCount,
+      unreadCounts,
       notificationsLoading,
       markNotificationRead,
       markAllNotificationsRead,

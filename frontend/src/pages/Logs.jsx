@@ -5,6 +5,7 @@ import { getBackendErrorMessage, parseApiResponse } from "../Utils/apiError";
 
 const HISTORY_LIMIT = 10;
 const ACTIVITY_LIMIT = 20;
+const NOTIFICATION_LIMIT = 50;
 
 const formatDateTime = (value) => {
   if (!value) return "Unknown";
@@ -52,12 +53,26 @@ const resolveActivityBadgeClass = (value) => {
   return "neutral";
 };
 
+const formatNotificationTypeLabel = (value) => {
+  const normalized = normalizeLineValue(value, "system");
+  return normalized.replace(/\./g, " · ").replace(/_/g, " ");
+};
+
+const resolveNotificationSeverityClass = (value) => {
+  const normalized = normalizeLineValue(value, "info").toLowerCase();
+  if (normalized === "critical") return "critical";
+  if (normalized === "warning") return "warning";
+  if (normalized === "success") return "success";
+  return "neutral";
+};
+
 const Logs = () => {
   const [viewMode, setViewMode] = useState("table");
   const [isLoading, setIsLoading] = useState(false);
   const [requestError, setRequestError] = useState("");
   const [loginHistory, setLoginHistory] = useState([]);
   const [activityHistory, setActivityHistory] = useState([]);
+  const [notificationHistory, setNotificationHistory] = useState([]);
 
   const token = localStorage.getItem("token");
 
@@ -65,13 +80,14 @@ const Logs = () => {
     if (!token) {
       setLoginHistory([]);
       setActivityHistory([]);
+      setNotificationHistory([]);
       setRequestError("Missing session token. Please log in again.");
       return;
     }
 
     setIsLoading(true);
     try {
-      const [loginRes, activityRes] = await Promise.all([
+      const [loginRes, activityRes, notificationRes] = await Promise.all([
         fetch(`${API.system.protected.loginHistory.endpoint}?limit=${HISTORY_LIMIT}`, {
           method: "GET",
           headers: {
@@ -86,15 +102,32 @@ const Logs = () => {
             Authorization: `Bearer ${token}`,
           },
         }),
+        fetch(`${API.system.protected.notifications.endpoint}?limit=${NOTIFICATION_LIMIT}`, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        }),
       ]);
 
-      const [loginData, activityData] = await Promise.all([
+      const [loginData, activityData, notificationData] = await Promise.all([
         parseApiResponse(loginRes),
         parseApiResponse(activityRes),
+        parseApiResponse(notificationRes),
       ]);
 
       setLoginHistory(Array.isArray(loginData?.logins) ? loginData.logins : []);
       setActivityHistory(Array.isArray(activityData?.activities) ? activityData.activities : []);
+      const normalizedNotifications = Array.isArray(notificationData?.notifications)
+        ? notificationData.notifications
+        : [];
+      normalizedNotifications.sort((a, b) => {
+        const aTime = new Date(a?.createdAt || 0).getTime();
+        const bTime = new Date(b?.createdAt || 0).getTime();
+        return bTime - aTime;
+      });
+      setNotificationHistory(normalizedNotifications);
       setRequestError("");
     } catch (err) {
       setRequestError(getBackendErrorMessage(err));
@@ -112,9 +145,6 @@ const Logs = () => {
     [loginHistory]
   );
 
-  const latestLoginAt = loginHistory[0]?.loggedInAt || null;
-  const latestActivityAt = activityHistory[0]?.occurredAt || null;
-
   return (
     <div className="page-container logs-page">
       <div className="logs-hero">
@@ -122,7 +152,7 @@ const Logs = () => {
           <h1>Account Logs</h1>
           <p className="logs-subtitle">
             Track your latest successful logins, password changes, MFA updates, and other security
-            activity.
+            activity, along with a unified notification timeline.
           </p>
         </div>
         <div className="logs-actions">
@@ -158,9 +188,9 @@ const Logs = () => {
           <p className="logs-stat-meta">Showing up to {ACTIVITY_LIMIT} events</p>
         </div>
         <div className="logs-stat-card">
-          <p className="logs-stat-label">Latest Login</p>
-          <p className="logs-stat-value logs-stat-time">{formatDateTime(latestLoginAt)}</p>
-          <p className="logs-stat-meta">Latest security event: {formatDateTime(latestActivityAt)}</p>
+          <p className="logs-stat-label">Notifications</p>
+          <p className="logs-stat-value">{notificationHistory.length}</p>
+          <p className="logs-stat-meta">Showing up to {NOTIFICATION_LIMIT} events</p>
         </div>
       </div>
 
@@ -239,6 +269,55 @@ const Logs = () => {
                       </td>
                       <td className="logs-details-cell">{buildActivityDetails(entry)}</td>
                       <td>{normalizeLineValue(entry.ipAddress, "Unavailable")}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
+      )}
+
+      {!requestError && (
+        <section className="logs-panel">
+          <div className="logs-panel-head">
+            <h2>Unified Notification Timeline</h2>
+          </div>
+          {!isLoading && notificationHistory.length === 0 && (
+            <p className="logs-empty">No notifications available yet.</p>
+          )}
+          {notificationHistory.length > 0 && (
+            <div className="logs-table-wrap">
+              <table className="logs-table">
+                <thead>
+                  <tr>
+                    <th>Timestamp</th>
+                    <th>Severity</th>
+                    <th>Event</th>
+                    <th>Title</th>
+                    <th>Message</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {notificationHistory.map((entry, index) => (
+                    <tr key={entry.notificationId || `${entry.createdAt || "time"}-${index}`}>
+                      <td>{formatDateTime(entry.createdAt)}</td>
+                      <td>
+                        <span
+                          className={`activity-badge ${resolveNotificationSeverityClass(entry.severity)}`}
+                        >
+                          {normalizeLineValue(entry.severity, "info")}
+                        </span>
+                      </td>
+                      <td>{formatNotificationTypeLabel(entry.type)}</td>
+                      <td>{normalizeLineValue(entry.title, "Notification")}</td>
+                      <td className="logs-details-cell">{normalizeLineValue(entry.message, "No message")}</td>
+                      <td>
+                        <span className={`read-state-pill ${entry.isRead ? "read" : "unread"}`}>
+                          {entry.isRead ? "Read" : "Unread"}
+                        </span>
+                      </td>
                     </tr>
                   ))}
                 </tbody>

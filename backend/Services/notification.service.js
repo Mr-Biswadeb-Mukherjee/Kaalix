@@ -6,10 +6,18 @@ const DEFAULT_LIMIT = 12;
 const MAX_LIMIT = 50;
 
 const SEVERITIES = new Set(["info", "success", "warning", "critical"]);
+const INTELLIGENCE_SEVERITIES = new Set(["warning", "critical"]);
+const INTELLIGENCE_TYPE_PREFIXES = ["security.", "ops."];
 const USER_ROLES = Object.freeze({
   SA: "sa",
   ADMIN: "admin",
 });
+export const NOTIFICATION_CHANNELS = Object.freeze({
+  ALL: "all",
+  REGULAR: "regular",
+  INTELLIGENCE: "intelligence",
+});
+const allowedNotificationChannels = new Set(Object.values(NOTIFICATION_CHANNELS));
 
 export const NOTIFICATION_RBAC_SCOPES = Object.freeze({
   SELF: "self",
@@ -24,6 +32,50 @@ const normalizeString = (value) =>
 const normalizeSeverity = (value) => {
   const normalized = normalizeString(value).toLowerCase();
   return SEVERITIES.has(normalized) ? normalized : "info";
+};
+
+const normalizeNotificationType = (value) => {
+  const normalized = normalizeString(value).toLowerCase();
+  return normalized || "system";
+};
+
+const isIntelligenceType = (type) => {
+  const normalizedType = normalizeNotificationType(type);
+  return INTELLIGENCE_TYPE_PREFIXES.some((prefix) => normalizedType.startsWith(prefix));
+};
+
+const resolveNotificationChannel = ({ type, severity }) => {
+  if (INTELLIGENCE_SEVERITIES.has(normalizeSeverity(severity))) {
+    return NOTIFICATION_CHANNELS.INTELLIGENCE;
+  }
+  if (isIntelligenceType(type)) {
+    return NOTIFICATION_CHANNELS.INTELLIGENCE;
+  }
+  return NOTIFICATION_CHANNELS.REGULAR;
+};
+
+const normalizeNotificationChannel = (value) => {
+  const normalized = normalizeString(value).toLowerCase();
+  if (!allowedNotificationChannels.has(normalized)) return NOTIFICATION_CHANNELS.ALL;
+  return normalized;
+};
+
+const buildNotificationChannelFilterClause = (channel) => {
+  if (channel === NOTIFICATION_CHANNELS.REGULAR) {
+    return `NOT (
+      severity IN ('warning', 'critical')
+      OR type LIKE 'security.%'
+      OR type LIKE 'ops.%'
+    )`;
+  }
+  if (channel === NOTIFICATION_CHANNELS.INTELLIGENCE) {
+    return `(
+      severity IN ('warning', 'critical')
+      OR type LIKE 'security.%'
+      OR type LIKE 'ops.%'
+    )`;
+  }
+  return "1 = 1";
 };
 
 const normalizeLimit = (value) => {
@@ -73,10 +125,7 @@ const normalizeUserIdList = (value) => {
   );
 };
 
-const normalizeType = (value) => {
-  const normalized = normalizeString(value).toLowerCase();
-  return normalized || "system";
-};
+const normalizeType = (value) => normalizeNotificationType(value);
 
 const normalizeRole = (value) => {
   const normalized = normalizeString(value).toLowerCase();
@@ -146,6 +195,10 @@ const mapNotificationRow = (row) => ({
   notificationId: row.notificationId,
   type: row.type,
   severity: row.severity,
+  channel: resolveNotificationChannel({
+    type: row.type,
+    severity: row.severity,
+  }),
   title: row.title,
   message: row.message,
   isRead: Number(row.isRead) === 1,
@@ -335,9 +388,15 @@ export const createRbacNotificationSafely = async (payload) => {
   }
 };
 
-export const listNotifications = async ({ userId, limit = DEFAULT_LIMIT } = {}) => {
+export const listNotifications = async ({
+  userId,
+  limit = DEFAULT_LIMIT,
+  channel = NOTIFICATION_CHANNELS.ALL,
+} = {}) => {
   const normalizedUserId = normalizeString(userId);
   if (!normalizedUserId) return [];
+  const normalizedChannel = normalizeNotificationChannel(channel);
+  const channelFilterClause = buildNotificationChannelFilterClause(normalizedChannel);
 
   const db = await getDatabase();
   try {
@@ -355,6 +414,7 @@ export const listNotifications = async ({ userId, limit = DEFAULT_LIMIT } = {}) 
           created_at AS createdAt
        FROM notifications
        WHERE user_id = ?
+         AND ${channelFilterClause}
        ORDER BY is_read ASC, created_at DESC
        LIMIT ?`,
       [normalizedUserId, normalizeLimit(limit)]
@@ -367,9 +427,14 @@ export const listNotifications = async ({ userId, limit = DEFAULT_LIMIT } = {}) 
   }
 };
 
-export const getUnreadNotificationCount = async (userId) => {
+export const getUnreadNotificationCount = async (
+  userId,
+  { channel = NOTIFICATION_CHANNELS.ALL } = {}
+) => {
   const normalizedUserId = normalizeString(userId);
   if (!normalizedUserId) return 0;
+  const normalizedChannel = normalizeNotificationChannel(channel);
+  const channelFilterClause = buildNotificationChannelFilterClause(normalizedChannel);
 
   const db = await getDatabase();
   try {
@@ -377,6 +442,7 @@ export const getUnreadNotificationCount = async (userId) => {
       `SELECT COUNT(*) AS total
        FROM notifications
        WHERE user_id = ?
+         AND ${channelFilterClause}
          AND is_read = 0`,
       [normalizedUserId]
     );
@@ -386,6 +452,73 @@ export const getUnreadNotificationCount = async (userId) => {
     if (isMissingNotificationTableError(err)) return 0;
     throw err;
   }
+};
+
+export const getNotificationInboxSnapshot = async ({
+  userId,
+  limit = DEFAULT_LIMIT,
+} = {}) => {
+  const normalizedUserId = normalizeString(userId);
+  if (!normalizedUserId) {
+    return {
+      notifications: [],
+      intelligenceNotifications: [],
+      regularNotifications: [],
+      unreadCount: 0,
+      unreadCounts: {
+        all: 0,
+        intelligence: 0,
+        regular: 0,
+      },
+    };
+  }
+
+  const normalizedLimit = normalizeLimit(limit);
+  const [
+    notifications,
+    intelligenceNotifications,
+    regularNotifications,
+    unreadAll,
+    unreadIntelligence,
+    unreadRegular,
+  ] = await Promise.all([
+    listNotifications({
+      userId: normalizedUserId,
+      limit: normalizedLimit,
+      channel: NOTIFICATION_CHANNELS.ALL,
+    }),
+    listNotifications({
+      userId: normalizedUserId,
+      limit: normalizedLimit,
+      channel: NOTIFICATION_CHANNELS.INTELLIGENCE,
+    }),
+    listNotifications({
+      userId: normalizedUserId,
+      limit: normalizedLimit,
+      channel: NOTIFICATION_CHANNELS.REGULAR,
+    }),
+    getUnreadNotificationCount(normalizedUserId, {
+      channel: NOTIFICATION_CHANNELS.ALL,
+    }),
+    getUnreadNotificationCount(normalizedUserId, {
+      channel: NOTIFICATION_CHANNELS.INTELLIGENCE,
+    }),
+    getUnreadNotificationCount(normalizedUserId, {
+      channel: NOTIFICATION_CHANNELS.REGULAR,
+    }),
+  ]);
+
+  return {
+    notifications,
+    intelligenceNotifications,
+    regularNotifications,
+    unreadCount: unreadAll,
+    unreadCounts: {
+      all: unreadAll,
+      intelligence: unreadIntelligence,
+      regular: unreadRegular,
+    },
+  };
 };
 
 export const markNotificationRead = async ({ userId, notificationId }) => {

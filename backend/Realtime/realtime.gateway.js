@@ -5,8 +5,7 @@ import { verifyToken } from "../Utils/JWT.utils.js";
 import getSystemStats from "../Services/status.service.js";
 import { getMonitoringSnapshot } from "../Middleware/APILogger.middleware.js";
 import {
-  getUnreadNotificationCount,
-  listNotifications,
+  getNotificationInboxSnapshot,
 } from "../Services/notification.service.js";
 import { onNotificationsChanged } from "./realtime.bus.js";
 
@@ -64,18 +63,17 @@ const initializeClientLifecycle = (ws) => {
 };
 
 const buildRealtimeConnectionPayload = async (userId) => {
-  const [notifications, unreadCount] = await Promise.all([
-    listNotifications({ userId, limit: NOTIFICATION_SNAPSHOT_LIMIT }),
-    getUnreadNotificationCount(userId),
-  ]);
+  const snapshot = await getNotificationInboxSnapshot({
+    userId,
+    limit: NOTIFICATION_SNAPSHOT_LIMIT,
+  });
 
   return {
     type: "realtime.connected",
     connectedAt: new Date().toISOString(),
     stats: getSystemStats(),
     monitoring: getMonitoringSnapshot(),
-    notifications,
-    unreadCount,
+    ...snapshot,
   };
 };
 
@@ -88,15 +86,14 @@ export const initializeRealtimeGateway = (server) => {
     const userSockets = clientsByUserId.get(userId);
     if (!userSockets || userSockets.size === 0) return;
 
-    const [notifications, unreadCount] = await Promise.all([
-      listNotifications({ userId, limit: NOTIFICATION_SNAPSHOT_LIMIT }),
-      getUnreadNotificationCount(userId),
-    ]);
+    const snapshot = await getNotificationInboxSnapshot({
+      userId,
+      limit: NOTIFICATION_SNAPSHOT_LIMIT,
+    });
 
     const payload = {
       type: "notifications.snapshot",
-      notifications,
-      unreadCount,
+      ...snapshot,
       emittedAt: new Date().toISOString(),
     };
 

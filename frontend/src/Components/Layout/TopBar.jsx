@@ -12,7 +12,6 @@ import {
   Logout as LogoutIcon,
   Person as PersonIcon,
   NotificationsNone as NotificationsNoneIcon,
-  DoneAll as DoneAllIcon,
 } from '@mui/icons-material';
 
 import SafeImage from '../UI/safeImage';
@@ -100,10 +99,9 @@ const TopBar = ({ collapsed }) => {
   const { logout, onboardingRequired } = useAuth();
   const {
     notificationsLoading,
-    notifications,
-    unreadCount,
+    intelligenceNotifications,
+    unreadCounts,
     markNotificationRead,
-    markAllNotificationsRead,
     requestNotificationsRefresh,
   } = useRealtime();
 
@@ -313,13 +311,6 @@ const TopBar = ({ collapsed }) => {
     }
   };
 
-  const handleMarkAllRead = async () => {
-    const ok = await markAllNotificationsRead();
-    if (!ok) {
-      addToast('Failed to mark all notifications as read.', 'error');
-    }
-  };
-
   const handleMarkOneRead = async (notificationId) => {
     const ok = await markNotificationRead(notificationId);
     if (!ok) {
@@ -331,6 +322,8 @@ const TopBar = ({ collapsed }) => {
     Number.isFinite(sessionRemainingMs) &&
     sessionRemainingMs > 0 &&
     sessionRemainingMs <= 60000;
+  const intelligenceUnreadCount = Number(unreadCounts?.intelligence) || 0;
+  const activeNotifications = intelligenceNotifications;
 
   return (
     <div className={`topbar-container ${collapsed ? 'collapsed' : ''}`}>
@@ -380,8 +373,10 @@ const TopBar = ({ collapsed }) => {
         >
           <NotificationsNoneIcon className="topbar-icon" />
           <span className="topbar-text">Notifications</span>
-          {unreadCount > 0 && (
-            <span className="notification-badge">{unreadCount > 99 ? '99+' : unreadCount}</span>
+          {intelligenceUnreadCount > 0 && (
+            <span className="notification-badge intelligence">
+              {intelligenceUnreadCount > 99 ? '99+' : intelligenceUnreadCount}
+            </span>
           )}
         </button>
 
@@ -389,24 +384,15 @@ const TopBar = ({ collapsed }) => {
           <div className="notification-dropdown-menu">
             <div className="notification-header">
               <strong>Notifications</strong>
-              <button
-                type="button"
-                className="notification-mark-all"
-                disabled={unreadCount === 0}
-                onClick={handleMarkAllRead}
-              >
-                <DoneAllIcon fontSize="small" />
-                Mark all read
-              </button>
             </div>
 
             <div className="notification-list">
               {notificationsLoading ? (
                 <div className="notification-empty">Loading...</div>
-              ) : notifications.length === 0 ? (
-                <div className="notification-empty">No notifications yet.</div>
+              ) : activeNotifications.length === 0 ? (
+                <div className="notification-empty">No notifications right now.</div>
               ) : (
-                notifications.map((item) => (
+                activeNotifications.map((item) => (
                   <button
                     type="button"
                     key={item.notificationId}
@@ -426,6 +412,9 @@ const TopBar = ({ collapsed }) => {
                 ))
               )}
             </div>
+            {!notificationsLoading && intelligenceUnreadCount > 0 && (
+              <div className="notification-footer">{intelligenceUnreadCount} unread notifications</div>
+            )}
           </div>
         )}
       </div>
