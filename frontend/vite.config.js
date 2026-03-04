@@ -1,17 +1,21 @@
-import { defineConfig } from 'vite';
-import react from '@vitejs/plugin-react';
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
 
 export default defineConfig({
   plugins: [react()],
 
-  // ✅ Add this block
   build: {
-    chunkSizeWarningLimit: 1000, // increase from default 500 kB
+    chunkSizeWarningLimit: 1000,
   },
 
   server: {
     host: true,
     port: 5173,
+
+    // ✅ Add this
+    allowedHosts: [
+      'doe-settled-eminently.ngrok-free.app'
+    ],
 
     proxy: {
       '/api': {
@@ -19,7 +23,6 @@ export default defineConfig({
         changeOrigin: true,
         secure: false,
         ws: true,
-        // rewrite: path => path.replace(/^\/api/, '')
       }
     },
 
@@ -41,4 +44,4 @@ export default defineConfig({
       ]
     }
   }
-});
+})

@@ -9,6 +9,11 @@ import {
   NOTIFICATION_RBAC_SCOPES,
   createRbacNotificationSafely,
 } from "./notification.service.js";
+import { recordLoginHistorySafely } from "./loginHistory.service.js";
+import {
+  recordUserActivitySafely,
+  USER_ACTIVITY_TYPES,
+} from "./userActivity.service.js";
 
 import { verifyCaptchaChallenge } from "./captcha.service.js";
 import {
@@ -75,6 +80,19 @@ const normalizeRoleLabel = (role) => {
 };
 
 const isAdminRole = (role) => normalizeText(role).toLowerCase() === "admin";
+
+const resolveRequestIpAddress = (req) => {
+  const forwardedFor = normalizeText(req.get("x-forwarded-for"));
+  if (forwardedFor) {
+    const firstForwardedAddress = forwardedFor.split(",")[0]?.trim();
+    if (firstForwardedAddress) return firstForwardedAddress;
+  }
+
+  const directIp = normalizeText(req.ip);
+  if (directIp) return directIp;
+
+  return normalizeText(req.socket?.remoteAddress) || null;
+};
 
 // 🚪 POST /auth  → LOGIN ONLY
 router.post("/", async (req, res) => {
@@ -276,6 +294,25 @@ router.post("/", async (req, res) => {
 
     // ✅ Success
     await updateFailedAttempts(user.user_id, 0, null);
+    const loginIpAddress = resolveRequestIpAddress(req);
+    const loginUserAgent = normalizeText(req.get("user-agent")) || null;
+    await recordLoginHistorySafely({
+      userId: user.user_id,
+      ipAddress: loginIpAddress,
+      userAgent: loginUserAgent,
+    });
+    await recordUserActivitySafely({
+      userId: user.user_id,
+      activityType: USER_ACTIVITY_TYPES.LOGIN_SUCCESS,
+      title: "Login successful",
+      description: "You logged in to your account.",
+      ipAddress: loginIpAddress,
+      userAgent: loginUserAgent,
+      metadata: {
+        role: user.role || "admin",
+      },
+    });
+
     const role = user.role || "admin";
     const onboarding = user.onboarding || {
       mustChangePassword: Boolean(user.must_change_password),

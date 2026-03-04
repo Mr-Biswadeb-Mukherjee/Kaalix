@@ -144,6 +144,14 @@ const API = {
         method: 'GET',
         endpoint: `${API_BASE}/monitoring`,
       },
+      loginHistory: {
+        method: 'GET',
+        endpoint: `${API_BASE}/login-history`,
+      },
+      activityLogs: {
+        method: 'GET',
+        endpoint: `${API_BASE}/activity-logs`,
+      },
     },
   },
 };

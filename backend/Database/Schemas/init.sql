@@ -1,5 +1,7 @@
 SOURCE db_history.sql;
 SOURCE users.sql;
+SOURCE login_history.sql;
+SOURCE user_activity_logs.sql;
 SOURCE notifications.sql;
 SOURCE user_mfa.sql;
 SOURCE profiles.sql;

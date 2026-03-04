@@ -24,6 +24,8 @@ import {
   MarkAllNotificationsRead,
   MarkNotificationRead,
 } from "../Controller/Notification.controller.js";
+import { FetchRecentLoginHistory } from "../Controller/LoginHistory.controller.js";
+import { FetchRecentUserActivity } from "../Controller/UserActivity.controller.js";
 import { upload, processAvatar, handleUploadErrors } from "../Middleware/upload.middleware.js";
 
 const router = express.Router();
@@ -145,6 +147,18 @@ router.post(
   API.system.protected.notificationsMarkAllRead.endpoint,
   authMiddleware({ revoke: false }),
   asyncHandler(MarkAllNotificationsRead)
+);
+
+router.get(
+  API.system.protected.loginHistory.endpoint,
+  authMiddleware({ revoke: false }),
+  asyncHandler(FetchRecentLoginHistory)
+);
+
+router.get(
+  API.system.protected.activityLogs.endpoint,
+  authMiddleware({ revoke: false }),
+  asyncHandler(FetchRecentUserActivity)
 );
 
 // ===================== MFA Routes =====================
