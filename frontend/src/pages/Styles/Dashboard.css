@@ -312,6 +312,30 @@
   color: color-mix(in srgb, var(--accent-color) 82%, var(--text-color));
 }
 
+.osint-search-loading p {
+  margin: 0;
+}
+
+.osint-build-phase-list {
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 5px;
+}
+
+.osint-build-phase-list li {
+  font-size: 11px;
+  color: var(--text-muted);
+  opacity: 0.62;
+  transition: opacity 0.2s ease, color 0.2s ease;
+}
+
+.osint-build-phase-list li.active {
+  opacity: 1;
+  color: color-mix(in srgb, var(--accent-color) 74%, var(--text-color));
+}
+
 .osint-graph-result {
   margin-top: 16px;
   border: 1px solid color-mix(in srgb, var(--border-color) 88%, transparent);
@@ -395,6 +419,19 @@
   color: #d26d6d;
 }
 
+.osint-source-chip a {
+  margin-top: 8px;
+  display: inline-flex;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--accent-color);
+  text-decoration: none;
+}
+
+.osint-source-chip a:hover {
+  text-decoration: underline;
+}
+
 .osint-source-chip.ok {
   border-color: color-mix(in srgb, #1f9b60 44%, var(--border-color));
 }
@@ -404,6 +441,77 @@
 }
 
 .osint-source-chip.failed {
+  border-color: color-mix(in srgb, #d86969 50%, var(--border-color));
+}
+
+.osint-build-timeline {
+  margin-top: 12px;
+  border: 1px solid color-mix(in srgb, var(--border-color) 68%, transparent);
+  border-radius: 12px;
+  padding: 10px;
+  background: color-mix(in srgb, var(--surface-1) 90%, transparent);
+}
+
+.osint-build-timeline h5 {
+  margin: 0;
+  font-size: 12px;
+}
+
+.osint-build-timeline-list {
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.osint-build-timeline-list li {
+  border: 1px solid color-mix(in srgb, var(--border-color) 62%, transparent);
+  border-radius: 10px;
+  padding: 8px;
+  background: color-mix(in srgb, var(--surface-2) 88%, transparent);
+}
+
+.osint-build-timeline-list li div {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.osint-build-timeline-list li strong {
+  font-size: 12px;
+}
+
+.osint-build-timeline-list li span {
+  font-size: 10px;
+  color: var(--text-muted);
+  text-transform: capitalize;
+}
+
+.osint-build-timeline-list li p {
+  margin: 4px 0 0;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.osint-build-timeline-list li small {
+  display: block;
+  margin-top: 4px;
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.osint-build-timeline-list li.ok {
+  border-color: color-mix(in srgb, #1f9b60 44%, var(--border-color));
+}
+
+.osint-build-timeline-list li.partial {
+  border-color: color-mix(in srgb, #d19e34 48%, var(--border-color));
+}
+
+.osint-build-timeline-list li.failed {
   border-color: color-mix(in srgb, #d86969 50%, var(--border-color));
 }
 
@@ -570,6 +678,11 @@
   overflow: auto;
 }
 
+.osint-node-evidence-list {
+  max-height: 200px;
+  overflow: auto;
+}
+
 .osint-graph-list {
   margin: 8px 0 0;
   padding: 0;
@@ -615,6 +728,11 @@
   margin: 6px 0 0;
   font-size: 11px;
   color: var(--text-muted);
+}
+
+.osint-node-evidence-list li a {
+  margin-top: 6px;
+  display: inline-flex;
 }
 
 .osint-edge-line strong {

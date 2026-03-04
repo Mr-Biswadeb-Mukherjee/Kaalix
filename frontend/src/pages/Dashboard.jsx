@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import API from "@amon/shared";
 import "./Styles/Dashboard.css";
 import { getBackendErrorMessage, parseApiResponse } from "../Utils/apiError";
@@ -64,6 +64,14 @@ const RELATION_LABELS = Object.freeze({
   reddit_account: "Reddit Account",
   hackernews_account: "Hacker News Account",
   keybase_account: "Keybase Account",
+  input_email: "Input Email",
+  email_domain: "Email Domain",
+  related_email: "Related Email",
+  email_candidate: "Email Candidate",
+  related_website: "Related Website",
+  website_domain: "Website Domain",
+  gravatar_profile: "Gravatar Profile",
+  gravatar_website: "Gravatar Website",
 });
 
 const NODE_THEME_BY_TYPE = Object.freeze({
@@ -80,9 +88,20 @@ const NODE_THEME_BY_TYPE = Object.freeze({
   rdap_status: { color: "#64748b", radius: 6 },
   dns_txt: { color: "#475569", radius: 6 },
   profile: { color: "#7c3aed", radius: 8 },
+  email: { color: "#db2777", radius: 8 },
+  website: { color: "#0369a1", radius: 8 },
+  gravatar: { color: "#9333ea", radius: 8 },
   knowledge_article: { color: "#475569", radius: 7 },
   unknown: { color: "#64748b", radius: 8 },
 });
+
+const INTEL_BUILD_PHASES = Object.freeze([
+  "Seed normalization and candidate expansion",
+  "Probing identity platforms and profile metadata",
+  "Correlating entities with public knowledge sources",
+  "Expanding domain infrastructure and registration intel",
+  "Linking email and Gravatar evidence",
+]);
 
 const GRAPH_WIDTH = 1480;
 const GRAPH_HEIGHT = 760;
@@ -122,6 +141,8 @@ const hashString = (value = "") => {
 const getNodeTheme = (type = "") => NODE_THEME_BY_TYPE[type] || NODE_THEME_BY_TYPE.unknown;
 
 const getRootNodeId = (nodes = []) => {
+  const explicitTarget = nodes.find((node) => String(node?.id || "").startsWith("target:"));
+  if (explicitTarget?.id) return explicitTarget.id;
   const explicitRoot = nodes.find((node) => node?.source === "user_input");
   if (explicitRoot?.id) return explicitRoot.id;
   return nodes[0]?.id || "";
@@ -309,10 +330,24 @@ const Dashboard = () => {
   const [intelGraph, setIntelGraph] = useState(null);
   const [selectedNodeId, setSelectedNodeId] = useState("");
   const [pivotTrail, setPivotTrail] = useState([]);
+  const [intelBuildPhaseIndex, setIntelBuildPhaseIndex] = useState(0);
   const [intelConnectionMessage, setIntelConnectionMessage] = useState(
     "KaaliX Intelligence is offline. Connect to internet to enable search."
   );
   const activeView = useMemo(() => DASHBOARD_MODES[mode], [mode]);
+
+  useEffect(() => {
+    if (!intelSearching) {
+      setIntelBuildPhaseIndex(0);
+      return undefined;
+    }
+
+    const timer = setInterval(() => {
+      setIntelBuildPhaseIndex((prev) => (prev + 1) % INTEL_BUILD_PHASES.length);
+    }, 1300);
+
+    return () => clearInterval(timer);
+  }, [intelSearching]);
 
   const requestIntelConnectivity = useCallback(async () => {
     const token = localStorage.getItem("token");
@@ -360,6 +395,7 @@ const Dashboard = () => {
       }
 
       setIntelSearching(true);
+      setIntelBuildPhaseIndex(0);
       setIntelSearchError("");
       setIntelQuery(query);
       setIntelConnectionMessage(
@@ -484,6 +520,18 @@ const Dashboard = () => {
         : [],
     [intelEdges, selectedNodeId]
   );
+
+  const selectedNodeEvidence = useMemo(() => {
+    const rows = Array.isArray(selectedNode?.evidence) ? selectedNode.evidence : [];
+    return rows
+      .filter((entry) => entry && (entry.url || entry.source))
+      .slice(0, 8);
+  }, [selectedNode]);
+
+  const buildTimeline = useMemo(() => {
+    const rows = Array.isArray(intelGraph?.timeline) ? intelGraph.timeline : [];
+    return [...rows];
+  }, [intelGraph]);
 
   const pivotLayout = useMemo(
     () => buildPivotLayout(intelNodes, intelEdges, selectedNodeId),
@@ -636,9 +684,19 @@ const Dashboard = () => {
             </p>
             {intelSearchError && <p className="osint-search-error">{intelSearchError}</p>}
             {!intelSearchError && intelSearching && (
-              <p className="osint-search-loading">
-                Collecting public records, identity profiles, and digital footprint links...
-              </p>
+              <div className="osint-search-loading">
+                <p>Collecting public records, identity profiles, and digital footprint links...</p>
+                <ol className="osint-build-phase-list">
+                  {INTEL_BUILD_PHASES.map((phase, index) => (
+                    <li
+                      key={phase}
+                      className={index <= intelBuildPhaseIndex ? "active" : ""}
+                    >
+                      {phase}
+                    </li>
+                  ))}
+                </ol>
+              </div>
             )}
 
             {!intelSearching && intelGraph && (
@@ -654,6 +712,7 @@ const Dashboard = () => {
                   <div className="osint-graph-metrics">
                     <span>Nodes {intelGraph?.summary?.nodes ?? intelNodes.length}</span>
                     <span>Edges {intelGraph?.summary?.edges ?? intelEdges.length}</span>
+                    <span>Emails {intelGraph?.summary?.emails ?? 0}</span>
                     <span>Sources {intelGraph?.summary?.sourceHealth || "0/0"}</span>
                   </div>
                 </header>
@@ -666,9 +725,33 @@ const Dashboard = () => {
                         {source.status} · {source.records} records
                       </p>
                       {source.error ? <small>{truncateText(source.error, 96)}</small> : null}
+                      {source?.url ? (
+                        <a href={source.url} target="_blank" rel="noreferrer">
+                          Visit source
+                        </a>
+                      ) : null}
                     </article>
                   ))}
                 </section>
+                {buildTimeline.length > 0 && (
+                  <section className="osint-build-timeline" aria-label="Graph build timeline">
+                    <h5>Graph Build Timeline</h5>
+                    <ul className="osint-build-timeline-list">
+                      {buildTimeline.map((step) => (
+                        <li key={`${step.id}-${step.completedAt}`} className={step.status || "unknown"}>
+                          <div>
+                            <strong>{step.label}</strong>
+                            <span>
+                              {step.status} · {step.records} records · {step.durationMs}ms
+                            </span>
+                          </div>
+                          {step.detail ? <p>{step.detail}</p> : null}
+                          {step.message ? <small>{step.message}</small> : null}
+                        </li>
+                      ))}
+                    </ul>
+                  </section>
+                )}
 
                 <section className="osint-pivot-layout">
                   <div className="osint-graph-panel osint-pivot-canvas-panel">
@@ -744,7 +827,10 @@ const Dashboard = () => {
                         ) : null}
                         <p className="osint-pivot-meta">
                           Source: {selectedNode.source || "public-data"} · Linked edges:{" "}
-                          {selectedNodeEdges.length}
+                          {selectedNodeEdges.length} · Confidence:{" "}
+                          {typeof selectedNode.confidence === "number"
+                            ? `${Math.round(selectedNode.confidence * 100)}%`
+                            : "n/a"}
                         </p>
                         <div className="osint-pivot-actions">
                           {selectedNode.url ? (
@@ -762,6 +848,23 @@ const Dashboard = () => {
                             Pivot From Node
                           </button>
                         </div>
+                        {selectedNodeEvidence.length > 0 && (
+                          <ul className="osint-graph-list osint-node-evidence-list">
+                            {selectedNodeEvidence.map((evidence, index) => (
+                              <li key={`${evidence.source || "evidence"}-${index}`}>
+                                <div>
+                                  <span>{evidence.label || evidence.source || "Evidence"}</span>
+                                </div>
+                                <p>Source: {evidence.source || "public-data"}</p>
+                                {evidence.url ? (
+                                  <a href={evidence.url} target="_blank" rel="noreferrer">
+                                    Open evidence link
+                                  </a>
+                                ) : null}
+                              </li>
+                            ))}
+                          </ul>
+                        )}
                         <ul className="osint-graph-list osint-pivot-relation-list">
                           {selectedNodeEdges.length === 0 && <li>No relations for selected node.</li>}
                           {selectedNodeEdges.slice(0, 10).map((edge) => (
@@ -777,6 +880,11 @@ const Dashboard = () => {
                                   ? `${Math.round(edge.confidence * 100)}%`
                                   : "n/a"}
                               </p>
+                              {edge.sourceUrl ? (
+                                <a href={edge.sourceUrl} target="_blank" rel="noreferrer">
+                                  Open relation source
+                                </a>
+                              ) : null}
                             </li>
                           ))}
                         </ul>

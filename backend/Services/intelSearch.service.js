@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import fetch from "node-fetch";
 import { checkIntelInternetConnectivity } from "./intelConnectivity.service.js";
 
@@ -13,6 +14,9 @@ const MAX_SUBDOMAINS_PER_DOMAIN = 18;
 const MAX_USERNAME_CANDIDATES = 4;
 const MAX_DNS_VALUES_PER_TYPE = 6;
 const MAX_RDAP_NAMESERVERS = 8;
+const MAX_EMAIL_CANDIDATES = 6;
+const MAX_GRAVATAR_PROBES = 6;
+const MAX_NODE_EVIDENCE = 6;
 
 const SOCIAL_PROPERTY_MAP = Object.freeze([
   {
@@ -70,8 +74,18 @@ const COMPANY_HINTS = new Set([
 ]);
 
 const usernamePattern = /^(?=.{2,39}$)[a-z0-9](?:[a-z0-9._-]*[a-z0-9])?$/i;
+const emailPattern =
+  /^(?=.{6,320}$)([a-z0-9!#$%&'*+/=?^_`{|}~.-]+)@([a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)+)$/i;
 const domainPattern =
   /^(?=.{1,253}$)(?!-)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/i;
+const COMMON_EMAIL_DOMAINS = Object.freeze([
+  "gmail.com",
+  "outlook.com",
+  "yahoo.com",
+  "icloud.com",
+  "proton.me",
+  "protonmail.com",
+]);
 
 const cleanWhitespace = (value = "") =>
   String(value || "")
@@ -84,6 +98,32 @@ const removeWwwPrefix = (hostname = "") =>
   hostname.startsWith("www.") ? hostname.slice(4) : hostname;
 
 const normalizeHandle = (value = "") => String(value || "").trim().replace(/^@+/, "");
+
+const normalizeEmail = (value = "") => {
+  const normalized = cleanWhitespace(value).toLowerCase();
+  if (!normalized) return "";
+  const match = normalized.match(emailPattern);
+  if (!match) return "";
+  const local = cleanWhitespace(match[1]);
+  const domain = cleanWhitespace(match[2]).toLowerCase();
+  if (!local || !domainPattern.test(domain)) return "";
+  return `${local}@${domain}`;
+};
+
+const isLikelyEmail = (value = "") => Boolean(normalizeEmail(value));
+
+const normalizeWebsiteUrl = (value = "") => {
+  const text = cleanWhitespace(value);
+  if (!text) return "";
+  const candidate = /^https?:\/\//i.test(text) ? text : `https://${text}`;
+  try {
+    const url = new URL(candidate);
+    if (!/^https?:$/i.test(url.protocol)) return "";
+    return url.toString();
+  } catch {
+    return "";
+  }
+};
 
 const hashText = (value = "") => {
   let hash = 0;
@@ -172,6 +212,7 @@ const extractUsernameFromKnownUrl = (value = "") => {
 };
 
 const inferQueryType = (query) => {
+  if (isLikelyEmail(query)) return "email";
   if (isLikelyDomain(query)) return "domain";
 
   const directUsername = normalizeUsername(query) || extractUsernameFromKnownUrl(query);
@@ -235,7 +276,50 @@ const generateUsernameCandidates = (query, queryType) => {
     pushCandidate(raw);
   }
 
+  if (queryType === "email") {
+    const normalizedEmail = normalizeEmail(raw);
+    const local = normalizedEmail.split("@")[0] || "";
+    if (local) {
+      pushCandidate(local);
+      pushCandidate(local.split("+")[0]);
+      pushCandidate(local.replace(/\./g, ""));
+    }
+  }
+
   return candidates.slice(0, MAX_USERNAME_CANDIDATES);
+};
+
+const generateEmailCandidates = (query, queryType, usernames = [], knownDomains = []) => {
+  const candidates = [];
+  const pushEmail = (value) => {
+    const normalized = normalizeEmail(value);
+    if (!normalized) return;
+    if (candidates.includes(normalized)) return;
+    candidates.push(normalized);
+  };
+
+  if (queryType === "email") {
+    pushEmail(query);
+  }
+
+  const cleanUsernames = usernames.map((entry) => normalizeUsername(entry)).filter(Boolean);
+  const domainSeeds = Array.from(
+    new Set([
+      ...knownDomains.map((entry) => normalizeDomain(entry)).filter(Boolean),
+      ...COMMON_EMAIL_DOMAINS,
+    ])
+  );
+
+  for (const username of cleanUsernames.slice(0, MAX_USERNAME_CANDIDATES)) {
+    for (const domain of domainSeeds) {
+      if (candidates.length >= MAX_EMAIL_CANDIDATES) {
+        return candidates;
+      }
+      pushEmail(`${username}@${domain}`);
+    }
+  }
+
+  return candidates.slice(0, MAX_EMAIL_CANDIDATES);
 };
 
 const createHttpError = (status, message, code) => {
@@ -528,8 +612,9 @@ const fetchDomainRdapIntel = async (domain) => {
 };
 
 const probeGithubUsername = async (username) => {
+  const sourceUrl = `https://api.github.com/users/${encodeURIComponent(username)}`;
   const data = await fetchOptionalJson(
-    `https://api.github.com/users/${encodeURIComponent(username)}`,
+    sourceUrl,
     {
       headers: {
         Accept: "application/vnd.github+json",
@@ -539,20 +624,42 @@ const probeGithubUsername = async (username) => {
   );
   if (!data?.login) return null;
 
+  const cleanHandle = cleanWhitespace(data.login);
+  const email = normalizeEmail(data?.email || "");
+  const blog = normalizeWebsiteUrl(data?.blog || "");
+  const twitterUsername = normalizeUsername(data?.twitter_username || "");
+
   return {
     platform: "github",
     relation: "github_account",
-    handle: cleanWhitespace(data.login),
+    handle: cleanHandle,
     url: cleanWhitespace(data.html_url || `https://github.com/${username}`),
     description: cleanWhitespace(data.bio || data.type || "GitHub profile"),
     confidence: 0.96,
     source: "github_exact",
+    sourceUrl,
+    emails: email ? [email] : [],
+    websites: blog ? [{ url: blog, source: "github_exact", confidence: 0.88 }] : [],
+    relatedProfiles: twitterUsername
+      ? [
+          {
+            platform: "x",
+            relation: "x_account",
+            handle: twitterUsername,
+            url: `https://x.com/${twitterUsername}`,
+            source: "github_exact",
+            confidence: 0.86,
+            description: "Linked from GitHub profile metadata",
+          },
+        ]
+      : [],
   };
 };
 
 const probeRedditUsername = async (username) => {
+  const sourceUrl = `https://www.reddit.com/user/${encodeURIComponent(username)}/about.json`;
   const data = await fetchOptionalJson(
-    `https://www.reddit.com/user/${encodeURIComponent(username)}/about.json`,
+    sourceUrl,
     {
       headers: {
         Accept: "application/json",
@@ -573,15 +680,16 @@ const probeRedditUsername = async (username) => {
     description: `Reddit account · karma ${Number(user?.total_karma) || 0}`,
     confidence: 0.94,
     source: "reddit_exact",
+    sourceUrl,
+    emails: [],
+    websites: [],
+    relatedProfiles: [],
   };
 };
 
 const probeHackerNewsUsername = async (username) => {
-  const data = await fetchOptionalJson(
-    `https://hacker-news.firebaseio.com/v0/user/${encodeURIComponent(username)}.json`,
-    {},
-    USERNAME_PROBE_TIMEOUT_MS
-  );
+  const sourceUrl = `https://hacker-news.firebaseio.com/v0/user/${encodeURIComponent(username)}.json`;
+  const data = await fetchOptionalJson(sourceUrl, {}, USERNAME_PROBE_TIMEOUT_MS);
   const handle = cleanWhitespace(data?.id || "");
   if (!handle) return null;
 
@@ -593,19 +701,97 @@ const probeHackerNewsUsername = async (username) => {
     description: `Hacker News account · karma ${Number(data?.karma) || 0}`,
     confidence: 0.93,
     source: "hackernews_exact",
+    sourceUrl,
+    emails: [],
+    websites: [],
+    relatedProfiles: [],
   };
 };
 
+const parseKeybaseProofs = (proofRows = []) => {
+  const relatedProfiles = [];
+  const websites = [];
+  const proofTypeToProfile = {
+    twitter: {
+      platform: "x",
+      relation: "x_account",
+      toUrl: (name) => `https://x.com/${name}`,
+      confidence: 0.85,
+    },
+    github: {
+      platform: "github",
+      relation: "github_account",
+      toUrl: (name) => `https://github.com/${name}`,
+      confidence: 0.88,
+    },
+    reddit: {
+      platform: "reddit",
+      relation: "reddit_account",
+      toUrl: (name) => `https://www.reddit.com/user/${name}`,
+      confidence: 0.84,
+    },
+    hackernews: {
+      platform: "hackernews",
+      relation: "hackernews_account",
+      toUrl: (name) => `https://news.ycombinator.com/user?id=${encodeURIComponent(name)}`,
+      confidence: 0.83,
+    },
+    facebook: {
+      platform: "facebook",
+      relation: "facebook_account",
+      toUrl: (name) => `https://www.facebook.com/${name}`,
+      confidence: 0.78,
+    },
+    instagram: {
+      platform: "instagram",
+      relation: "instagram_account",
+      toUrl: (name) => `https://www.instagram.com/${name}`,
+      confidence: 0.79,
+    },
+  };
+
+  for (const proof of proofRows) {
+    const type = cleanWhitespace(proof?.proof_type || proof?.proofType || "").toLowerCase();
+    const name = normalizeHandle(proof?.nametag || proof?.username || proof?.user || "");
+    const meta = proofTypeToProfile[type];
+
+    if (meta && name) {
+      relatedProfiles.push({
+        platform: meta.platform,
+        relation: meta.relation,
+        handle: name,
+        url: cleanWhitespace(proof?.service_url || meta.toUrl(name)),
+        source: "keybase_exact",
+        confidence: meta.confidence,
+        description: "Linked via Keybase proof",
+      });
+      continue;
+    }
+
+    if ((type === "web" || type === "http" || type === "https") && proof?.service_url) {
+      const websiteUrl = normalizeWebsiteUrl(proof.service_url);
+      if (!websiteUrl) continue;
+      websites.push({
+        url: websiteUrl,
+        source: "keybase_exact",
+        confidence: 0.74,
+      });
+    }
+  }
+
+  return { relatedProfiles, websites };
+};
+
 const probeKeybaseUsername = async (username) => {
-  const data = await fetchOptionalJson(
-    `https://keybase.io/_/api/1.0/user/lookup.json?username=${encodeURIComponent(username)}`,
-    {},
-    USERNAME_PROBE_TIMEOUT_MS
-  );
+  const sourceUrl = `https://keybase.io/_/api/1.0/user/lookup.json?username=${encodeURIComponent(username)}`;
+  const data = await fetchOptionalJson(sourceUrl, {}, USERNAME_PROBE_TIMEOUT_MS);
 
   const profile = Array.isArray(data?.them) ? data.them[0] : null;
   const handle = cleanWhitespace(profile?.basics?.username || "");
   if (!handle) return null;
+
+  const proofRows = Array.isArray(profile?.proofs_summary?.all) ? profile.proofs_summary.all : [];
+  const proofIntel = parseKeybaseProofs(proofRows);
 
   return {
     platform: "keybase",
@@ -615,35 +801,198 @@ const probeKeybaseUsername = async (username) => {
     description: cleanWhitespace(profile?.profile?.full_name || "Keybase account"),
     confidence: 0.92,
     source: "keybase_exact",
+    sourceUrl,
+    emails: [],
+    websites: proofIntel.websites,
+    relatedProfiles: proofIntel.relatedProfiles,
   };
 };
 
+const probePublicProfileByUrl = async (input) => {
+  const platform = cleanWhitespace(input?.platform || "").toLowerCase();
+  const username = normalizeUsername(input?.username || "");
+  const url = cleanWhitespace(input?.url || "");
+  const relation = cleanWhitespace(input?.relation || "profile_link").toLowerCase();
+  const source = cleanWhitespace(input?.source || "public_profile_probe");
+  const confidence = Number.isFinite(input?.confidence) ? input.confidence : 0.66;
+  const absenceMarkers = Array.isArray(input?.absenceMarkers) ? input.absenceMarkers : [];
+  if (!platform || !username || !url) return null;
+
+  let response;
+  try {
+    response = await fetchWithTimeout(
+      url,
+      {
+        headers: {
+          Accept: "text/html,application/xhtml+xml;q=0.9",
+        },
+      },
+      USERNAME_PROBE_TIMEOUT_MS
+    );
+  } catch {
+    return null;
+  }
+
+  if (!response.ok) return null;
+
+  const html = (await response.text()).slice(0, 5000).toLowerCase();
+  for (const marker of absenceMarkers) {
+    const token = cleanWhitespace(marker).toLowerCase();
+    if (token && html.includes(token)) return null;
+  }
+
+  return {
+    platform,
+    relation,
+    handle: username,
+    url,
+    description: `${platform} profile candidate`,
+    confidence,
+    source,
+    sourceUrl: url,
+    emails: [],
+    websites: [],
+    relatedProfiles: [],
+  };
+};
+
+const uniqueProfileEntries = (profiles = []) => {
+  const seen = new Set();
+  const out = [];
+  for (const profile of profiles) {
+    const platform = cleanWhitespace(profile?.platform || "").toLowerCase();
+    const handle = normalizeHandle(profile?.handle || "").toLowerCase();
+    if (!platform || !handle) continue;
+    const key = `${platform}:${handle}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(profile);
+  }
+  return out;
+};
+
+const uniqueStrings = (values = []) => Array.from(new Set(values.map((entry) => cleanWhitespace(entry)).filter(Boolean)));
+
+const uniqueWebsites = (websites = []) => {
+  const seen = new Set();
+  const out = [];
+  for (const website of websites) {
+    const websiteUrl = normalizeWebsiteUrl(website?.url || website);
+    if (!websiteUrl || seen.has(websiteUrl)) continue;
+    seen.add(websiteUrl);
+    out.push({
+      url: websiteUrl,
+      source: website?.source || "public_data",
+      confidence: Number.isFinite(website?.confidence) ? website.confidence : 0.72,
+    });
+  }
+  return out;
+};
+
 const probeUsernameCandidate = async (username) => {
+  const cleanUsername = normalizeUsername(username);
+  if (!cleanUsername) {
+    return {
+      username,
+      profiles: [],
+      emails: [],
+      websites: [],
+      relatedProfiles: [],
+      failures: 0,
+      probes: 0,
+    };
+  }
+
   const probes = [
-    probeGithubUsername(username),
-    probeRedditUsername(username),
-    probeHackerNewsUsername(username),
-    probeKeybaseUsername(username),
+    probeGithubUsername(cleanUsername),
+    probeRedditUsername(cleanUsername),
+    probeHackerNewsUsername(cleanUsername),
+    probeKeybaseUsername(cleanUsername),
+    probePublicProfileByUrl({
+      platform: "x",
+      username: cleanUsername,
+      relation: "x_account",
+      source: "x_profile_probe",
+      confidence: 0.67,
+      url: `https://x.com/${encodeURIComponent(cleanUsername)}`,
+      absenceMarkers: ["this account doesn", "this account doesn't", "account doesn’t exist"],
+    }),
+    probePublicProfileByUrl({
+      platform: "instagram",
+      username: cleanUsername,
+      relation: "instagram_account",
+      source: "instagram_profile_probe",
+      confidence: 0.64,
+      url: `https://www.instagram.com/${encodeURIComponent(cleanUsername)}/`,
+      absenceMarkers: ["sorry, this page isn't available"],
+    }),
+    probePublicProfileByUrl({
+      platform: "facebook",
+      username: cleanUsername,
+      relation: "facebook_account",
+      source: "facebook_profile_probe",
+      confidence: 0.52,
+      url: `https://www.facebook.com/${encodeURIComponent(cleanUsername)}`,
+      absenceMarkers: ["content isn't available right now", "content isn’t available right now"],
+    }),
   ];
 
   const settled = await Promise.allSettled(probes);
   const profiles = [];
+  const emails = [];
+  const websites = [];
+  const relatedProfiles = [];
   let failures = 0;
 
   for (const result of settled) {
     if (result.status === "fulfilled") {
-      if (result.value) profiles.push(result.value);
+      if (!result.value) continue;
+      profiles.push(result.value);
+      emails.push(...(Array.isArray(result.value.emails) ? result.value.emails : []));
+      websites.push(...(Array.isArray(result.value.websites) ? result.value.websites : []));
+      relatedProfiles.push(...(Array.isArray(result.value.relatedProfiles) ? result.value.relatedProfiles : []));
       continue;
     }
     failures += 1;
   }
 
   return {
-    username,
-    profiles,
+    username: cleanUsername,
+    profiles: uniqueProfileEntries(profiles),
+    emails: uniqueStrings(emails.map((entry) => normalizeEmail(entry))).filter(Boolean),
+    websites: uniqueWebsites(websites),
+    relatedProfiles: uniqueProfileEntries(relatedProfiles),
     failures,
     probes: settled.length,
   };
+};
+
+const normalizeEvidenceEntry = (entry = {}) => {
+  const source = cleanWhitespace(entry?.source || "");
+  const url = cleanWhitespace(entry?.url || "");
+  const label = cleanWhitespace(entry?.label || "");
+  if (!source && !url) return null;
+  return {
+    source: source || "public_data",
+    url,
+    label,
+  };
+};
+
+const mergeEvidence = (previous = [], incoming = []) => {
+  const merged = [];
+  const seen = new Set();
+  const allEntries = [...previous, ...incoming].map(normalizeEvidenceEntry).filter(Boolean);
+
+  for (const entry of allEntries) {
+    const key = `${entry.source}|${entry.url}|${entry.label}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    merged.push(entry);
+    if (merged.length >= MAX_NODE_EVIDENCE) break;
+  }
+
+  return merged;
 };
 
 const createGraph = () => {
@@ -666,16 +1015,29 @@ const createGraph = () => {
       url: previous.url || node.url,
       handle: previous.handle || node.handle,
       platform: previous.platform || node.platform,
+      confidence: Math.max(Number(previous.confidence) || 0, Number(node.confidence) || 0),
+      evidence: mergeEvidence(previous.evidence || [], node.evidence || []),
     });
   };
 
   const addEdge = (edge) => {
     if (!edge?.from || !edge?.to || !edge?.relation) return;
     const key = `${edge.from}|${edge.to}|${edge.relation}`;
-    if (edges.has(key)) return;
+    if (!edges.has(key)) {
+      edges.set(key, {
+        id: key,
+        ...edge,
+      });
+      return;
+    }
+
+    const previous = edges.get(key);
     edges.set(key, {
-      id: key,
+      ...previous,
       ...edge,
+      source: previous.source || edge.source,
+      sourceUrl: previous.sourceUrl || edge.sourceUrl,
+      confidence: Math.max(Number(previous.confidence) || 0, Number(edge.confidence) || 0),
     });
   };
 
@@ -705,6 +1067,14 @@ const addProfileNodeToGraph = (graph, input) => {
     source: input?.source || "public_data",
     url: input?.url || "",
     description: input?.description || "",
+    confidence: typeof input?.confidence === "number" ? input.confidence : 0.8,
+    evidence: [
+      {
+        source: input?.source || "public_data",
+        url: input?.sourceUrl || input?.url || "",
+        label: input?.sourceLabel || "",
+      },
+    ],
   });
 
   graph.addEdge({
@@ -712,19 +1082,189 @@ const addProfileNodeToGraph = (graph, input) => {
     to: nodeId,
     relation,
     source: input?.source || "public_data",
+    sourceUrl: input?.sourceUrl || input?.url || "",
     confidence: typeof input?.confidence === "number" ? input.confidence : 0.8,
   });
 
   return true;
 };
 
-const buildSourceStatus = (id, label, status, records, error = "") => ({
+const addEmailNodeToGraph = (graph, input) => {
+  const email = normalizeEmail(input?.email || "");
+  if (!email) return "";
+  const nodeId = `email:${email}`;
+  graph.addNode({
+    id: nodeId,
+    type: "email",
+    label: email,
+    source: input?.source || "public_data",
+    url: `mailto:${email}`,
+    description: input?.description || "",
+    confidence: Number.isFinite(input?.confidence) ? input.confidence : 0.76,
+    evidence: [
+      {
+        source: input?.source || "public_data",
+        url: input?.sourceUrl || "",
+        label: input?.sourceLabel || "",
+      },
+    ],
+  });
+
+  if (input?.fromId) {
+    graph.addEdge({
+      from: input.fromId,
+      to: nodeId,
+      relation: cleanWhitespace(input?.relation || "related_email").toLowerCase(),
+      source: input?.source || "public_data",
+      sourceUrl: input?.sourceUrl || "",
+      confidence: Number.isFinite(input?.confidence) ? input.confidence : 0.74,
+    });
+  }
+
+  return nodeId;
+};
+
+const addWebsiteNodeToGraph = (graph, input) => {
+  const websiteUrl = normalizeWebsiteUrl(input?.url || "");
+  if (!websiteUrl) return "";
+  const hostname = normalizeDomain(websiteUrl) || "";
+  const nodeId = hostname ? `website:${hostname}` : `website:${toSafeIdFragment(websiteUrl)}`;
+  graph.addNode({
+    id: nodeId,
+    type: "website",
+    label: hostname || websiteUrl,
+    source: input?.source || "public_data",
+    url: websiteUrl,
+    description: input?.description || "",
+    confidence: Number.isFinite(input?.confidence) ? input.confidence : 0.72,
+    evidence: [
+      {
+        source: input?.source || "public_data",
+        url: input?.sourceUrl || websiteUrl,
+        label: input?.sourceLabel || "",
+      },
+    ],
+  });
+
+  if (input?.fromId) {
+    graph.addEdge({
+      from: input.fromId,
+      to: nodeId,
+      relation: cleanWhitespace(input?.relation || "related_website").toLowerCase(),
+      source: input?.source || "public_data",
+      sourceUrl: input?.sourceUrl || websiteUrl,
+      confidence: Number.isFinite(input?.confidence) ? input.confidence : 0.72,
+    });
+  }
+
+  return nodeId;
+};
+
+const fetchGravatarByEmail = async (email) => {
+  const normalizedEmail = normalizeEmail(email);
+  if (!normalizedEmail) return null;
+  const hash = createHash("md5").update(normalizedEmail).digest("hex");
+  const sourceUrl = `https://www.gravatar.com/${hash}.json`;
+  const data = await fetchOptionalJson(sourceUrl, {}, 7000);
+
+  const entry = Array.isArray(data?.entry) ? data.entry[0] : null;
+  if (!entry) return null;
+
+  const profileUrl = cleanWhitespace(entry?.profileUrl || `https://gravatar.com/${hash}`);
+  const displayName = cleanWhitespace(entry?.displayName || "");
+  const aboutMe = cleanWhitespace(entry?.aboutMe || "");
+  const relatedUrls = Array.isArray(entry?.urls)
+    ? entry.urls.map((row) => normalizeWebsiteUrl(row?.value || "")).filter(Boolean).slice(0, 4)
+    : [];
+
+  return {
+    hash,
+    email: normalizedEmail,
+    sourceUrl,
+    profileUrl,
+    avatarUrl: `https://www.gravatar.com/avatar/${hash}`,
+    displayName,
+    aboutMe,
+    relatedUrls,
+  };
+};
+
+const addGravatarNodeToGraph = (graph, input) => {
+  const email = normalizeEmail(input?.email || "");
+  const hash = cleanWhitespace(input?.hash || "");
+  if (!email || !hash) return "";
+
+  const nodeId = `gravatar:${hash}`;
+  graph.addNode({
+    id: nodeId,
+    type: "gravatar",
+    label: input?.displayName || `Gravatar ${email}`,
+    source: input?.source || "gravatar",
+    url: input?.profileUrl || "",
+    description: input?.aboutMe || `Gravatar profile linked to ${email}`,
+    confidence: Number.isFinite(input?.confidence) ? input.confidence : 0.9,
+    evidence: [
+      {
+        source: input?.source || "gravatar",
+        url: input?.sourceUrl || "",
+        label: "Gravatar profile JSON",
+      },
+    ],
+  });
+
+  if (input?.fromId) {
+    graph.addEdge({
+      from: input.fromId,
+      to: nodeId,
+      relation: "gravatar_profile",
+      source: input?.source || "gravatar",
+      sourceUrl: input?.sourceUrl || "",
+      confidence: Number.isFinite(input?.confidence) ? input.confidence : 0.9,
+    });
+  }
+
+  return nodeId;
+};
+
+const buildSourceStatus = (id, label, status, records, error = "", url = "") => ({
   id,
   label,
   status,
   records: Number.isFinite(records) ? records : 0,
   error: cleanWhitespace(error),
+  url: cleanWhitespace(url),
 });
+
+const createBuildTimeline = () => {
+  const steps = [];
+
+  const start = (id, label, detail = "") => ({
+    id,
+    label,
+    detail: cleanWhitespace(detail),
+    startedAt: Date.now(),
+  });
+
+  const finish = (token, status, records, message = "") => {
+    steps.push({
+      id: token.id,
+      label: token.label,
+      detail: token.detail,
+      status,
+      records: Number.isFinite(records) ? records : 0,
+      message: cleanWhitespace(message),
+      startedAt: new Date(token.startedAt).toISOString(),
+      completedAt: new Date().toISOString(),
+      durationMs: Math.max(0, Date.now() - token.startedAt),
+    });
+  };
+
+  return {
+    start,
+    finish,
+    toJson: () => [...steps],
+  };
+};
 
 export const buildPublicIntelGraph = async (rawQuery) => {
   const query = cleanWhitespace(rawQuery);
@@ -750,10 +1290,14 @@ export const buildPublicIntelGraph = async (rawQuery) => {
 
   const graph = createGraph();
   const sourceStatus = [];
+  const timeline = createBuildTimeline();
   const domains = new Set();
+  const discoveredEmails = new Set();
   const queryType = inferQueryType(query);
   const rootId = `target:${query.toLowerCase()}`;
   const startedAt = Date.now();
+  const normalizedQueryEmail = normalizeEmail(query);
+  const normalizedQueryDomain = normalizeDomain(query);
 
   graph.addNode({
     id: rootId,
@@ -761,28 +1305,87 @@ export const buildPublicIntelGraph = async (rawQuery) => {
     label: query,
     source: "user_input",
     confidence: 1,
+    evidence: [
+      {
+        source: "user_input",
+        label: "Query seed",
+      },
+    ],
   });
 
-  const inputDomain = normalizeDomain(query);
-  if (inputDomain) {
-    domains.add(inputDomain);
-    graph.addNode({
-      id: `domain:${inputDomain}`,
-      type: "domain",
-      label: inputDomain,
+  const seedStage = timeline.start("seed_analysis", "Seed Analysis", "Normalize query into known seed types");
+
+  if (normalizedQueryEmail) {
+    const emailNodeId = addEmailNodeToGraph(graph, {
+      email: normalizedQueryEmail,
+      fromId: rootId,
+      relation: "input_email",
       source: "user_input",
-      url: `https://${inputDomain}`,
+      confidence: 1,
+      description: "Input email seed",
+    });
+    if (emailNodeId) discoveredEmails.add(normalizedQueryEmail);
+    const emailDomain = normalizedQueryEmail.split("@")[1] || "";
+    const normalizedEmailDomain = normalizeDomain(emailDomain);
+    if (normalizedEmailDomain) {
+      domains.add(normalizedEmailDomain);
+      graph.addNode({
+        id: `domain:${normalizedEmailDomain}`,
+        type: "domain",
+        label: normalizedEmailDomain,
+        source: "user_input",
+        url: `https://${normalizedEmailDomain}`,
+      });
+      graph.addEdge({
+        from: emailNodeId || rootId,
+        to: `domain:${normalizedEmailDomain}`,
+        relation: "email_domain",
+        source: "user_input",
+        sourceUrl: `mailto:${normalizedQueryEmail}`,
+        confidence: 1,
+      });
+    }
+  }
+
+  if (normalizedQueryDomain) {
+    domains.add(normalizedQueryDomain);
+    graph.addNode({
+      id: `domain:${normalizedQueryDomain}`,
+      type: "domain",
+      label: normalizedQueryDomain,
+      source: "user_input",
+      url: `https://${normalizedQueryDomain}`,
+      evidence: [
+        {
+          source: "user_input",
+          url: `https://${normalizedQueryDomain}`,
+          label: "Input domain seed",
+        },
+      ],
     });
     graph.addEdge({
       from: rootId,
-      to: `domain:${inputDomain}`,
+      to: `domain:${normalizedQueryDomain}`,
       relation: "input_domain",
       source: "user_input",
+      sourceUrl: `https://${normalizedQueryDomain}`,
       confidence: 1,
     });
   }
 
+  timeline.finish(
+    seedStage,
+    "ok",
+    Number(Boolean(normalizedQueryDomain)) + Number(Boolean(normalizedQueryEmail)),
+    queryType === "unknown" ? "Seed type inferred as unknown" : `Seed type: ${queryType}`
+  );
+
   const usernameCandidates = generateUsernameCandidates(query, queryType);
+  const usernameStage = timeline.start(
+    "username_expansion",
+    "Username Expansion",
+    "Generate aliases and probe public username identities"
+  );
   if (usernameCandidates.length > 0) {
     const probeResults = await Promise.allSettled(
       usernameCandidates.map((candidate) => probeUsernameCandidate(candidate))
@@ -790,6 +1393,8 @@ export const buildPublicIntelGraph = async (rawQuery) => {
 
     let candidateNodes = 0;
     let profileRecords = 0;
+    let emailRecords = 0;
+    let websiteRecords = 0;
     let probeFailures = 0;
 
     for (let i = 0; i < usernameCandidates.length; i += 1) {
@@ -803,6 +1408,12 @@ export const buildPublicIntelGraph = async (rawQuery) => {
         label: `@${candidate}`,
         handle: candidate,
         source: candidate === normalizeUsername(query) ? "user_input" : "heuristic",
+        evidence: [
+          {
+            source: "heuristic",
+            label: "Username candidate",
+          },
+        ],
       });
 
       graph.addEdge({
@@ -810,6 +1421,7 @@ export const buildPublicIntelGraph = async (rawQuery) => {
         to: candidateId,
         relation: "username_candidate",
         source: "heuristic",
+        sourceUrl: "",
         confidence: candidate === normalizeUsername(query) ? 0.98 : 0.62,
       });
 
@@ -828,6 +1440,62 @@ export const buildPublicIntelGraph = async (rawQuery) => {
         });
         if (added) profileRecords += 1;
       }
+
+      for (const profile of result.value.relatedProfiles || []) {
+        const added = addProfileNodeToGraph(graph, {
+          ...profile,
+          fromId: candidateId,
+        });
+        if (added) profileRecords += 1;
+      }
+
+      for (const email of result.value.emails || []) {
+        const emailNodeId = addEmailNodeToGraph(graph, {
+          email,
+          fromId: candidateId,
+          relation: "related_email",
+          source: "identity_probe",
+          sourceUrl: "",
+          confidence: 0.82,
+          description: "Email observed in public profile metadata",
+        });
+        if (!emailNodeId) continue;
+        discoveredEmails.add(email);
+        emailRecords += 1;
+      }
+
+      for (const website of result.value.websites || []) {
+        const websiteNodeId = addWebsiteNodeToGraph(graph, {
+          url: website.url,
+          fromId: candidateId,
+          relation: "related_website",
+          source: website.source || "identity_probe",
+          sourceUrl: website.url,
+          confidence: Number.isFinite(website.confidence) ? website.confidence : 0.75,
+          description: "Website linked from public profile metadata",
+        });
+        if (!websiteNodeId) continue;
+        websiteRecords += 1;
+        const websiteDomain = normalizeDomain(website.url);
+        if (websiteDomain) {
+          domains.add(websiteDomain);
+          graph.addNode({
+            id: `domain:${websiteDomain}`,
+            type: "domain",
+            label: websiteDomain,
+            source: website.source || "identity_probe",
+            url: `https://${websiteDomain}`,
+          });
+          graph.addEdge({
+            from: websiteNodeId,
+            to: `domain:${websiteDomain}`,
+            relation: "website_domain",
+            source: website.source || "identity_probe",
+            sourceUrl: website.url,
+            confidence: 0.78,
+          });
+        }
+      }
     }
 
     sourceStatus.push(
@@ -835,7 +1503,9 @@ export const buildPublicIntelGraph = async (rawQuery) => {
         "username_candidates",
         "Username Candidate Expansion",
         probeFailures > 0 && profileRecords === 0 ? "partial" : "ok",
-        candidateNodes
+        candidateNodes,
+        "",
+        ""
       )
     );
 
@@ -845,8 +1515,37 @@ export const buildPublicIntelGraph = async (rawQuery) => {
         "Username Identity Probes",
         probeFailures > 0 && profileRecords === 0 ? "partial" : "ok",
         profileRecords,
-        probeFailures > 0 ? `${probeFailures} probe checks returned no response` : ""
+        probeFailures > 0 ? `${probeFailures} probe checks returned no response` : "",
+        "https://github.com/"
       )
+    );
+
+    sourceStatus.push(
+      buildSourceStatus(
+        "username_email_website",
+        "Username Email/Website Links",
+        "ok",
+        emailRecords + websiteRecords,
+        "",
+        ""
+      )
+    );
+
+    sourceStatus.push(
+      buildSourceStatus(
+        "slack",
+        "Slack Accounts",
+        "skipped",
+        0,
+        "Slack identities are workspace-scoped and not globally enumerable from public internet."
+      )
+    );
+
+    timeline.finish(
+      usernameStage,
+      probeFailures > 0 && profileRecords === 0 ? "partial" : "ok",
+      candidateNodes + profileRecords + emailRecords + websiteRecords,
+      probeFailures > 0 ? `${probeFailures} probe checks did not return` : ""
     );
   } else {
     sourceStatus.push(
@@ -858,17 +1557,42 @@ export const buildPublicIntelGraph = async (rawQuery) => {
         "No username candidates detected from query"
       )
     );
+    sourceStatus.push(
+      buildSourceStatus(
+        "slack",
+        "Slack Accounts",
+        "skipped",
+        0,
+        "Slack identities are workspace-scoped and not globally enumerable from public internet."
+      )
+    );
+    timeline.finish(usernameStage, "skipped", 0, "No username candidates resolved from seed");
   }
 
+  const entityStage = timeline.start(
+    "entity_search",
+    "Entity Search",
+    "Query Wikidata, Wikipedia, and GitHub search index"
+  );
   const [wikidataSettled, wikipediaSettled, githubSettled] = await Promise.allSettled([
     searchWikidataEntities(query),
     searchWikipedia(query),
     searchGithubUsers(query),
   ]);
+  let entityStageRecords = 0;
 
   if (wikidataSettled.status === "fulfilled") {
     const entities = wikidataSettled.value.filter((entry) => entry.id && entry.label);
-    sourceStatus.push(buildSourceStatus("wikidata", "Wikidata Entities", "ok", entities.length));
+    sourceStatus.push(
+      buildSourceStatus(
+        "wikidata",
+        "Wikidata Entities",
+        "ok",
+        entities.length,
+        "",
+        "https://www.wikidata.org/wiki/Wikidata:Main_Page"
+      )
+    );
 
     for (const entity of entities) {
       const entityId = `wikidata:${entity.id}`;
@@ -879,12 +1603,20 @@ export const buildPublicIntelGraph = async (rawQuery) => {
         description: entity.description,
         source: "wikidata",
         url: entity.conceptUri,
+        evidence: [
+          {
+            source: "wikidata",
+            url: entity.conceptUri,
+            label: "Entity page",
+          },
+        ],
       });
       graph.addEdge({
         from: rootId,
         to: entityId,
         relation: "matched_entity",
         source: "wikidata",
+        sourceUrl: entity.conceptUri,
         confidence: 0.84,
       });
     }
@@ -918,12 +1650,20 @@ export const buildPublicIntelGraph = async (rawQuery) => {
           label: website.domain,
           source: "wikidata",
           url: website.url,
+          evidence: [
+            {
+              source: "wikidata",
+              url: website.url,
+              label: "Wikidata website claim",
+            },
+          ],
         });
         graph.addEdge({
           from: entityNodeId,
           to: domainNodeId,
           relation: "official_website",
           source: "wikidata",
+          sourceUrl: website.url,
           confidence: 0.93,
         });
       }
@@ -933,6 +1673,7 @@ export const buildPublicIntelGraph = async (rawQuery) => {
           ...profile,
           fromId: entityNodeId,
           source: "wikidata",
+          sourceUrl: `https://www.wikidata.org/wiki/${entity.id}`,
           confidence: 0.88,
         });
         if (added) detailRecords += 1;
@@ -948,9 +1689,11 @@ export const buildPublicIntelGraph = async (rawQuery) => {
         "Wikidata Entity Details",
         detailStatus,
         detailRecords,
-        detailErrorMessage
+        detailErrorMessage,
+        "https://www.wikidata.org/wiki/Wikidata:Data_access"
       )
     );
+    entityStageRecords += entities.length + detailRecords;
   } else {
     sourceStatus.push(
       buildSourceStatus(
@@ -958,33 +1701,53 @@ export const buildPublicIntelGraph = async (rawQuery) => {
         "Wikidata Entities",
         "failed",
         0,
-        wikidataSettled.reason?.message || "Wikidata search failed"
+        wikidataSettled.reason?.message || "Wikidata search failed",
+        "https://www.wikidata.org/wiki/Wikidata:Data_access"
       )
     );
   }
 
   if (wikipediaSettled.status === "fulfilled") {
     const references = wikipediaSettled.value.filter((entry) => entry.pageId && entry.title);
-    sourceStatus.push(buildSourceStatus("wikipedia", "Wikipedia", "ok", references.length));
+    sourceStatus.push(
+      buildSourceStatus(
+        "wikipedia",
+        "Wikipedia",
+        "ok",
+        references.length,
+        "",
+        "https://www.wikipedia.org/"
+      )
+    );
 
     for (const reference of references) {
       const articleNodeId = `wikipedia:${reference.pageId}`;
+      const articleUrl = `https://en.wikipedia.org/?curid=${reference.pageId}`;
       graph.addNode({
         id: articleNodeId,
         type: "knowledge_article",
         label: reference.title,
         description: reference.snippet,
         source: "wikipedia",
-        url: `https://en.wikipedia.org/?curid=${reference.pageId}`,
+        url: articleUrl,
+        evidence: [
+          {
+            source: "wikipedia",
+            url: articleUrl,
+            label: "Wikipedia article",
+          },
+        ],
       });
       graph.addEdge({
         from: rootId,
         to: articleNodeId,
         relation: "knowledge_reference",
         source: "wikipedia",
+        sourceUrl: articleUrl,
         confidence: 0.72,
       });
     }
+    entityStageRecords += references.length;
   } else {
     sourceStatus.push(
       buildSourceStatus(
@@ -992,14 +1755,24 @@ export const buildPublicIntelGraph = async (rawQuery) => {
         "Wikipedia",
         "failed",
         0,
-        wikipediaSettled.reason?.message || "Wikipedia search failed"
+        wikipediaSettled.reason?.message || "Wikipedia search failed",
+        "https://www.wikipedia.org/"
       )
     );
   }
 
   if (githubSettled.status === "fulfilled") {
     const profiles = githubSettled.value.filter((entry) => entry.login);
-    sourceStatus.push(buildSourceStatus("github", "GitHub Profiles", "ok", profiles.length));
+    sourceStatus.push(
+      buildSourceStatus(
+        "github",
+        "GitHub Profiles",
+        "ok",
+        profiles.length,
+        "",
+        "https://docs.github.com/en/rest/search"
+      )
+    );
 
     for (const profile of profiles) {
       const added = addProfileNodeToGraph(graph, {
@@ -1009,11 +1782,13 @@ export const buildPublicIntelGraph = async (rawQuery) => {
         handle: profile.login,
         url: profile.profileUrl,
         source: "github_search",
+        sourceUrl: profile.profileUrl,
         confidence: Math.max(0.45, Math.min(0.85, profile.score / 100)),
         description: profile.type ? `Account type: ${profile.type}` : "",
       });
       if (!added) continue;
     }
+    entityStageRecords += profiles.length;
   } else {
     sourceStatus.push(
       buildSourceStatus(
@@ -1021,12 +1796,19 @@ export const buildPublicIntelGraph = async (rawQuery) => {
         "GitHub Profiles",
         "failed",
         0,
-        githubSettled.reason?.message || "GitHub search failed"
+        githubSettled.reason?.message || "GitHub search failed",
+        "https://docs.github.com/en/rest/search"
       )
     );
   }
+  timeline.finish(entityStage, "ok", entityStageRecords, "Entity correlation completed");
 
   const domainCandidates = Array.from(domains).slice(0, MAX_DOMAIN_CERT_LOOKUPS);
+  const domainStage = timeline.start(
+    "domain_intel",
+    "Domain Infrastructure Intel",
+    "Expand domain seed into DNS, RDAP, and certificate graph"
+  );
 
   if (domainCandidates.length > 0) {
     let crtRecords = 0;
@@ -1068,12 +1850,21 @@ export const buildPublicIntelGraph = async (rawQuery) => {
             type: "subdomain",
             label: subdomain,
             source: "crtsh",
+            url: `https://${subdomain}`,
+            evidence: [
+              {
+                source: "crtsh",
+                url: `https://crt.sh/?q=${encodeURIComponent(`%.${domain}`)}`,
+                label: "crt.sh certificate records",
+              },
+            ],
           });
           graph.addEdge({
             from: domainNodeId,
             to: subdomainNodeId,
             relation: "certificate_observed",
             source: "crtsh",
+            sourceUrl: `https://crt.sh/?q=${encodeURIComponent(`%.${domain}`)}`,
             confidence: 0.74,
           });
         }
@@ -1098,6 +1889,7 @@ export const buildPublicIntelGraph = async (rawQuery) => {
             to: ipNodeId,
             relation: "dns_a_record",
             source: "dns_google",
+            sourceUrl: `https://dns.google/resolve?name=${encodeURIComponent(domain)}&type=A`,
             confidence: 0.91,
           });
         }
@@ -1116,6 +1908,7 @@ export const buildPublicIntelGraph = async (rawQuery) => {
             to: ipNodeId,
             relation: "dns_aaaa_record",
             source: "dns_google",
+            sourceUrl: `https://dns.google/resolve?name=${encodeURIComponent(domain)}&type=AAAA`,
             confidence: 0.9,
           });
         }
@@ -1134,6 +1927,7 @@ export const buildPublicIntelGraph = async (rawQuery) => {
             to: mxNodeId,
             relation: "dns_mx_record",
             source: "dns_google",
+            sourceUrl: `https://dns.google/resolve?name=${encodeURIComponent(domain)}&type=MX`,
             confidence: 0.9,
           });
         }
@@ -1152,6 +1946,7 @@ export const buildPublicIntelGraph = async (rawQuery) => {
             to: nsNodeId,
             relation: "dns_ns_record",
             source: "dns_google",
+            sourceUrl: `https://dns.google/resolve?name=${encodeURIComponent(domain)}&type=NS`,
             confidence: 0.9,
           });
         }
@@ -1171,6 +1966,7 @@ export const buildPublicIntelGraph = async (rawQuery) => {
             to: txtNodeId,
             relation: "dns_txt_record",
             source: "dns_google",
+            sourceUrl: `https://dns.google/resolve?name=${encodeURIComponent(domain)}&type=TXT`,
             confidence: 0.88,
           });
         }
@@ -1193,6 +1989,7 @@ export const buildPublicIntelGraph = async (rawQuery) => {
             to: registrarId,
             relation: "domain_registrar",
             source: "rdap",
+            sourceUrl: `https://rdap.org/domain/${encodeURIComponent(domain)}`,
             confidence: 0.93,
           });
         }
@@ -1211,6 +2008,7 @@ export const buildPublicIntelGraph = async (rawQuery) => {
             to: nsNodeId,
             relation: "rdap_nameserver",
             source: "rdap",
+            sourceUrl: `https://rdap.org/domain/${encodeURIComponent(domain)}`,
             confidence: 0.92,
           });
         }
@@ -1229,6 +2027,7 @@ export const buildPublicIntelGraph = async (rawQuery) => {
             to: statusNodeId,
             relation: "rdap_status",
             source: "rdap",
+            sourceUrl: `https://rdap.org/domain/${encodeURIComponent(domain)}`,
             confidence: 0.87,
           });
         }
@@ -1243,7 +2042,8 @@ export const buildPublicIntelGraph = async (rawQuery) => {
         "Certificate Transparency",
         crtErrors > 0 && crtRecords === 0 ? "partial" : "ok",
         crtRecords,
-        crtErrors > 0 ? `${crtErrors} domain lookups returned no certificate data` : ""
+        crtErrors > 0 ? `${crtErrors} domain lookups returned no certificate data` : "",
+        "https://crt.sh/"
       )
     );
 
@@ -1253,7 +2053,8 @@ export const buildPublicIntelGraph = async (rawQuery) => {
         "DNS Intelligence",
         dnsErrors > 0 && dnsRecords === 0 ? "partial" : "ok",
         dnsRecords,
-        dnsErrors > 0 ? `${dnsErrors} DNS record queries returned no response` : ""
+        dnsErrors > 0 ? `${dnsErrors} DNS record queries returned no response` : "",
+        "https://dns.google/"
       )
     );
 
@@ -1263,8 +2064,15 @@ export const buildPublicIntelGraph = async (rawQuery) => {
         "RDAP Registration",
         rdapErrors > 0 && rdapRecords === 0 ? "partial" : "ok",
         rdapRecords,
-        rdapErrors > 0 ? `${rdapErrors} RDAP lookups returned no response` : ""
+        rdapErrors > 0 ? `${rdapErrors} RDAP lookups returned no response` : "",
+        "https://rdap.org/"
       )
+    );
+    timeline.finish(
+      domainStage,
+      "ok",
+      crtRecords + dnsRecords + rdapRecords,
+      `Expanded ${domainCandidates.length} domain seeds`
     );
   } else {
     sourceStatus.push(
@@ -1273,7 +2081,8 @@ export const buildPublicIntelGraph = async (rawQuery) => {
         "Certificate Transparency",
         "skipped",
         0,
-        "No domain candidates resolved from input or related entities"
+        "No domain candidates resolved from input or related entities",
+        "https://crt.sh/"
       )
     );
     sourceStatus.push(
@@ -1282,7 +2091,8 @@ export const buildPublicIntelGraph = async (rawQuery) => {
         "DNS Intelligence",
         "skipped",
         0,
-        "No domain candidates available for DNS graph expansion"
+        "No domain candidates available for DNS graph expansion",
+        "https://dns.google/"
       )
     );
     sourceStatus.push(
@@ -1291,10 +2101,117 @@ export const buildPublicIntelGraph = async (rawQuery) => {
         "RDAP Registration",
         "skipped",
         0,
-        "No domain candidates available for RDAP expansion"
+        "No domain candidates available for RDAP expansion",
+        "https://rdap.org/"
       )
     );
+    timeline.finish(domainStage, "skipped", 0, "No domain candidates to expand");
   }
+
+  const emailStage = timeline.start(
+    "email_gravatar",
+    "Email + Gravatar Expansion",
+    "Derive email graph and probe Gravatar identity profiles"
+  );
+
+  const inferredEmailCandidates = generateEmailCandidates(
+    query,
+    queryType,
+    usernameCandidates,
+    Array.from(domains)
+  );
+  const candidateEmails = Array.from(
+    new Set([...Array.from(discoveredEmails), ...inferredEmailCandidates])
+  ).slice(0, MAX_EMAIL_CANDIDATES);
+  let emailCandidateRecords = 0;
+  let gravatarRecords = 0;
+  let gravatarFailures = 0;
+
+  for (const email of candidateEmails) {
+    const emailNodeId = addEmailNodeToGraph(graph, {
+      email,
+      fromId: rootId,
+      relation: queryType === "email" && email === normalizedQueryEmail ? "input_email" : "email_candidate",
+      source: email === normalizedQueryEmail ? "user_input" : "email_inference",
+      sourceUrl: "",
+      confidence: email === normalizedQueryEmail ? 1 : 0.45,
+      description:
+        email === normalizedQueryEmail
+          ? "Input email seed"
+          : "Inferred email alias from username/domain expansion",
+    });
+    if (!emailNodeId) continue;
+    discoveredEmails.add(email);
+    emailCandidateRecords += 1;
+  }
+
+  const gravatarProbeEmails = Array.from(discoveredEmails).slice(0, MAX_GRAVATAR_PROBES);
+  const gravatarSettled = await Promise.allSettled(
+    gravatarProbeEmails.map((email) => fetchGravatarByEmail(email))
+  );
+
+  for (let i = 0; i < gravatarSettled.length; i += 1) {
+    const result = gravatarSettled[i];
+    if (result.status !== "fulfilled") {
+      gravatarFailures += 1;
+      continue;
+    }
+    if (!result.value) continue;
+
+    const emailNodeId = `email:${result.value.email}`;
+    const gravatarNodeId = addGravatarNodeToGraph(graph, {
+      ...result.value,
+      fromId: emailNodeId,
+      source: "gravatar",
+      confidence: 0.91,
+    });
+    if (!gravatarNodeId) continue;
+    gravatarRecords += 1;
+
+    for (const websiteUrl of result.value.relatedUrls || []) {
+      const websiteNodeId = addWebsiteNodeToGraph(graph, {
+        url: websiteUrl,
+        fromId: gravatarNodeId,
+        relation: "gravatar_website",
+        source: "gravatar",
+        sourceUrl: result.value.sourceUrl,
+        confidence: 0.83,
+        description: "Website linked from Gravatar profile",
+      });
+      if (!websiteNodeId) continue;
+      const domain = normalizeDomain(websiteUrl);
+      if (domain) domains.add(domain);
+    }
+  }
+
+  sourceStatus.push(
+    buildSourceStatus(
+      "email_expansion",
+      "Email Candidate Expansion",
+      candidateEmails.length > 0 ? "ok" : "skipped",
+      emailCandidateRecords,
+      candidateEmails.length > 0 ? "" : "No email seed could be inferred from the current query"
+    )
+  );
+  sourceStatus.push(
+    buildSourceStatus(
+      "gravatar",
+      "Gravatar Profiles",
+      gravatarFailures > 0 && gravatarRecords === 0 ? "partial" : "ok",
+      gravatarRecords,
+      gravatarFailures > 0 ? `${gravatarFailures} gravatar lookups timed out or failed` : "",
+      "https://gravatar.com/"
+    )
+  );
+
+  timeline.finish(
+    emailStage,
+    candidateEmails.length > 0 ? "ok" : "skipped",
+    emailCandidateRecords + gravatarRecords,
+    candidateEmails.length > 0
+      ? `Expanded ${candidateEmails.length} email candidates`
+      : "No email candidate available for gravatar expansion"
+  );
 
   const graphData = graph.toJson();
 
@@ -1307,6 +2224,12 @@ export const buildPublicIntelGraph = async (rawQuery) => {
       label: `@${fallbackHandle}`,
       handle: fallbackHandle,
       source: "heuristic",
+      evidence: [
+        {
+          source: "heuristic",
+          label: "Fallback username candidate",
+        },
+      ],
     });
     graph.addEdge({
       from: rootId,
@@ -1319,9 +2242,11 @@ export const buildPublicIntelGraph = async (rawQuery) => {
 
   const finalGraph = graph.toJson();
   const profileCount = finalGraph.nodes.filter((node) => node.type === "profile").length;
-  const domainCount = finalGraph.nodes.filter(
-    (node) => node.type === "domain" || node.type === "subdomain"
+  const domainCount = finalGraph.nodes.filter((node) =>
+    ["domain", "subdomain", "website"].includes(node.type)
   ).length;
+  const emailCount = finalGraph.nodes.filter((node) => node.type === "email").length;
+  const gravatarCount = finalGraph.nodes.filter((node) => node.type === "gravatar").length;
   const healthySources = sourceStatus.filter((entry) => entry.status === "ok").length;
 
   return {
@@ -1332,10 +2257,13 @@ export const buildPublicIntelGraph = async (rawQuery) => {
     connectivity,
     graph: finalGraph,
     sources: sourceStatus,
+    timeline: timeline.toJson(),
     summary: {
       nodes: finalGraph.nodes.length,
       edges: finalGraph.edges.length,
       profiles: profileCount,
+      emails: emailCount,
+      gravatarProfiles: gravatarCount,
       digitalFootprint: domainCount,
       sourceHealth: `${healthySources}/${sourceStatus.length}`,
     },
