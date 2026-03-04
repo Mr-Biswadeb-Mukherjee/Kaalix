@@ -10,6 +10,8 @@ export const USER_ACTIVITY_TYPES = Object.freeze({
   PASSWORD_CHANGED: "security.password_changed",
   MFA_ENABLED: "security.mfa_enabled",
   MFA_DISABLED: "security.mfa_disabled",
+  INTEL_SEARCH_SUCCESS: "intel.search_success",
+  INTEL_SEARCH_FAILED: "intel.search_failed",
 });
 
 const normalizeString = (value) =>

@@ -18,13 +18,32 @@ let cachedPublicIP = 'N/A';
 let cachedLocation = 'N/A';
 let lastIPFetch = 0;
 let networkWasDown = false;
+let networkInterfaceErrorLogged = false;
 const STATS_REFRESH_MS = 1000;
+
+function getSafeNetworkInterfaces() {
+  try {
+    const interfaces = os.networkInterfaces();
+    if (!interfaces || typeof interfaces !== "object") {
+      return {};
+    }
+    networkInterfaceErrorLogged = false;
+    return interfaces;
+  } catch (err) {
+    if (!networkInterfaceErrorLogged) {
+      console.error("Failed to inspect network interfaces:", err);
+      networkInterfaceErrorLogged = true;
+    }
+    return {};
+  }
+}
 
 // Get private IPv4 address
 function getPrivateIP() {
-  const interfaces = os.networkInterfaces();
+  const interfaces = getSafeNetworkInterfaces();
   for (const name of Object.keys(interfaces)) {
-    for (const iface of interfaces[name]) {
+    const list = Array.isArray(interfaces[name]) ? interfaces[name] : [];
+    for (const iface of list) {
       if (iface.family === 'IPv4' && !iface.internal && iface.address) {
         return iface.address;
       }
@@ -35,9 +54,10 @@ function getPrivateIP() {
 
 // Check if machine is offline (no active non-internal interfaces)
 function isOffline() {
-  const interfaces = os.networkInterfaces();
+  const interfaces = getSafeNetworkInterfaces();
   for (const name of Object.keys(interfaces)) {
-    for (const iface of interfaces[name]) {
+    const list = Array.isArray(interfaces[name]) ? interfaces[name] : [];
+    for (const iface of list) {
       if (iface.family === 'IPv4' && !iface.internal && iface.address) {
         return false; // At least one active interface
       }

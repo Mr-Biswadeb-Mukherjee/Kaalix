@@ -22,6 +22,7 @@ function RouteWrapper({ title, children }) {
 // === Define Application Routes with Titles ===
 const routeConfig = [
   { path: 'dashboard', element: <Pages.Dashboard />, title: 'Security Dashboard | Kaalix' },
+  { path: 'threat-intel', element: <Pages.ThreatIntelSettings />, title: 'Threat Intelligence Settings | Kaalix' },
   { path: 'system-health', element: <Pages.SystemHealth />, title: 'System Health | Kaalix' },
   { path: 'data-sources', element: <Pages.DataSources />, title: 'Data Sources | Kaalix' },
   { path: 'detection-rules', element: <Pages.DetectionRules />, title: 'Detection Rules | Kaalix' },

@@ -17,7 +17,9 @@ import {
 } from "../Controller/OrgAdmin.controller.js";
 import {
   CheckIntelConnectivity,
+  FetchIntelSerpApiKeyStatus,
   FetchProtectedSystemStatus,
+  SaveIntelSerpApiKey,
   SearchIntelGraph,
 } from "../Controller/System.controller.js";
 import { GetMFAStatus, ToggleMFA, VerifyMFA } from "../Controller/MFA.controller.js";
@@ -49,6 +51,18 @@ router.get(
   API.system.protected.intelConnectivity.endpoint,
   authMiddleware({ revoke: false }),
   asyncHandler(CheckIntelConnectivity)
+);
+
+router.get(
+  API.system.protected.intelSerpApiKeyStatus.endpoint,
+  authMiddleware({ revoke: false }),
+  asyncHandler(FetchIntelSerpApiKeyStatus)
+);
+
+router.post(
+  API.system.protected.intelSerpApiKey.endpoint,
+  authMiddleware({ revoke: false }),
+  asyncHandler(SaveIntelSerpApiKey)
 );
 
 router.post(

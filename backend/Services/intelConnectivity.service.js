@@ -1,89 +1,47 @@
-import dns from "node:dns/promises";
-import fetch from "node-fetch";
-
-const DNS_PROBE_HOST = "example.com";
-const HTTP_PROBE_URL = "https://example.com";
-const PROBE_TIMEOUT_MS = 4500;
-
-const runWithTimeout = async (promiseFactory, timeoutMs, timeoutMessage) =>
-  new Promise((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error(timeoutMessage)), timeoutMs);
-
-    Promise.resolve()
-      .then(() => promiseFactory())
-      .then((result) => {
-        clearTimeout(timer);
-        resolve(result);
-      })
-      .catch((err) => {
-        clearTimeout(timer);
-        reject(err);
-      });
-  });
-
-const checkDnsConnectivity = async () => {
-  await runWithTimeout(
-    () => dns.lookup(DNS_PROBE_HOST),
-    PROBE_TIMEOUT_MS,
-    "DNS probe timed out"
-  );
-  return true;
-};
-
-const checkHttpsConnectivity = async () => {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), PROBE_TIMEOUT_MS);
-
-  try {
-    const response = await fetch(HTTP_PROBE_URL, {
-      method: "GET",
-      signal: controller.signal,
-      headers: {
-        "User-Agent": "KaaliX-Intel-Connectivity/1.0",
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTPS probe failed with status ${response.status}`);
-    }
-
-    return true;
-  } finally {
-    clearTimeout(timer);
-  }
-};
+import { listEngineCollectors } from "./intelEngine.service.js";
+import { getIntelApiKeyStatus } from "./intelApiKey.service.js";
 
 const normalizeErrorReason = (err) => {
+  if (typeof err?.details === "string" && err.details.trim()) {
+    return err.details.trim();
+  }
   if (typeof err?.message === "string" && err.message.trim()) {
     return err.message.trim();
   }
-  return "Unknown connectivity failure";
+  return "Unknown engine connectivity failure";
 };
 
 export const checkIntelInternetConnectivity = async () => {
   const startedAt = Date.now();
+  const checks = { engineProcess: false, collectorsRegistered: false };
   const failures = [];
-  const checks = { dns: false, https: false };
+  let collectorCount = 0;
+  const apiKeyStatus = await getIntelApiKeyStatus();
 
   try {
-    await checkDnsConnectivity();
-    checks.dns = true;
+    const payload = await listEngineCollectors();
+    checks.engineProcess = true;
+    collectorCount = Array.isArray(payload?.collectors) ? payload.collectors.length : 0;
+    checks.collectorsRegistered = collectorCount > 0;
+    if (!checks.collectorsRegistered) {
+      failures.push("collectors:No collectors registered in KaaliX engine");
+    }
   } catch (err) {
-    failures.push(`dns:${normalizeErrorReason(err)}`);
+    failures.push(`engine:${normalizeErrorReason(err)}`);
   }
 
-  try {
-    await checkHttpsConnectivity();
-    checks.https = true;
-  } catch (err) {
-    failures.push(`https:${normalizeErrorReason(err)}`);
+  const connected = checks.engineProcess && checks.collectorsRegistered;
+  if (!connected && !apiKeyStatus.configured) {
+    failures.unshift("serpapi_key:No SerpAPI key configured");
   }
-
-  const connected = checks.dns || checks.https;
 
   return {
     connected,
     checks,
+    collectorCount,
+    apiKeyConfigured: apiKeyStatus.configured,
+    apiKeySource: apiKeyStatus.source,
+    maskedApiKey: apiKeyStatus.maskedKey,
     checkedAt: new Date().toISOString(),
     latencyMs: Math.max(0, Date.now() - startedAt),
     failureReasons: connected ? [] : failures,

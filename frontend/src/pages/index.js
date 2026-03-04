@@ -1,4 +1,5 @@
 export { default as Dashboard } from './Dashboard';
+export { default as ThreatIntelSettings } from './ThreatIntelSettings';
 export { default as DataSources } from './DataSources';
 export { default as DetectionRules } from './DetectionRules';
 export { default as Integrations } from './Integrations';

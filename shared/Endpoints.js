@@ -148,6 +148,14 @@ const API = {
         method: 'GET',
         endpoint: `${API_BASE}/intel/connectivity`,
       },
+      intelSerpApiKeyStatus: {
+        method: 'GET',
+        endpoint: `${API_BASE}/intel/serpapi-key`,
+      },
+      intelSerpApiKey: {
+        method: 'POST',
+        endpoint: `${API_BASE}/intel/serpapi-key`,
+      },
       intelSearch: {
         method: 'POST',
         endpoint: `${API_BASE}/intel/search`,

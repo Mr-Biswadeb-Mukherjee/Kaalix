@@ -29,9 +29,13 @@ const buildTerminalLine = (entry) => {
 const buildActivityDetails = (entry) => {
   const description = normalizeLineValue(entry?.description, "");
   const method = normalizeLineValue(entry?.metadata?.method, "");
+  const query = normalizeLineValue(entry?.metadata?.query, "");
   if (description && method) return `${description} (method: ${method})`;
+  if (description && query) return `${description} (query: ${query})`;
   if (description) return description;
+  if (method && query) return `method: ${method} • query: ${query}`;
   if (method) return `method: ${method}`;
+  if (query) return `query: ${query}`;
   return "No additional details.";
 };
 
@@ -45,11 +49,14 @@ const resolveActivityBadgeClass = (value) => {
   if (
     normalized.includes("login_success") ||
     normalized.includes("password_changed") ||
-    normalized.includes("mfa_enabled")
+    normalized.includes("mfa_enabled") ||
+    normalized.includes("intel.search_success")
   ) {
     return "success";
   }
-  if (normalized.includes("mfa_disabled")) return "warning";
+  if (normalized.includes("mfa_disabled") || normalized.includes("intel.search_failed")) {
+    return "warning";
+  }
   return "neutral";
 };
 

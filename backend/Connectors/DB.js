@@ -11,7 +11,7 @@ const { host, user, password, database, port, maxPoolSize = 20 } = mysqlConfig;
 if (!database) {
   logger.critical("❌ DB_NAME is not defined in config.js");
   await flushLogger();
-  process.exit(1);
+  throw new Error("DB_NAME is not defined in config.js");
 }
 
 let pool;
@@ -88,9 +88,11 @@ async function reconnectWithBackoff(maxRetries = 10) {
     }
   }
 
-  logger.critical("💀 Maximum reconnection attempts reached. Manual intervention required.");
-  await flushLogger();
-  process.exit(1);
+  const reconnectError = new Error(
+    "Maximum reconnection attempts reached. Backend will continue running in degraded mode."
+  );
+  reconnectError.code = "DB_RECONNECT_MAX_RETRIES";
+  throw reconnectError;
 }
 
 // =============================================================
@@ -157,9 +159,10 @@ export async function initDatabase(isReconnecting = false) {
         try {
           await reconnectWithBackoff();
         } catch (fatalErr) {
-          logger.critical(`💀 Fatal error during reconnection: ${fatalErr.message}`);
+          logger.critical(
+            `💀 Fatal error during reconnection: ${fatalErr.message}. Backend kept alive for future retries.`
+          );
           await flushLogger();
-          process.exit(1);
         } finally {
           dbState.set("reconnecting", false);
         }

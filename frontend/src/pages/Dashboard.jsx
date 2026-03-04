@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import API from "@amon/shared";
 import "./Styles/Dashboard.css";
 import { getBackendErrorMessage, parseApiResponse } from "../Utils/apiError";
@@ -46,7 +47,12 @@ const RELATION_LABELS = Object.freeze({
   knowledge_reference: "Knowledge Reference",
   public_code_identity: "Public Code Identity",
   input_domain: "Input Domain",
+  input_website: "Input Website",
   username_candidate: "Username Candidate",
+  website_username: "Website Username",
+  website_person_name: "Website Person Name",
+  website_contact_email: "Website Contact Email",
+  website_link: "Website Link",
   certificate_observed: "Certificate Observed",
   dns_a_record: "DNS A Record",
   dns_aaaa_record: "DNS AAAA Record",
@@ -60,6 +66,7 @@ const RELATION_LABELS = Object.freeze({
   instagram_account: "Instagram Account",
   facebook_account: "Facebook Account",
   github_account: "GitHub Account",
+  linkedin_account: "LinkedIn Account",
   youtube_channel: "YouTube Channel",
   reddit_account: "Reddit Account",
   hackernews_account: "Hacker News Account",
@@ -68,7 +75,10 @@ const RELATION_LABELS = Object.freeze({
   email_domain: "Email Domain",
   related_email: "Related Email",
   email_candidate: "Email Candidate",
+  profile_email: "Profile Email",
   related_website: "Related Website",
+  profile_website: "Profile Website",
+  profile_real_name: "Profile Real Name",
   website_domain: "Website Domain",
   gravatar_profile: "Gravatar Profile",
   gravatar_website: "Gravatar Website",
@@ -108,6 +118,9 @@ const GRAPH_HEIGHT = 760;
 const GRAPH_CENTER_X = Math.round(GRAPH_WIDTH / 2);
 const GRAPH_CENTER_Y = Math.round(GRAPH_HEIGHT / 2);
 const MAX_VISIBLE_NODES = 48;
+const MIN_GRAPH_ZOOM = 0.6;
+const MAX_GRAPH_ZOOM = 2.6;
+const GRAPH_ZOOM_STEP = 0.2;
 
 const formatRelation = (relation = "") => {
   const normalized = String(relation || "").trim();
@@ -332,8 +345,9 @@ const Dashboard = () => {
   const [pivotTrail, setPivotTrail] = useState([]);
   const [intelBuildPhaseIndex, setIntelBuildPhaseIndex] = useState(0);
   const [intelConnectionMessage, setIntelConnectionMessage] = useState(
-    "KaaliX Intelligence is offline. Connect to internet to enable search."
+    "KaaliX Intelligence is offline. Connect engine to enable search."
   );
+  const [intelGraphZoom, setIntelGraphZoom] = useState(1);
   const activeView = useMemo(() => DASHBOARD_MODES[mode], [mode]);
 
   useEffect(() => {
@@ -400,8 +414,8 @@ const Dashboard = () => {
       setIntelQuery(query);
       setIntelConnectionMessage(
         options.isPivot
-          ? `Pivoting graph from "${query}" across live public data...`
-          : "Surfing public datasets and building social/digital graph..."
+          ? `Pivoting graph from "${query}" through KaaliX engine...`
+          : "Dispatching query to KaaliX engine and building graph..."
       );
 
       try {
@@ -410,6 +424,7 @@ const Dashboard = () => {
         const nextRootId = getRootNodeId(graphNodes);
 
         setIntelGraph(data);
+        setIntelGraphZoom(1);
         setSelectedNodeId(nextRootId);
         setPivotTrail((prev) => {
           const next = prev.filter(Boolean);
@@ -443,12 +458,13 @@ const Dashboard = () => {
         setIntelSearching(false);
         setSelectedNodeId("");
         setPivotTrail([]);
+        setIntelGraphZoom(1);
         return;
       }
 
       setIntelConnected(true);
       setIntelConnecting(true);
-      setIntelConnectionMessage("Checking backend internet connectivity...");
+      setIntelConnectionMessage("Checking KaaliX engine readiness...");
 
       try {
         const data = await requestIntelConnectivity();
@@ -457,7 +473,7 @@ const Dashboard = () => {
           setIntelConnectionMessage(
             typeof data?.message === "string" && data.message.trim()
               ? data.message
-              : "KaaliX Intelligence internet connection established."
+              : "KaaliX Intelligence engine connection established."
           );
           return;
         }
@@ -468,7 +484,7 @@ const Dashboard = () => {
             : "";
         setIntelConnected(false);
         setIntelConnectionMessage(
-          `${data?.message || "Unable to connect KaaliX Intelligence to the internet."}${failureDetails}`
+          `${data?.message || "Unable to connect KaaliX Intelligence engine."}${failureDetails}`
         );
       } catch (err) {
         setIntelConnected(false);
@@ -552,6 +568,36 @@ const Dashboard = () => {
     await handlePivotFromNode(selectedNode);
   }, [handlePivotFromNode, selectedNode]);
 
+  const intelConnectionStateClass = intelConnecting ? "checking" : intelConnected ? "online" : "offline";
+  const intelConnectionStateLabel = intelConnecting ? "Checking" : intelConnected ? "Online" : "Offline";
+  const intelNodeCount = intelGraph?.summary?.nodes ?? intelNodes.length;
+  const intelEdgeCount = intelGraph?.summary?.edges ?? intelEdges.length;
+  const intelSourceHealth = intelGraph?.summary?.sourceHealth || "0/0";
+
+  const handleIntelGraphZoomIn = useCallback(() => {
+    setIntelGraphZoom((prev) =>
+      clamp(Number(prev) + GRAPH_ZOOM_STEP, MIN_GRAPH_ZOOM, MAX_GRAPH_ZOOM)
+    );
+  }, []);
+
+  const handleIntelGraphZoomOut = useCallback(() => {
+    setIntelGraphZoom((prev) =>
+      clamp(Number(prev) - GRAPH_ZOOM_STEP, MIN_GRAPH_ZOOM, MAX_GRAPH_ZOOM)
+    );
+  }, []);
+
+  const handleIntelGraphZoomReset = useCallback(() => {
+    setIntelGraphZoom(1);
+  }, []);
+
+  const handleIntelGraphWheelZoom = useCallback((event) => {
+    event.preventDefault();
+    const direction = event.deltaY < 0 ? 1 : -1;
+    setIntelGraphZoom((prev) =>
+      clamp(Number(prev) + direction * GRAPH_ZOOM_STEP, MIN_GRAPH_ZOOM, MAX_GRAPH_ZOOM)
+    );
+  }, []);
+
   return (
     <section className="siem-page dashboard-page">
       <header className="siem-header dashboard-header">
@@ -612,80 +658,103 @@ const Dashboard = () => {
 
         {mode === "osint" && (
           <article className="osint-intel-shell">
-            <h3 className="osint-intel-title">
-              <span className="osint-title-icon" aria-hidden="true">
-                🔍
-              </span>
-              <span>KaaliX Intelligence</span>
-            </h3>
-            <div className="osint-connect-row">
-              <label className="osint-connect-switch">
-                <input
-                  type="checkbox"
-                  checked={intelConnected || intelConnecting}
-                  onChange={(event) => handleIntelConnectionToggle(event.target.checked)}
-                  disabled={intelConnecting}
-                  aria-label="Connect KaaliX Intelligence to internet"
-                />
-                <span className="osint-switch-track" aria-hidden="true">
-                  <span className="osint-switch-thumb" />
-                </span>
-                <span className="osint-connect-label">Connect to Internet</span>
-              </label>
-              <span
-                className={`osint-connection-state ${
-                  intelConnecting ? "checking" : intelConnected ? "online" : "offline"
-                }`}
-              >
-                {intelConnecting ? "Checking..." : intelConnected ? "Online" : "Offline"}
-              </span>
-            </div>
-            <form
-              className={`osint-intel-form ${
-                intelConnected && !intelConnecting ? "enabled" : "disabled"
-              }`}
-              role="search"
-              onSubmit={handleIntelSearchSubmit}
-            >
-              <span className="osint-input-icon" aria-hidden="true">
-                🔎
-              </span>
-              <input
-                type="search"
-                value={intelQuery}
-                onChange={(event) => {
-                  setIntelQuery(event.target.value);
-                  if (intelSearchError) setIntelSearchError("");
-                }}
-                placeholder={
-                  intelConnecting
-                    ? "Checking internet connectivity..."
-                    : intelConnected
-                    ? "Enter individual or company name to build live public-data graph"
-                    : "Connect to internet to enable KaaliX Intelligence search"
-                }
-                aria-label="Search KaaliX Intelligence"
-                disabled={!intelConnected || intelConnecting || intelSearching}
-              />
-              <button
-                type="submit"
-                className="osint-search-submit"
-                disabled={!intelConnected || intelConnecting || intelSearching}
-              >
-                {intelSearching ? "Mapping..." : "Build Graph"}
-              </button>
-            </form>
-            <p
-              className={`osint-connection-message ${
-                intelConnecting ? "checking" : intelConnected ? "online" : "offline"
-              }`}
-            >
-              {intelConnectionMessage}
-            </p>
+            <header className="osint-shell-head">
+              <div className="osint-shell-copy">
+                <p className="osint-shell-eyebrow">Threat Intelligence Console</p>
+                <h3 className="osint-intel-title">
+                  <span className="osint-title-icon" aria-hidden="true">
+                    INT
+                  </span>
+                  <span>KaaliX OSINT Command Center</span>
+                </h3>
+                <p className="osint-shell-description">
+                  Search-first workspace for reconnaissance and graph pivots. Configure endpoints, API keys, and
+                  search history from the dedicated settings page.
+                </p>
+                <p className="osint-shell-actions">
+                  <Link to="/threat-intel">Open Threat Intelligence Settings</Link>
+                </p>
+              </div>
+            </header>
+            <section className="osint-search-focus-shell">
+              <div className="osint-search-focus-kpis">
+                <article className={`osint-kpi-card ${intelConnectionStateClass}`}>
+                  <p>Engine Status</p>
+                  <strong>{intelConnectionStateLabel}</strong>
+                  <span>{intelConnecting ? "Readiness check in progress" : "Secure channel control"}</span>
+                </article>
+                <article className="osint-kpi-card">
+                  <p>Graph Snapshot</p>
+                  <strong>
+                    {intelNodeCount}N / {intelEdgeCount}E
+                  </strong>
+                  <span>Source health {intelSourceHealth}</span>
+                </article>
+              </div>
+              <div className="osint-search-center">
+                <div className="osint-connect-row centered">
+                  <label className="osint-connect-switch">
+                    <input
+                      type="checkbox"
+                      checked={intelConnected || intelConnecting}
+                      onChange={(event) => handleIntelConnectionToggle(event.target.checked)}
+                      disabled={intelConnecting}
+                      aria-label="Connect KaaliX Intelligence engine"
+                    />
+                    <span className="osint-switch-track" aria-hidden="true">
+                      <span className="osint-switch-thumb" />
+                    </span>
+                    <span className="osint-connect-label">Connect Engine</span>
+                  </label>
+                  <span className={`osint-connection-state ${intelConnectionStateClass}`}>
+                    {intelConnectionStateLabel}
+                  </span>
+                </div>
+                <form
+                  className={`osint-intel-form osint-intel-form-centered ${
+                    intelConnected && !intelConnecting ? "enabled" : "disabled"
+                  }`}
+                  role="search"
+                  onSubmit={handleIntelSearchSubmit}
+                >
+                  <span className="osint-input-icon" aria-hidden="true">
+                    Q
+                  </span>
+                  <input
+                    type="search"
+                    value={intelQuery}
+                    onChange={(event) => {
+                      setIntelQuery(event.target.value);
+                      if (intelSearchError) setIntelSearchError("");
+                    }}
+                    placeholder={
+                      intelConnecting
+                        ? "Checking engine readiness..."
+                        : intelConnected
+                        ? "Enter query to build graph via KaaliX engine"
+                        : "Connect engine to enable KaaliX Intelligence search"
+                    }
+                    aria-label="Search KaaliX Intelligence"
+                    disabled={!intelConnected || intelConnecting || intelSearching}
+                  />
+                  <button
+                    type="submit"
+                    className="osint-search-submit"
+                    disabled={!intelConnected || intelConnecting || intelSearching}
+                  >
+                    {intelSearching ? "Mapping..." : "Build Graph"}
+                  </button>
+                </form>
+                <p className={`osint-connection-message ${intelConnectionStateClass}`}>
+                  {intelConnectionMessage}
+                </p>
+              </div>
+            </section>
+
             {intelSearchError && <p className="osint-search-error">{intelSearchError}</p>}
             {!intelSearchError && intelSearching && (
               <div className="osint-search-loading">
-                <p>Collecting public records, identity profiles, and digital footprint links...</p>
+                <p>Collecting KaaliX engine outputs and building intelligence graph...</p>
                 <ol className="osint-build-phase-list">
                   {INTEL_BUILD_PHASES.map((phase, index) => (
                     <li
@@ -757,55 +826,88 @@ const Dashboard = () => {
                   <div className="osint-graph-panel osint-pivot-canvas-panel">
                     <div className="osint-pivot-canvas-head">
                       <h5>Pivot Graph Model</h5>
-                      <p>Click node to inspect. Double-click node to pivot.</p>
+                      <div className="osint-pivot-canvas-tools">
+                        <p>Click node to inspect. Double-click node to pivot.</p>
+                        <div className="osint-graph-zoom-controls" role="group" aria-label="Graph zoom controls">
+                          <button
+                            type="button"
+                            onClick={handleIntelGraphZoomOut}
+                            disabled={intelGraphZoom <= MIN_GRAPH_ZOOM}
+                            aria-label="Zoom out graph"
+                          >
+                            -
+                          </button>
+                          <span>{Math.round(intelGraphZoom * 100)}%</span>
+                          <button
+                            type="button"
+                            onClick={handleIntelGraphZoomIn}
+                            disabled={intelGraphZoom >= MAX_GRAPH_ZOOM}
+                            aria-label="Zoom in graph"
+                          >
+                            +
+                          </button>
+                          <button
+                            type="button"
+                            className="secondary"
+                            onClick={handleIntelGraphZoomReset}
+                            disabled={intelGraphZoom === 1}
+                          >
+                            Reset
+                          </button>
+                        </div>
+                      </div>
                     </div>
-                    <div className="osint-pivot-canvas-wrap">
+                    <div className="osint-pivot-canvas-wrap" onWheel={handleIntelGraphWheelZoom}>
                       <svg
                         className="osint-pivot-svg"
                         viewBox={`0 0 ${GRAPH_WIDTH} ${GRAPH_HEIGHT}`}
                         role="img"
                         aria-label="KaaliX pivot graph"
                       >
-                        <g className="osint-pivot-edges">
-                          {pivotLayout.edges.map((edge) => (
-                            <line
-                              key={edge.id}
-                              x1={edge.x1}
-                              y1={edge.y1}
-                              x2={edge.x2}
-                              y2={edge.y2}
-                              className={`osint-pivot-edge ${edge.connectedToSelection ? "active" : ""}`}
-                            />
-                          ))}
-                        </g>
-                        <g className="osint-pivot-nodes">
-                          {pivotLayout.nodes.map((node) => (
-                            <g
-                              key={node.id}
-                              className={`osint-pivot-node ${node.isSelected ? "selected" : ""}`}
-                              transform={`translate(${node.x}, ${node.y})`}
-                              onClick={() => setSelectedNodeId(node.id)}
-                              onDoubleClick={() => handlePivotFromNode(node)}
-                              role="button"
-                              tabIndex={0}
-                              onKeyDown={(event) => {
-                                if (event.key === "Enter" || event.key === " ") {
-                                  event.preventDefault();
-                                  setSelectedNodeId(node.id);
-                                }
-                              }}
-                            >
-                              <circle
-                                r={node.radius}
-                                fill={node.color}
-                                stroke={node.isSelected ? "#f8fafc" : "rgba(248, 250, 252, 0.46)"}
-                                strokeWidth={node.isSelected ? 2.3 : 1.1}
+                        <g
+                          transform={`translate(${GRAPH_CENTER_X} ${GRAPH_CENTER_Y}) scale(${intelGraphZoom}) translate(${-GRAPH_CENTER_X} ${-GRAPH_CENTER_Y})`}
+                        >
+                          <g className="osint-pivot-edges">
+                            {pivotLayout.edges.map((edge) => (
+                              <line
+                                key={edge.id}
+                                x1={edge.x1}
+                                y1={edge.y1}
+                                x2={edge.x2}
+                                y2={edge.y2}
+                                className={`osint-pivot-edge ${edge.connectedToSelection ? "active" : ""}`}
                               />
-                              <text x={node.radius + 4} y={4}>
-                                {truncateText(node.label || node.id, 23)}
-                              </text>
-                            </g>
-                          ))}
+                            ))}
+                          </g>
+                          <g className="osint-pivot-nodes">
+                            {pivotLayout.nodes.map((node) => (
+                              <g
+                                key={node.id}
+                                className={`osint-pivot-node ${node.isSelected ? "selected" : ""}`}
+                                transform={`translate(${node.x}, ${node.y})`}
+                                onClick={() => setSelectedNodeId(node.id)}
+                                onDoubleClick={() => handlePivotFromNode(node)}
+                                role="button"
+                                tabIndex={0}
+                                onKeyDown={(event) => {
+                                  if (event.key === "Enter" || event.key === " ") {
+                                    event.preventDefault();
+                                    setSelectedNodeId(node.id);
+                                  }
+                                }}
+                              >
+                                <circle
+                                  r={node.radius}
+                                  fill={node.color}
+                                  stroke={node.isSelected ? "#f8fafc" : "rgba(248, 250, 252, 0.46)"}
+                                  strokeWidth={node.isSelected ? 2.3 : 1.1}
+                                />
+                                <text x={node.radius + 4} y={4}>
+                                  {truncateText(node.label || node.id, 23)}
+                                </text>
+                              </g>
+                            ))}
+                          </g>
                         </g>
                       </svg>
                     </div>
