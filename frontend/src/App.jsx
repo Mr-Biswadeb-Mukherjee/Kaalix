@@ -22,6 +22,7 @@ function RouteWrapper({ title, children }) {
 // === Define Application Routes with Titles ===
 const routeConfig = [
   { path: 'dashboard', element: <Pages.Dashboard />, title: 'Security Dashboard | Kaalix' },
+  { path: 'system-health', element: <Pages.SystemHealth />, title: 'System Health | Kaalix' },
   { path: 'data-sources', element: <Pages.DataSources />, title: 'Data Sources | Kaalix' },
   { path: 'detection-rules', element: <Pages.DetectionRules />, title: 'Detection Rules | Kaalix' },
   { path: 'integrations', element: <Pages.Integrations />, title: 'Integrations | Kaalix' },
@@ -41,13 +42,22 @@ const routeConfig = [
 // === Core Routing Logic with Protected Routes ===
 function AppRoutes() {
   const navigate = useNavigate();
-  const { login, onboardingRequired } = useAuth();
+  const { login, onboardingRequired, isAuthenticated, loading } = useAuth();
   const dashboardFallbackPath = onboardingRequired ? '/profile' : '/dashboard';
   const dashboardActionLabel = onboardingRequired ? 'Complete Setup' : 'Go to Dashboard';
 
   const handleAuthSuccess = (data) => {
+    const onboarding = data?.onboarding || data?.user?.onboarding;
+    const mustChangePassword = Boolean(onboarding?.mustChangePassword);
+    const mustUpdateProfile = Boolean(onboarding?.mustUpdateProfile);
+    const mustShareLocation = Boolean(onboarding?.mustShareLocation);
+    const needsOnboarding =
+      typeof onboarding?.required === "boolean"
+        ? onboarding.required
+        : (mustChangePassword || mustUpdateProfile || mustShareLocation);
+
     login(data.token, data.user || data);
-    navigate("/profile");
+    navigate(needsOnboarding ? "/profile" : "/dashboard", { replace: true });
   };
 
   return (
@@ -56,9 +66,15 @@ function AppRoutes() {
       <Route
         path="/"
         element={
-          <RouteWrapper title="Authentication | Kaalix">
-            <Auth onAuthSuccess={handleAuthSuccess} />
-          </RouteWrapper>
+          loading
+            ? null
+            : isAuthenticated
+              ? <Navigate to={dashboardFallbackPath} replace />
+              : (
+                <RouteWrapper title="Authentication | Kaalix">
+                  <Auth onAuthSuccess={handleAuthSuccess} />
+                </RouteWrapper>
+              )
         }
       />
 

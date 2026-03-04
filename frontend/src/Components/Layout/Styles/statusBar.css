@@ -12,7 +12,7 @@
   padding: 0 14px;
   height: 40px;
   font-family: 'JetBrains Mono', monospace;
-  font-size: 10px;
+  font-size: 11px;
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent 80%),
     var(--bg-color);
@@ -46,17 +46,19 @@
 
 /*
 ==================================
-         Status Bar Items
+        Health Trigger
 ==================================
 */
 
-.status-item {
+.status-health-trigger {
+  appearance: none;
+  cursor: pointer;
   display: inline-flex;
   align-items: center;
   flex-shrink: 0;
-  gap: 3px;
+  gap: 8px;
   color: var(--text-color);
-  letter-spacing: 0.25px;
+  letter-spacing: 0.2px;
   padding: 5px 10px;
   border-radius: 999px;
   border: 1px solid var(--border-color);
@@ -70,7 +72,7 @@
     box-shadow 0.2s ease;
 }
 
-.status-item:hover {
+.status-health-trigger:hover {
   color: var(--accent-color);
   border-color: var(--accent-color);
   background-color: var(--hover-bg);
@@ -78,34 +80,84 @@
   transform: translateY(-1px);
 }
 
-.status-item svg {
-  color: var(--icon-muted);
-  transition: color 0.2s ease;
+.status-health-trigger:focus-visible {
+  outline: 2px solid var(--accent-color);
+  outline-offset: 2px;
 }
 
-.status-item:hover svg {
-  color: var(--accent-color);
+.status-health-label {
+  font-weight: 600;
 }
 
-.status-item.realtime-pill.connected {
-  border-color: rgba(76, 175, 80, 0.5);
-  background: rgba(76, 175, 80, 0.12);
+.status-health-lights {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
-.status-item.realtime-pill.delayed {
-  border-color: rgba(255, 152, 0, 0.5);
-  background: rgba(255, 152, 0, 0.12);
+.status-health-light {
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+  opacity: 0.2;
+  transform: scale(1);
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
-.status-item.monitor-pill {
-  border-color: rgba(33, 150, 243, 0.45);
-  background: rgba(33, 150, 243, 0.08);
+.status-health-light.green {
+  background: #30c483;
+}
+
+.status-health-light.yellow {
+  background: #f1ad2b;
+}
+
+.status-health-light.red {
+  background: #f05b6e;
+}
+
+.status-health-light.active {
+  opacity: 1;
+  transform: scale(1.12);
+}
+
+.status-health-trigger.green .status-health-light.green.active {
+  box-shadow: 0 0 8px rgba(48, 196, 131, 0.78);
+}
+
+.status-health-trigger.yellow {
+  border-color: rgba(241, 173, 43, 0.5);
+}
+
+.status-health-trigger.yellow .status-health-light.yellow.active {
+  box-shadow: 0 0 8px rgba(241, 173, 43, 0.82);
+}
+
+.status-health-trigger.red {
+  border-color: rgba(240, 91, 110, 0.56);
+}
+
+.status-health-trigger.red .status-health-light.red.active {
+  box-shadow: 0 0 8px rgba(240, 91, 110, 0.85);
+}
+
+.status-health-text {
+  color: var(--text-muted);
+}
+
+@media (max-width: 650px) {
+  .status-health-text {
+    display: none;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .status-bar,
-  .status-item,
-  .status-item svg {
+  .status-health-trigger,
+  .status-health-light {
     transition: none;
   }
 }

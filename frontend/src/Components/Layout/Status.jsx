@@ -1,55 +1,37 @@
 import './Styles/statusBar.css';
 
-import DnsIcon from '@mui/icons-material/Dns';
-import MemoryIcon from '@mui/icons-material/Memory';
-import DeveloperBoardIcon from '@mui/icons-material/DeveloperBoard';
-import SwapHorizIcon from '@mui/icons-material/SwapHoriz';
-import GraphicEqIcon from '@mui/icons-material/GraphicEq';
-import PublicIcon from '@mui/icons-material/Public';
-import LockIcon from '@mui/icons-material/Lock';
+import { useNavigate } from 'react-router-dom';
 import { useRealtime } from '../../Context/RealtimeContext';
+import { resolveSystemHealth } from '../../Utils/systemHealth';
 
 const StatusBar = ({ collapsed }) => {
-  const { stats } = useRealtime();
+  const navigate = useNavigate();
+  const { connected, monitoring, stats } = useRealtime();
 
   const resolvedStats = stats || {};
+  const resolvedMonitoring = monitoring || {};
+  const health = resolveSystemHealth({
+    connected,
+    monitoring: resolvedMonitoring,
+    stats: resolvedStats,
+  });
 
   return (
     <div className={`status-bar ${collapsed ? 'collapsed' : ''}`}>
-      <div className="status-item">
-        <DnsIcon style={{ fontSize: 18, marginRight: 6 }} />
-        OS: {resolvedStats.os || 'N/A'}
-      </div>
-
-      <div className="status-item">
-        <DeveloperBoardIcon style={{ fontSize: 18, marginRight: 6 }} />
-        CPU: {resolvedStats.cpu || 'N/A'}
-      </div>
-
-      <div className="status-item">
-        <MemoryIcon style={{ fontSize: 18, marginRight: 6 }} />
-        RAM: {resolvedStats.ram || 'N/A'}
-      </div>
-
-      <div className="status-item">
-        <SwapHorizIcon style={{ fontSize: 18, marginRight: 6 }} />
-        Swap: {resolvedStats.swap || 'N/A'}
-      </div>
-
-      <div className="status-item">
-        <GraphicEqIcon style={{ fontSize: 18, marginRight: 6 }} />
-        GPU: {resolvedStats.gpu || 'N/A'}
-      </div>
-
-      <div className="status-item">
-        <PublicIcon style={{ fontSize: 18, marginRight: 6 }} />
-        IP: {resolvedStats.publicIP || 'N/A'}
-      </div>
-
-      <div className="status-item">
-        <LockIcon style={{ fontSize: 18, marginRight: 6 }} />
-        Private IP: {resolvedStats.privateIP || 'N/A'}
-      </div>
+      <button
+        type="button"
+        className={`status-health-trigger ${health.level}`}
+        onClick={() => navigate('/system-health')}
+        title="Open detailed system health view"
+      >
+        <span className="status-health-label">System Health</span>
+        <span className="status-health-lights" aria-hidden="true">
+          <span className={`status-health-light green ${health.level === 'green' ? 'active' : ''}`} />
+          <span className={`status-health-light yellow ${health.level === 'yellow' ? 'active' : ''}`} />
+          <span className={`status-health-light red ${health.level === 'red' ? 'active' : ''}`} />
+        </span>
+        <span className="status-health-text">{health.label}</span>
+      </button>
     </div>
   );
 };
