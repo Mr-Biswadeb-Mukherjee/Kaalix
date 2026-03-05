@@ -1,10 +1,10 @@
+export { default as Dashboard } from './dashboard_modules/Dashboard';
 export {
-  default as Dashboard,
   DashboardDarkWebIntelligence,
   DashboardBreachExposureIntelligence,
   DashboardInfrastructureIntelligence,
-} from './Dashboard';
-export { default as DashboardWebSocialMediaIntelligence } from './DashboardWebSocialMediaIntelligence';
+} from './dashboard_modules/DashboardModulePages';
+export { default as DashboardWebSocialMediaIntelligence } from './dashboard_modules/DashboardWebSocialMediaIntelligence';
 export { default as ThreatIntelSettings } from './ThreatIntelSettings';
 export { default as AboutUs } from './Aboutus';
 export { default as Documentation } from './Docs';

@@ -1,10 +1,10 @@
 import { useCallback, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import API from "@amon/shared";
-import "./Styles/Dashboard.css";
-import { DashboardModuleCards } from "./dashboardModules/components";
-import { useToast } from "../Components/UI/Toast";
-import { getBackendErrorMessage, parseApiResponse } from "../Utils/apiError";
+import { useNavigate } from "react-router-dom";
+import { useToast } from "../../Components/UI/Toast";
+import { getBackendErrorMessage, parseApiResponse } from "../../Utils/apiError";
+import "../Styles/Dashboard.css";
+import DashboardModuleCards from "./DashboardModuleCards";
 
 const INTERNET_CONNECTION_SESSION_KEY = "amon.dashboard.internetConnected";
 
