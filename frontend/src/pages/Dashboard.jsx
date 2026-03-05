@@ -4,43 +4,6 @@ import API from "@amon/shared";
 import "./Styles/Dashboard.css";
 import { getBackendErrorMessage, parseApiResponse } from "../Utils/apiError";
 
-const DASHBOARD_MODES = {
-  siem: {
-    title: "SIEM Command View",
-    description: "Unified SIEM visibility for telemetry, detections, and response status.",
-    cards: [
-      { title: "Ingestion Health", summary: "All collectors reporting. Last heartbeat received 12s ago." },
-      { title: "Alert Queue", summary: "3 high-priority alerts await analyst triage." },
-      { title: "Rule Coverage", summary: "127 active detection rules mapped to MITRE tactics." },
-      { title: "Tenant Activity", summary: "4 business units streaming logs in the last hour." },
-    ],
-    listTitle: "Immediate SIEM Focus",
-    listItems: [
-      "Validate high-severity alert ownership across analyst shifts.",
-      "Tune noisy detections from endpoint script execution events.",
-      "Correlate outbound anomalies with identity risk telemetry.",
-      "Escalate critical detections with one-click response routing.",
-    ],
-  },
-  osint: {
-    title: "OSINT Recon View",
-    description: "Track external intelligence signals across exposure, reputation, and threat chatter.",
-    cards: [
-      { title: "Threat Mentions", summary: "19 new references to monitored assets across public channels." },
-      { title: "Brand Exposure", summary: "2 newly indexed impersonation domains flagged for review." },
-      { title: "Credential Leaks", summary: "1 high-confidence employee credential set observed in paste sites." },
-      { title: "Adversary Chatter", summary: "4 actor communities discussing tooling relevant to your stack." },
-    ],
-    listTitle: "Immediate OSINT Focus",
-    listItems: [
-      "Pivot from leaked identities to related domains and aliases.",
-      "Track newly registered lookalike domains for abuse lifecycle.",
-      "Prioritize takedown requests for phishing infrastructure.",
-      "Attach confidence scores before promoting intel to detections.",
-    ],
-  },
-};
-
 const RELATION_LABELS = Object.freeze({
   matched_entity: "Matched Entity",
   official_website: "Official Website",
@@ -334,7 +297,6 @@ const buildPivotLayout = (nodes = [], edges = [], selectedNodeId = "") => {
 };
 
 const Dashboard = () => {
-  const [mode, setMode] = useState("siem");
   const [intelQuery, setIntelQuery] = useState("");
   const [intelConnected, setIntelConnected] = useState(false);
   const [intelConnecting, setIntelConnecting] = useState(false);
@@ -348,7 +310,6 @@ const Dashboard = () => {
     "KaaliX Intelligence is offline. Connect engine to enable search."
   );
   const [intelGraphZoom, setIntelGraphZoom] = useState(1);
-  const activeView = useMemo(() => DASHBOARD_MODES[mode], [mode]);
 
   useEffect(() => {
     if (!intelSearching) {
@@ -599,65 +560,16 @@ const Dashboard = () => {
   }, []);
 
   return (
-    <section className="siem-page dashboard-page">
-      <header className="siem-header dashboard-header">
+    <section className="dashboard-shell dashboard-page">
+      <header className="dashboard-shell-header dashboard-header">
         <div className="dashboard-header-copy">
           <h1>Security Dashboard</h1>
-          <p>Flip between SIEM operations and OSINT intelligence in one workspace.</p>
-        </div>
-        <div className="dashboard-mode-toggle" role="tablist" aria-label="Dashboard mode switch">
-          <button
-            role="tab"
-            aria-selected={mode === "siem"}
-            className={mode === "siem" ? "active" : ""}
-            onClick={() => setMode("siem")}
-          >
-            SIEM
-          </button>
-          <button
-            role="tab"
-            aria-selected={mode === "osint"}
-            className={mode === "osint" ? "active" : ""}
-            onClick={() => setMode("osint")}
-          >
-            OSINT
-          </button>
+          <p>OSINT intelligence workspace for reconnaissance and graph pivots.</p>
         </div>
       </header>
 
-      <section
-        key={mode}
-        className={`dashboard-mode-panel ${mode === "osint" ? "osint-mode-centered" : ""}`}
-      >
-        {mode === "siem" && (
-          <>
-            <header className="siem-header dashboard-mode-header">
-              <h2>{activeView.title}</h2>
-              <p>{activeView.description}</p>
-            </header>
-
-            <div className="siem-grid">
-              {activeView.cards.map((item) => (
-                <article className="siem-card" key={item.title}>
-                  <h3>{item.title}</h3>
-                  <p>{item.summary}</p>
-                </article>
-              ))}
-            </div>
-
-            <article className="siem-card">
-              <h3>{activeView.listTitle}</h3>
-              <ul className="siem-list">
-                {activeView.listItems.map((item) => (
-                  <li key={item}>{item}</li>
-                ))}
-              </ul>
-            </article>
-          </>
-        )}
-
-        {mode === "osint" && (
-          <article className="osint-intel-shell">
+      <section className="dashboard-mode-panel osint-mode-centered">
+        <article className="osint-intel-shell">
             <header className="osint-shell-head">
               <div className="osint-shell-copy">
                 <p className="osint-shell-eyebrow">Threat Intelligence Console</p>
@@ -1000,7 +912,6 @@ const Dashboard = () => {
               </article>
             )}
           </article>
-        )}
       </section>
     </section>
   );

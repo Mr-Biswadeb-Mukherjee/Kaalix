@@ -3,13 +3,9 @@
 // Importing React Router DOM hooks for navigation
 import { Link, useLocation } from 'react-router-dom';
 import DashboardIcon from '@mui/icons-material/Dashboard';
-import StorageIcon from '@mui/icons-material/Storage';
 import ListAltIcon from '@mui/icons-material/ListAlt';
 import InfoIcon from '@mui/icons-material/Info';
 import MenuBookIcon from '@mui/icons-material/MenuBook';
-import RuleIcon from '@mui/icons-material/Rule';
-import HubIcon from '@mui/icons-material/Hub';
-import SyncAltIcon from '@mui/icons-material/SyncAlt';
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 import ManageSearchIcon from '@mui/icons-material/ManageSearch';
 import './Styles/sidebar.css';
@@ -32,10 +28,6 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
   const menuItems = [
     { name: 'Dashboard', icon: <DashboardIcon />, route: '/dashboard' },
     { name: 'Threat Intel', icon: <ManageSearchIcon />, route: '/threat-intel' },
-    { name: 'Data Sources', icon: <StorageIcon />, route: '/data-sources' },
-    { name: 'Detection Rules', icon: <RuleIcon />, route: '/detection-rules' },
-    { name: 'Integrations', icon: <HubIcon />, route: '/integrations' },
-    { name: 'Log Forwarder', icon: <SyncAltIcon />, route: '/log-forwarder' },
     ...(isSuperAdmin
       ? [{ name: 'Org Admins', icon: <AdminPanelSettingsIcon />, route: '/organization-admins' }]
       : []),

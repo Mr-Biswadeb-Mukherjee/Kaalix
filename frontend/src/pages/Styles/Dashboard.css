@@ -1,3 +1,20 @@
+.dashboard-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  color: var(--text-color);
+}
+
+.dashboard-shell-header h1 {
+  margin: 0;
+  font-size: 1.85rem;
+}
+
+.dashboard-shell-header p {
+  margin: 6px 0 0;
+  opacity: 0.85;
+}
+
 .dashboard-page {
   gap: 16px;
 }

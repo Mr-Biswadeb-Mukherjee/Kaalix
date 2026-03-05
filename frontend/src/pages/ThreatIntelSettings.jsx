@@ -331,8 +331,8 @@ const ThreatIntelSettings = () => {
   }, [intelRecentSearches]);
 
   return (
-    <section className="siem-page intel-settings-page">
-      <header className="siem-header intel-settings-header">
+    <section className="dashboard-shell intel-settings-page">
+      <header className="dashboard-shell-header intel-settings-header">
         <div>
           <h1>Kaalix Threat Intelligence</h1>
           <p>Central place for OSINT engine settings, API credentials, and recent investigation history.</p>

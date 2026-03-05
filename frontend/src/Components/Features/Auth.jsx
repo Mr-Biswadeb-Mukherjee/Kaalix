@@ -540,7 +540,7 @@ const Auth = ({ onAuthSuccess }) => {
           >
             <h2 className="auth__title">Secure Login</h2>
             <h4 className="auth__subtitle">
-              Authenticate to access the Kaalix SIEM workspace.
+              Authenticate to access the Kaalix security workspace.
             </h4>
           </motion.div>
 
