@@ -1,16 +1,20 @@
-export { default as Dashboard } from './Dashboard';
+export {
+  default as Dashboard,
+  DashboardDarkWebIntelligence,
+  DashboardBreachExposureIntelligence,
+  DashboardInfrastructureIntelligence,
+} from './Dashboard';
 export { default as DashboardWebSocialMediaIntelligence } from './DashboardWebSocialMediaIntelligence';
-export { default as DashboardDarkWebIntelligence } from './DashboardDarkWebIntelligence';
-export { default as DashboardBreachExposureIntelligence } from './DashboardBreachExposureIntelligence';
-export { default as DashboardInfrastructureIntelligence } from './DashboardInfrastructureIntelligence';
 export { default as ThreatIntelSettings } from './ThreatIntelSettings';
 export { default as AboutUs } from './Aboutus';
 export { default as Documentation } from './Docs';
-export { default as Logs } from './Logs';
-export { default as LogsAccountHistory } from './LogsAccountHistory';
-export { default as LogsSearchHistory } from './LogsSearchHistory';
-export { default as LogsLoginSessions } from './LogsLoginSessions';
-export { default as LogsNotifications } from './LogsNotifications';
+export {
+  default as Logs,
+  LogsAccountHistory,
+  LogsSearchHistory,
+  LogsLoginSessions,
+  LogsNotifications,
+} from './Logs';
 export { default as Profile } from './Profile';
 export { default as OrganizationAdmins } from './OrganizationAdmins';
 export { default as SystemHealth } from './SystemHealth';
