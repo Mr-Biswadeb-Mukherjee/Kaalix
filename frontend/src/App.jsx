@@ -22,11 +22,19 @@ function RouteWrapper({ title, children }) {
 // === Define Application Routes with Titles ===
 const routeConfig = [
   { path: 'dashboard', element: <Pages.Dashboard />, title: 'Security Dashboard | Kaalix' },
+  { path: 'dashboard/web-social-media-intelligence', element: <Pages.DashboardWebSocialMediaIntelligence />, title: 'Web & Social Media Intelligence | Kaalix' },
+  { path: 'dashboard/dark-web-intelligence', element: <Pages.DashboardDarkWebIntelligence />, title: 'Dark Web Intelligence | Kaalix' },
+  { path: 'dashboard/breach-exposure-intelligence', element: <Pages.DashboardBreachExposureIntelligence />, title: 'Breach & Exposure Intelligence | Kaalix' },
+  { path: 'dashboard/infrastructure-intelligence', element: <Pages.DashboardInfrastructureIntelligence />, title: 'Infrastructure Intelligence | Kaalix' },
   { path: 'threat-intel', element: <Pages.ThreatIntelSettings />, title: 'Threat Intelligence Settings | Kaalix' },
   { path: 'system-health', element: <Pages.SystemHealth />, title: 'System Health | Kaalix' },
   { path: 'about', element: <Pages.AboutUs />, title: 'About Us | Kaalix' },
   { path: 'docs', element: <Pages.Documentation />, title: 'Documentation | Kaalix' },
   { path: 'logs', element: <Pages.Logs />, title: 'Logs | Kaalix' },
+  { path: 'logs/account-history', element: <Pages.LogsAccountHistory />, title: 'Account History Logs | Kaalix' },
+  { path: 'logs/search-history', element: <Pages.LogsSearchHistory />, title: 'Search History Logs | Kaalix' },
+  { path: 'logs/login-sessions', element: <Pages.LogsLoginSessions />, title: 'Login Session Logs | Kaalix' },
+  { path: 'logs/notifications', element: <Pages.LogsNotifications />, title: 'Notification Logs | Kaalix' },
   { path: 'profile', element: <Pages.Profile />, title: 'Profile | Kaalix' },
   {
     path: 'organization-admins',

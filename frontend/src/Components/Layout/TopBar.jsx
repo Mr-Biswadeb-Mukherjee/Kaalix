@@ -11,6 +11,7 @@ import {
   AccountCircle as AccountCircleIcon,
   Logout as LogoutIcon,
   Person as PersonIcon,
+  Settings as SettingsIcon,
   NotificationsNone as NotificationsNoneIcon,
 } from '@mui/icons-material';
 
@@ -443,7 +444,14 @@ const TopBar = ({ collapsed }) => {
               onClick={() => (window.location.href = '/profile')}
             >
               <PersonIcon className="dropdown-icon" />
-              <span>Account Settings</span>
+              <span>Account settings</span>
+            </div>
+            <div
+              className="dropdown-item"
+              onClick={() => (window.location.href = '/threat-intel')}
+            >
+              <SettingsIcon className="dropdown-icon" />
+              <span>System Settings</span>
             </div>
             <div
               className="dropdown-item"
@@ -451,7 +459,7 @@ const TopBar = ({ collapsed }) => {
               style={onboardingRequired ? { opacity: 0.5, cursor: 'not-allowed' } : undefined}
             >
               <LogoutIcon className="dropdown-icon" />
-              <span>Logout</span>
+              <span>logout</span>
             </div>
           </div>
         )}

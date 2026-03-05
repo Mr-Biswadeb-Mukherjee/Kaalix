@@ -69,9 +69,8 @@ const buildRecentIntelSearches = (activities = []) => {
 
 const ThreatIntelSettings = () => {
   const [intelConnected, setIntelConnected] = useState(false);
-  const [intelConnecting, setIntelConnecting] = useState(false);
   const [intelConnectionMessage, setIntelConnectionMessage] = useState(
-    "KaaliX Intelligence is offline. Connect engine to enable search."
+    "KaaliX Intelligence is offline. Use Dashboard to connect internet access."
   );
 
   const [intelApiKeyInput, setIntelApiKeyInput] = useState("");
@@ -219,50 +218,6 @@ const ThreatIntelSettings = () => {
     };
   }, [applyConnectivitySnapshot, loadIntelRecentSearches, requestIntelConnectivity, requestIntelSerpApiKeyStatus]);
 
-  const handleIntelConnectionToggle = useCallback(
-    async (nextChecked) => {
-      if (intelConnecting) return;
-
-      if (!nextChecked) {
-        setIntelConnected(false);
-        setIntelConnectionMessage("KaaliX Intelligence is offline.");
-        return;
-      }
-
-      setIntelConnected(true);
-      setIntelConnecting(true);
-      setIntelConnectionMessage("Checking KaaliX engine readiness...");
-
-      try {
-        const data = await requestIntelConnectivity();
-        if (data?.connected) {
-          setIntelConnected(true);
-          setIntelConnectionMessage(
-            typeof data?.message === "string" && data.message.trim()
-              ? data.message
-              : "KaaliX Intelligence engine connection established."
-          );
-          return;
-        }
-
-        const failureDetails =
-          Array.isArray(data?.failureReasons) && data.failureReasons.length > 0
-            ? ` (${data.failureReasons.join(", ")})`
-            : "";
-        setIntelConnected(false);
-        setIntelConnectionMessage(
-          `${data?.message || "Unable to connect KaaliX Intelligence engine."}${failureDetails}`
-        );
-      } catch (err) {
-        setIntelConnected(false);
-        setIntelConnectionMessage(getBackendErrorMessage(err));
-      } finally {
-        setIntelConnecting(false);
-      }
-    },
-    [intelConnecting, requestIntelConnectivity]
-  );
-
   const handleIntelApiKeySave = useCallback(async () => {
     const key = String(intelApiKeyInput || "").trim();
     if (key.length < 20) {
@@ -317,8 +272,8 @@ const ThreatIntelSettings = () => {
     }
   }, [applyConnectivitySnapshot, requestIntelSerpApiKeySave]);
 
-  const intelConnectionStateClass = intelConnecting ? "checking" : intelConnected ? "online" : "offline";
-  const intelConnectionStateLabel = intelConnecting ? "Checking" : intelConnected ? "Online" : "Offline";
+  const intelConnectionStateClass = intelConnected ? "online" : "offline";
+  const intelConnectionStateLabel = intelConnected ? "Online" : "Offline";
 
   const recentStats = useMemo(() => {
     const successCount = intelRecentSearches.filter((item) => item.status === "success").length;
@@ -363,25 +318,6 @@ const ThreatIntelSettings = () => {
       <section className="intel-settings-grid">
         <article className="intel-settings-card">
           <h2>Engine & API Configuration</h2>
-
-          <div className="intel-settings-connect-row">
-            <label className="intel-settings-connect-switch">
-              <input
-                type="checkbox"
-                checked={intelConnected || intelConnecting}
-                onChange={(event) => handleIntelConnectionToggle(event.target.checked)}
-                disabled={intelConnecting}
-                aria-label="Connect KaaliX Intelligence engine"
-              />
-              <span className="intel-settings-switch-track" aria-hidden="true">
-                <span className="intel-settings-switch-thumb" />
-              </span>
-              <span className="intel-settings-connect-label">Connect Engine</span>
-            </label>
-            <span className={`intel-settings-connection-state ${intelConnectionStateClass}`}>
-              {intelConnectionStateLabel}
-            </span>
-          </div>
 
           <div className="intel-settings-key-row">
             <input

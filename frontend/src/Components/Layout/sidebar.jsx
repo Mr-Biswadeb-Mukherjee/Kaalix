@@ -7,7 +7,6 @@ import ListAltIcon from '@mui/icons-material/ListAlt';
 import InfoIcon from '@mui/icons-material/Info';
 import MenuBookIcon from '@mui/icons-material/MenuBook';
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
-import ManageSearchIcon from '@mui/icons-material/ManageSearch';
 import './Styles/sidebar.css';
 import Logo from '../UI/Logo'
 import { useAuth } from '../../Context/AuthContext';
@@ -25,9 +24,11 @@ import { useAuth } from '../../Context/AuthContext';
 const Sidebar = ({ collapsed, setCollapsed }) => {
   const location = useLocation();
   const { onboardingRequired, isSuperAdmin } = useAuth();
+  const isMenuItemActive = (route) =>
+    location.pathname === route || location.pathname.startsWith(`${route}/`);
+  const logsRouteActive = location.pathname === '/logs' || location.pathname.startsWith('/logs/');
   const menuItems = [
     { name: 'Dashboard', icon: <DashboardIcon />, route: '/dashboard' },
-    { name: 'Threat Intel', icon: <ManageSearchIcon />, route: '/threat-intel' },
     ...(isSuperAdmin
       ? [{ name: 'Org Admins', icon: <AdminPanelSettingsIcon />, route: '/organization-admins' }]
       : []),
@@ -61,7 +62,7 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
           <Link
             to={onboardingRequired ? "/profile" : item.route}
             key={item.name}
-            className={`sidebar-item ${location.pathname === item.route ? 'active' : ''} ${onboardingRequired ? 'disabled' : ''}`}
+            className={`sidebar-item ${isMenuItemActive(item.route) ? 'active' : ''} ${onboardingRequired ? 'disabled' : ''}`}
             data-tooltip={collapsed ? item.name : ''}
             onClick={(event) => {
               if (onboardingRequired) {
@@ -81,7 +82,7 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
       <div className="sidebar-bottom">
         <Link
           to={onboardingRequired ? "/profile" : "/logs"}
-          className={`sidebar-item ${location.pathname === '/logs' ? 'active' : ''} ${onboardingRequired ? 'disabled' : ''}`}
+          className={`sidebar-item ${logsRouteActive ? 'active' : ''} ${onboardingRequired ? 'disabled' : ''}`}
           data-tooltip={collapsed ? 'Logs' : ''}
           onClick={(event) => {
             if (onboardingRequired) {

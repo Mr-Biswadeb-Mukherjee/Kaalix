@@ -1,0 +1,3 @@
+export const LOGIN_HISTORY_LIMIT = 10;
+export const ACTIVITY_HISTORY_LIMIT = 40;
+export const NOTIFICATION_HISTORY_LIMIT = 50;
